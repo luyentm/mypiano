@@ -44,7 +44,7 @@ CI chặn phần lớn các vi phạm này — xem job `check` trong [.github/wo
 | 8 | ~488 | `drawFalling()`, `drawKeys()` — vòng vẽ |
 | 9 | ~621 | Scheduler 25ms + `frame()` (rAF) |
 | 10 | ~650 | Transport: `play/pause/stop/seekTo/setRate` |
-| 11 | ~686 | UI binding, `loadFromLibrary()`, drag-drop, phím tắt, khởi động |
+| 11 | ~700 | UI binding, `loadFromLibrary()`, overlay hết bài, drag-drop, phím tắt, khởi động |
 
 ## Quyết định kỹ thuật phải giữ
 
@@ -73,6 +73,9 @@ CI chặn phần lớn các vi phạm này — xem job `check` trong [.github/wo
   `right` / `left` / `treble` / `bass`), không có tên mới đoán theo cao độ mốc C4.
   Gán theo thứ tự track là sai với file có nhiều hơn 2 track nhạc.
   Tay phải `--rh`, tay trái `--lh`.
+- **Hết bài thì mời chọn bài tiếp** — scheduler thấy `now >= duration` thì `stop()` rồi
+  `showDone()` (overlay `#done`: Chơi lại / Chọn bài khác / Đóng). Mọi đường quay lại phát
+  (`play`, `stop`, `seekTo`, `load`) đều phải gọi `hideDone()`, nếu không overlay kẹt lại.
 - **`?song=` chỉ nhận tên file thuần** (`/^[A-Za-z0-9._-]+\.midi?$/`) rồi fetch `../midi/<tên>`.
   Đừng nhận đường dẫn hay URL đầy đủ — mở đường cho traversal và fetch bậy.
 

@@ -66,8 +66,17 @@
   a.home{color:var(--rh); text-decoration:none; font-size:19px; line-height:1; flex:none}
   a.home:hover{opacity:.75}
   #busy{position:absolute; inset:0; display:none; place-items:center; color:var(--dim);
-    background:rgba(13,16,23,.75); font-size:13px}
+    background:rgba(13,16,23,.75); font-size:13px; z-index:2}
   #busy.on{display:grid}
+  #done{position:absolute; inset:0; display:none; place-items:center; z-index:1;
+    background:rgba(10,13,19,.82); padding:16px}
+  #done.on{display:grid}
+  #done .box{background:var(--panel); border:1px solid var(--line); border-radius:13px;
+    padding:20px 22px; text-align:center; max-width:340px}
+  #done .h{font-size:17px; font-weight:600; margin-bottom:4px}
+  #done .s{font-size:13px; color:var(--dim); margin-bottom:16px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  #done .b{display:flex; gap:8px; justify-content:center; flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -87,6 +96,18 @@
   <canvas id="keys"></canvas>
   <div id="drop">Thả file .mid vào đây</div>
   <div id="busy">Đang tải…</div>
+
+  <div id="done">
+    <div class="box">
+      <div class="h">Hết bài</div>
+      <div class="s" id="doneName"></div>
+      <div class="b">
+        <button class="btn primary" id="again">Chơi lại</button>
+        <a class="btn" href="../library/">Chọn bài khác</a>
+        <button class="btn" id="closeDone">Đóng</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <footer>
@@ -433,6 +454,7 @@ function normalize(data){
 }
 
 function load(data, name){
+  hideDone();
   data = normalize(data);
   notes = data.notes.slice().sort((a,b) => a.start - b.start);
   grid  = (data.grid || []).slice().sort((a,b) => a.sec - b.sec);
@@ -629,8 +651,14 @@ setInterval(() => {
     if (n.end < now) continue;
     voice(n, Math.max(songToAudio(n.start), actx.currentTime), (n.end - n.start) / rate);
   }
-  if (now >= duration) stop();
+  if (now >= duration){ stop(); showDone(); }     /* hết bài: mời chọn bài khác */
 }, 25);
+
+function showDone(){
+  $('doneName').textContent = $('songname').textContent;
+  $('done').classList.add('on');
+}
+function hideDone(){ $('done').classList.remove('on'); }
 
 let dragging = false;
 const fmt = s => { s = Math.max(0, s|0); return (s/60|0) + ':' + String(s % 60).padStart(2, '0'); };
@@ -650,6 +678,7 @@ function frame(){
    10) TRANSPORT
    ========================================================================== */
 function play(){
+  hideDone();
   initAudio();
   actx.resume();                              /* phải nằm trong user gesture — iOS Safari */
   if (seekOffset >= duration - 0.05) seekOffset = 0;
@@ -665,10 +694,12 @@ function pause(){
   $('play').textContent = 'Chơi';
 }
 function stop(){
+  hideDone();
   pause(); seekOffset = 0; schedIdx = 0; lastKeySig = null;
   $('play').textContent = 'Chơi';
 }
 function seekTo(t){
+  hideDone();
   const was = playing; pause();
   seekOffset = Math.max(0, Math.min(t, duration));
   schedIdx = lowerBound(seekOffset);
@@ -687,6 +718,9 @@ function setRate(pct){
    ========================================================================== */
 $('play').onclick = () => playing ? pause() : play();
 $('stop').onclick = () => stop();
+$('again').onclick = () => { seekOffset = 0; schedIdx = 0; play(); };
+$('closeDone').onclick = () => hideDone();
+$('done').onclick = e => { if (e.target === $('done')) hideDone(); };   /* bấm ra ngoài để đóng */
 
 $('seek').oninput  = e => { dragging = true; const t = e.target.value/1000*duration;
                             $('time').textContent = fmt(t) + ' / ' + fmt(duration); };
