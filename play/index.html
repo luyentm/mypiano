@@ -826,7 +826,13 @@ function drawKeys(active){
 /* ==========================================================================
    8) HAI ĐỒNG HỒ — rAF chỉ vẽ; timer 25ms lo lên lịch phát trước ~100ms
    ========================================================================== */
-const AHEAD = 0.1;
+/* Lên lịch trước 0.5s thay vì 0.1s. Lý do: nốt nào timer tới trễ hơn độ dài của nó
+   thì bị `n.end < now` vứt bỏ VĨNH VIỄN (schedIdx đã đi qua) — bài dày nốt chỉ 0.15s
+   nên chỉ cần khựng > 250ms là mất nốt, nghe như đánh sai. Đo mô phỏng: khựng 200ms
+   rải rác thì 0.1s vẫn rơi 0%, nhưng biên an toàn quá mỏng. 0.5s nuốt được mọi cú
+   khựng thực tế mà đổi tốc độ / tắt tay vẫn nhạy vì các đường đó đều killVoices() +
+   tính lại schedIdx. */
+const AHEAD = 0.5;
 setInterval(() => {
   if (!playing || !actx) return;
   const now = songTime(), until = now + AHEAD * rate;
@@ -1053,7 +1059,13 @@ function savePrefs(extra){
 function savePos(){ if (notes.length && currentSong) savePrefs({ pos: Math.max(0, songTime()) }); }
 setInterval(() => { if (playing) savePos(); }, 2000);
 addEventListener('pagehide', savePos);
-addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') savePos(); });
+addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'hidden') return;
+  savePos();
+  /* Tab nền bị trình duyệt bóp setInterval xuống 1 lần/giây (đã đo), scheduler không
+     theo kịp và nuốt ~70% số nốt — nghe thành một mớ sai bét. Thà dừng hẳn còn hơn. */
+  if (playing) pause();
+});
 
 /* Đếm lượt bằng hits.sh: MỖI LẦN ảnh .svg được tải là +1, không có chế độ chỉ-xem.
    Nên badge theo bài chỉ nhúng ở đây — lúc bài thật sự được mở ra để tập.

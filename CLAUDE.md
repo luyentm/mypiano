@@ -62,7 +62,13 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
   Cấm `performance.now()`, cấm cộng dồn delta của rAF — sẽ drift lệch audio.
   (Hero ở trang chủ dùng `performance.now()` được, vì nó không phát tiếng.)
 - **Hai đồng hồ**: rAF chỉ để vẽ; một `setInterval(25ms)` riêng lo lên lịch nốt,
-  schedule trước ~100ms bằng `osc.start(preciseTime)`.
+  schedule trước `AHEAD = 0.5s` bằng `osc.start(preciseTime)`.
+  **Đừng hạ `AHEAD` xuống**: nốt nào timer tới trễ hơn độ dài của nó sẽ bị dòng
+  `if (n.end < now) continue` vứt bỏ vĩnh viễn (schedIdx đã đi qua). Bài dày có nốt
+  chỉ 0.15s, nên 0.1s chỉ chịu được cú khựng ~240ms; 0.5s chịu được ~640ms.
+- **Tab chuyển sang nền thì `pause()`** — trình duyệt bóp `setInterval` xuống
+  1 lần/giây (đã đo 800ms/tick), scheduler nuốt ~70% số nốt và phát ra một mớ sai bét.
+  Dừng hẳn tử tế hơn, vị trí đã được `savePos()` giữ lại.
 - **Culling**: `notes` sort theo `start`, mỗi frame binary search (`lowerBound`).
   Phải lùi window lại `maxDur` nếu không nốt bass/pedal dài sẽ biến mất khỏi màn hình.
 - **Geometry**: precompute `{x, w, black}` cho từng phím một lần, tách khỏi danh sách nốt.
