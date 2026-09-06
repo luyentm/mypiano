@@ -133,14 +133,16 @@ chỉ cần khi muốn dựng lại bài mẫu.
 
 ## Chạy & kiểm tra
 
-`/play/` và `/library/` dùng `fetch`, nên `file://` sẽ chặn — phải chạy qua http:
+**Dev server luôn chạy ở cổng 1234** để chủ repo mở <http://localhost:1234> xem thay đổi
+bất cứ lúc nào — cấu hình sẵn trong [.claude/launch.json](.claude/launch.json).
+Sau khi sửa file, khởi động lại nếu server chết; đừng đổi sang cổng khác.
 
 ```bash
-python3 -m http.server 8000
+python3 -m http.server 1234
 ```
 
-Rồi mở <http://localhost:8000/>. (Trang chủ và phần demo hardcode của `/play/` thì mở
-thẳng file cũng chạy.)
+`/play/` và `/library/` dùng `fetch` nên mở bằng `file://` sẽ bị chặn — bắt buộc qua http.
+(Trang chủ và phần demo hardcode của `/play/` thì mở thẳng file vẫn chạy.)
 
 Kiểm tra cú pháp JS inline cả 3 trang — CI chạy đúng vòng lặp này:
 

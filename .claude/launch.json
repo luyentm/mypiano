@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "mypiano",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "1234"],
+      "port": 1234
+    }
+  ]
+}
