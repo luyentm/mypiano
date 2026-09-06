@@ -45,7 +45,7 @@ CI chặn phần lớn các vi phạm này — xem job `check` trong [.github/wo
 | 7 | ~467 | `drawFalling()`, `drawKeys()` — vòng vẽ |
 | 8 | ~600 | Scheduler 25ms + `frame()` (rAF) |
 | 9 | ~635 | Transport: `play/pause/stop/seekTo/setRate` |
-| 10 | ~675 | UI binding, `countSong()`, `loadFromLibrary()`, overlay hết bài / trống, drag-drop, phím tắt, khởi động |
+| 10 | ~690 | UI binding, `setHand()`, toàn màn hình, `countSong()`, `loadFromLibrary()`, overlay hết bài / trống, drag-drop, phím tắt, khởi động |
 
 **Không còn bài demo hardcode** (đã gỡ cùng menu chọn bài trong header).
 `/play/` không tham số sẽ nạp **bài dễ nhất** trong `midi/index.json`; thư viện rỗng
@@ -79,6 +79,16 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
   `right` / `left` / `treble` / `bass`), không có tên mới đoán theo cao độ mốc C4.
   Gán theo thứ tự track là sai với file có nhiều hơn 2 track nhạc.
   Tay phải `--rh`, tay trái `--lh`.
+- **Bật/tắt từng tay (`handState`)** — 3 trạng thái `on` → `silent` → `off`.
+  `silent` = không kêu nhưng NỐT VẪN RƠI và phím vẫn sáng: đây là chế độ tập từng tay,
+  đừng "tối ưu" bằng cách bỏ luôn khỏi `active`. Khi đổi trạng thái lúc đang chơi phải
+  `killVoices()` + `anchorAt(songTime())` + tính lại `schedIdx`, vì nốt đã được lên lịch
+  trước ~100ms sẽ vẫn kêu nếu không dọn.
+- **Âm lượng nằm ở `master.gain`**, không nằm trong từng voice — đổi là ăn ngay cả với
+  nốt đã lên lịch. Giá trị giữ trong biến `volume` để còn áp được khi `AudioContext`
+  chưa kịp tạo (`initAudio()` đọc lại biến này).
+- **Nút toàn màn hình tự ẩn** khi trình duyệt không hỗ trợ (`requestFullscreen` — iPhone
+  Safari không cho fullscreen phần tử thường). Vào/ra fullscreen thì gọi `resize()`.
 - **`play()` phải thoát sớm khi `notes` rỗng** — không có bài mà bấm Chơi thì scheduler
   thấy ngay `now >= duration` (= 0) và bắn overlay "Hết bài" vô nghĩa.
 - **Hết bài thì mời chọn bài tiếp** — scheduler thấy `now >= duration` thì `stop()` rồi

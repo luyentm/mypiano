@@ -64,8 +64,20 @@
     min-width:40px; display:inline-block}
   input[type=range]{accent-color:var(--lh); height:24px}
   input[type=checkbox]{accent-color:var(--lh); width:15px; height:15px}
-  .legend{display:flex; gap:12px; align-items:center; font-size:12px; color:var(--dim)}
-  .legend i{display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:5px}
+  .hands{display:flex; gap:7px; align-items:center}
+  .hand{display:inline-flex; align-items:center; gap:7px; font:inherit; font-size:12px;
+    color:var(--text); background:#1a2130; border:1px solid var(--line); border-radius:20px;
+    padding:5px 12px 5px 9px; cursor:pointer; user-select:none; white-space:nowrap;
+    touch-action:manipulation}
+  .hand:hover{background:#212a3c}
+  .hand:focus-visible{outline:2px solid var(--lh); outline-offset:2px}
+  .hand i{width:9px; height:9px; border-radius:50%; flex:none}
+  .hand b{color:var(--dim); font-weight:400; font-size:11px}
+  .hand[data-s="silent"]{border-style:dashed; opacity:.8}
+  .hand[data-s="off"]{opacity:.42}
+  .hand[data-s="off"] i{background:#4a5468 !important}
+  .btn.icon{padding:6px 9px; display:inline-flex; align-items:center}
+  .btn.icon svg{display:block}
   .err{color:#e07a6a; font-size:12px}
   .hit{position:absolute; left:-9999px; width:1px; height:1px; opacity:0; pointer-events:none}
   #hits img{display:block; height:20px; width:auto}
@@ -93,6 +105,12 @@
   <h1>Piano falling notes</h1>
   <a class="btn" href="../library/">Thư viện</a>
   <button class="btn" id="load">Mở MIDI</button>
+  <button class="btn icon" id="fs" title="Toàn màn hình" aria-label="Toàn màn hình" hidden>
+    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+      <path id="fsIcon" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+            d="M1 5.6V1.8A.8.8 0 0 1 1.8 1H5.6M10.4 1h3.8a.8.8 0 0 1 .8.8v3.8M15 10.4v3.8a.8.8 0 0 1-.8.8h-3.8M5.6 15H1.8a.8.8 0 0 1-.8-.8v-3.8"/>
+    </svg>
+  </button>
   <input type="file" id="file" accept=".mid,.midi,audio/midi" hidden>
   <span class="sub" id="songname"></span>
 </header>
@@ -137,8 +155,12 @@
   <div class="row">
     <label class="ctl">Tốc độ <input type="range" id="rate" min="25" max="200" step="5" value="100"><b id="rateV">100%</b></label>
     <label class="ctl">Nhìn trước <input type="range" id="look" min="1" max="6" step="0.5" value="3.5"><b id="lookV">3.5s</b></label>
+    <label class="ctl">Âm lượng <input type="range" id="vol" min="0" max="100" step="5" value="90"><b id="volV">90%</b></label>
     <label class="ctl"><input type="checkbox" id="fit"> Thu gọn phím</label>
-    <span class="legend"><span><i style="background:var(--rh)"></i>Tay phải</span><span><i style="background:var(--lh)"></i>Tay trái</span></span>
+    <span class="hands">
+      <button class="hand" id="h0" data-s="on" aria-pressed="true"><i style="background:var(--rh)"></i>Tay phải <b>phát</b></button>
+      <button class="hand" id="h1" data-s="on" aria-pressed="true"><i style="background:var(--lh)"></i>Tay trái <b>phát</b></button>
+    </span>
     <span id="hits"></span>
     <span class="err" id="err"></span>
   </div>
@@ -282,17 +304,24 @@ const $   = id => document.getElementById(id);
 const css = v  => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const handCol = h => css(h === 1 ? '--lh' : '--rh');
 
+/* Mỗi tay 3 trạng thái: phát (nghe + nhìn) -> chỉ hiện (nhìn, tự đánh lấy) -> ẩn.
+   "chỉ hiện" là chế độ tập từng tay: app im, nốt vẫn rơi và phím vẫn sáng dẫn đường. */
+const handState = ['on', 'on'];
+const HAND_NEXT  = { on:'silent', silent:'off', off:'on' };
+const HAND_LABEL = { on:'phát', silent:'chỉ hiện', off:'ẩn' };
+
 /* ==========================================================================
    3) AUDIO — Web Audio thuần, oscillator + ADSR
    ========================================================================== */
 let actx = null, master = null;
+let volume = 0.9;                              /* nhớ cả khi AudioContext chưa được tạo */
 let voices = [], voiceCount = 0;
 const MAX_VOICES = 16;
 
 function initAudio(){
   if (actx) return;
   actx = new (window.AudioContext || window.webkitAudioContext)();
-  master = actx.createGain(); master.gain.value = 0.9;
+  master = actx.createGain(); master.gain.value = volume;
   const comp = actx.createDynamicsCompressor();
   comp.threshold.value = -18; comp.ratio.value = 6; comp.attack.value = 0.004;
   master.connect(comp).connect(actx.destination);
@@ -523,8 +552,9 @@ function drawFalling(now){
     const n = notes[i];
     if (n.start > winEnd) break;
     if (n.end < now) continue;
+    if (handState[n.hand] === 'off') continue;
     const g = geom[n.midi]; if (!g) continue;
-    if (n.start <= now) active.push(n);
+    if (n.start <= now) active.push(n);        /* 'chỉ hiện' vẫn làm sáng phím để dẫn tay */
     visible.push([n, g]);
   }
 
@@ -537,16 +567,17 @@ function drawFalling(now){
       if (top > HF) continue;
       const live = n.start <= now && n.end >= now;
       const col  = handCol(n.hand);
+      const silent = handState[n.hand] === 'silent';
 
-      if (live){                              /* glow: lớp mờ phía sau, KHÔNG shadowBlur */
+      if (live && !silent){                   /* glow: lớp mờ phía sau, KHÔNG shadowBlur */
         fctx.globalAlpha = 0.28; fctx.fillStyle = col;
         rrect(fctx, g.x - 2, top - 2, g.w + 4, h + 4, 5); fctx.fill();
-        fctx.globalAlpha = 1;
       }
+      fctx.globalAlpha = silent ? 0.4 : 1;
       fctx.fillStyle = col;
       rrect(fctx, g.x + 1, top, g.w - 2, h, 3); fctx.fill();
 
-      fctx.globalAlpha = live ? 0.55 : 0.3;   /* vệt sáng bên trái cho nổi khối */
+      fctx.globalAlpha = silent ? 0.2 : (live ? 0.55 : 0.3);   /* vệt sáng bên trái */
       fctx.fillStyle = '#fff';
       rrect(fctx, g.x + 1, top, Math.max(g.w * 0.22, 2), h, 3); fctx.fill();
       fctx.globalAlpha = 1;
@@ -605,7 +636,7 @@ setInterval(() => {
   const now = songTime(), until = now + AHEAD * rate;
   while (schedIdx < notes.length && notes[schedIdx].start < until){
     const n = notes[schedIdx++];
-    if (n.end < now) continue;
+    if (n.end < now || handState[n.hand] !== 'on') continue;
     voice(n, Math.max(songToAudio(n.start), actx.currentTime), (n.end - n.start) / rate);
   }
   if (now >= duration){ stop(); showDone(); }     /* hết bài: mời chọn bài khác */
@@ -664,6 +695,13 @@ function seekTo(t){
   lastKeySig = null;
   if (was) play();
 }
+/* Đổi ngay trên master gain, ramp ngắn cho khỏi "bụp". Nốt đã lên lịch vẫn nghe theo
+   mức mới vì gain nằm ở cuối chuỗi, không phải trong từng voice. */
+function setVolume(pct){
+  volume = pct / 100;
+  $('volV').textContent = pct + '%';
+  if (master) master.gain.setTargetAtTime(volume, actx.currentTime, 0.02);
+}
 function setRate(pct){
   const t = songTime();
   rate = pct / 100;
@@ -685,8 +723,47 @@ $('seek').oninput  = e => { dragging = true; const t = e.target.value/1000*durat
 $('seek').onchange = e => { dragging = false; seekTo(e.target.value/1000*duration); };
 
 $('rate').oninput = e => setRate(+e.target.value);
+$('vol').oninput  = e => setVolume(+e.target.value);
 $('look').oninput = e => { lookahead = +e.target.value; $('lookV').textContent = lookahead + 's'; };
 $('fit').onchange = () => computeRange();
+
+/* Đổi trạng thái tay: nốt đã lên lịch trước ~100ms nên phải neo lại đồng hồ
+   và tính lại schedIdx, nếu không tay vừa tắt vẫn kêu nốt cuối. */
+function setHand(h, st){
+  handState[h] = st;
+  const b = $('h' + h);
+  b.dataset.s = st;
+  b.querySelector('b').textContent = HAND_LABEL[st];
+  b.setAttribute('aria-pressed', st !== 'off');
+  lastKeySig = null;
+  if (playing){ const t = songTime(); killVoices(); anchorAt(t); schedIdx = lowerBound(t); }
+}
+$('h0').onclick = () => setHand(0, HAND_NEXT[handState[0]]);
+$('h1').onclick = () => setHand(1, HAND_NEXT[handState[1]]);
+
+/* Toàn màn hình — iPhone Safari không cho fullscreen phần tử thường, ẩn nút luôn. */
+const FS_EXPAND = 'M1 5.6V1.8A.8.8 0 0 1 1.8 1H5.6M10.4 1h3.8a.8.8 0 0 1 .8.8v3.8M15 10.4v3.8a.8.8 0 0 1-.8.8h-3.8M5.6 15H1.8a.8.8 0 0 1-.8-.8v-3.8';
+const FS_SHRINK = 'M5.6 1v3.8a.8.8 0 0 1-.8.8H1M11 1v3.8a.8.8 0 0 0 .8.8H15M15 11.4h-3.2a.8.8 0 0 0-.8.8V15M1 11.4h3.2a.8.8 0 0 1 .8.8V15';
+const root = document.documentElement;
+const canFS = !!(root.requestFullscreen || root.webkitRequestFullscreen);
+const inFS  = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+
+if (canFS){
+  $('fs').hidden = false;
+  $('fs').onclick = () => {
+    if (inFS()) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    else (root.requestFullscreen || root.webkitRequestFullscreen).call(root);
+  };
+  const syncFS = () => {
+    const on = inFS();
+    $('fsIcon').setAttribute('d', on ? FS_SHRINK : FS_EXPAND);
+    const t = on ? 'Thoát toàn màn hình' : 'Toàn màn hình';
+    $('fs').title = t; $('fs').setAttribute('aria-label', t);
+    resize();
+  };
+  document.addEventListener('fullscreenchange', syncFS);
+  document.addEventListener('webkitfullscreenchange', syncFS);
+}
 
 $('load').onclick = () => $('file').click();
 $('emptyOpen').onclick = () => $('file').click();
@@ -770,6 +847,7 @@ stage.addEventListener('drop', e => {
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
   if (e.code === 'Space'){ e.preventDefault(); playing ? pause() : play(); }
+  if ((e.key === 'f' || e.key === 'F') && canFS) $('fs').click();
 });
 
 /* Khởi động: có ?song= thì nạp bài đó; không thì lấy bài DỄ NHẤT trong thư viện
