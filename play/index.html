@@ -381,6 +381,22 @@ const handCol = h => css(h === 1 ? '--lh' : '--rh');
    Người tập cần biết "bấm phím nào, ngay bây giờ" chứ không cần đọc tên nốt. */
 let showHint = true;
 const HINT_LEAD = 1.2;                         /* giây: bắt đầu nhen sáng từ đây */
+/* Tên nốt in ở ĐÁY phím đang được gợi ý. Màu chữ CỐ ĐỊNH — đen trên phím trắng,
+   trắng trên phím đen — không đổi theo độ sáng highlight, để lúc nào cũng đọc được.
+   Phím C đã có sẵn nhãn quãng tám (C4…) nên không in đè thêm. */
+const KEY_NAME = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+function keyLabel(txt, cx, y, room, max, color){
+  let fs = Math.min(Math.max(room * 0.5, 7), max);
+  kctx.font = '700 ' + fs + 'px system-ui,-apple-system,sans-serif';
+  const w = kctx.measureText(txt).width;
+  if (w > room){
+    fs = fs * room / w;
+    if (fs < 6.5) return;                      /* hẹp quá thì thôi, đừng vẽ cho rối */
+    kctx.font = '700 ' + fs + 'px system-ui,-apple-system,sans-serif';
+  }
+  kctx.fillStyle = color;
+  kctx.fillText(txt, cx, y);
+}
 
 /* Mỗi tay 3 trạng thái: phát (nghe + nhìn) -> chỉ hiện (nhìn, tự đánh lấy) -> ẩn.
    "chỉ hiện" là chế độ tập từng tay: app im, nốt vẫn rơi và phím vẫn sáng dẫn đường. */
@@ -829,6 +845,7 @@ function drawKeys(state){
   if (sig === lastKeySig) return;
   lastKeySig = sig;
 
+  const lit = new Set([...on.keys(), ...hints.keys()]);
   kctx.clearRect(0, 0, W, HK);
   const ivory = css('--ivory'), ebony = css('--ebony');
   const shade = kctx.createLinearGradient(0, HK*0.75, 0, HK);   /* dựng 1 lần, dùng cho mọi phím */
@@ -855,12 +872,11 @@ function drawKeys(state){
         kctx.globalAlpha = 1;
       }
     }
-    if (m % 12 === 0 && g.w >= 10){
-      const fs = Math.min(Math.max(g.w * 0.44, 7), 11);
-      kctx.font = '500 ' + fs + 'px system-ui,-apple-system,sans-serif';
-      kctx.fillStyle = on.has(m) ? 'rgba(255,255,255,.5)' : 'rgba(27,32,43,.34)';
-      kctx.fillText('C' + (m/12 - 1), g.x + (g.w - 1)/2, HK - Math.max(HK*0.07, 5));
-    }
+    const cx = g.x + (g.w - 1) / 2, by = HK - Math.max(HK * 0.07, 5);
+    if (m % 12 === 0 && g.w >= 10)
+      keyLabel('C' + (m/12 - 1), cx, by, g.w - 3, 11, '#1b202b');
+    else if (lit.has(m) && g.w >= 11)
+      keyLabel(KEY_NAME[m % 12], cx, by, g.w - 3, 12, '#1b202b');
   }
   const bh = HK * 0.62;
   for (let m = loMidi; m <= hiMidi; m++){
@@ -877,6 +893,8 @@ function drawKeys(state){
         kctx.globalAlpha = 1;
       }
     }
+    if (lit.has(m))
+      keyLabel(KEY_NAME[m % 12], g.x + g.w / 2, bh - Math.max(bh * 0.08, 3), g.w - 2, 10, '#fff');
   }
   /* Nối tiếp đường nét đứt xuống giữa thân phím, để nốt rơi và phím thành một
      đường thẳng liền mạch trong mắt. */

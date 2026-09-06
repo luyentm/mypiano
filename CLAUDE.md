@@ -121,6 +121,12 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
     hình hoặc vẽ lại mỗi frame. Đo được: 47/120 frame vẽ lại, 0.06ms/frame.
   - Gradient bóng phím trắng dựng MỘT lần ngoài vòng lặp; trước đây tạo lại cho từng
     phím mỗi lần vẽ, giờ vẽ dày hơn nên phải sửa.
+  - **Tên nốt in ở đáy phím** đang sáng (`keyLabel()`): đen đậm trên phím trắng, trắng
+    đậm trên phím đen, **màu cố định** không đổi theo độ sáng highlight — vẽ sau khi đã
+    trả `globalAlpha` về 1. Nhãn quãng tám `C1…C8` cũng dùng đúng font đen đậm đó và
+    không đổi màu khi phím được bấm. Phím C chỉ in `C4`, không in đè thêm chữ `C`.
+    Chữ tự co theo `measureText` cho vừa bề ngang phím, dưới 6.5px thì bỏ không vẽ.
+    In cho cả phím đang kêu lẫn phím sắp bấm, để nhãn không nháy mất đúng lúc chạm phím.
 - **Bật/tắt từng tay (`handState`)** — 3 trạng thái `on` → `silent` → `off`.
   `silent` = không kêu nhưng NỐT VẪN RƠI và phím vẫn sáng: đây là chế độ tập từng tay,
   đừng "tối ưu" bằng cách bỏ luôn khỏi `active`. Khi đổi trạng thái lúc đang chơi phải
