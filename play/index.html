@@ -157,7 +157,7 @@
   <div class="row">
     <label class="ctl">Tốc độ <input type="range" id="rate" min="25" max="200" step="5" value="100"><b id="rateV">100%</b></label>
     <label class="ctl">Nhìn trước <input type="range" id="look" min="1" max="6" step="0.5" value="3.5"><b id="lookV">3.5s</b></label>
-    <label class="ctl">Âm lượng <input type="range" id="vol" min="0" max="100" step="5" value="90"><b id="volV">90%</b></label>
+    <label class="ctl">Âm lượng <input type="range" id="vol" min="0" max="150" step="5" value="90"><b id="volV">90%</b></label>
     <label class="ctl">Tiếng đàn
       <select id="tone" class="btn tone">
         <option value="digital">Digital piano</option>
@@ -322,7 +322,7 @@ const HAND_LABEL = { on:'phát', silent:'chỉ hiện', off:'ẩn' };
 /* ==========================================================================
    3) AUDIO — Web Audio thuần, oscillator + ADSR
    ========================================================================== */
-let actx = null, master = null;
+let actx = null, master = null, outGain = null, limiter = null;
 let volume = 0.9;                              /* nhớ cả khi AudioContext chưa được tạo */
 
 /* Hai bộ tiếng:
@@ -342,10 +342,21 @@ const MAX_VOICES = 16;
 function initAudio(){
   if (actx) return;
   actx = new (window.AudioContext || window.webkitAudioContext)();
-  master = actx.createGain(); master.gain.value = volume;
+  master = actx.createGain(); master.gain.value = 1;      /* điểm gom mọi voice, để cố định */
   const comp = actx.createDynamicsCompressor();
-  comp.threshold.value = -18; comp.ratio.value = 6; comp.attack.value = 0.004;
-  master.connect(comp).connect(actx.destination);
+  /* Nén nhẹ tay thôi: ngưỡng -18/tỉ lệ 6 là nén gần như toàn bộ tín hiệu, nghe bẹt và nhỏ.
+     -10/4 chỉ chặn đỉnh của hợp âm dày, phần còn lại giữ nguyên độ động. */
+  comp.threshold.value = -10; comp.ratio.value = 4;
+  comp.attack.value = 0.004; comp.release.value = 0.15;
+  /* Núm âm lượng phải nằm SAU compressor. Để trước thì kéo to bao nhiêu cũng bị
+     compressor ăn lại gần hết — đó là lý do trước đây nghe mãi vẫn nhỏ. */
+  outGain = actx.createGain(); outGain.gain.value = volume;
+  /* Chốt chặn cuối: kéo 150% với hợp âm dày là vượt 1.0 và méo tiếng ngay (đã đo 1.18).
+     Limiter đứng sau núm âm lượng để dù kéo hết cỡ cũng không bao giờ clip. */
+  limiter = actx.createDynamicsCompressor();
+  limiter.threshold.value = -3; limiter.knee.value = 0; limiter.ratio.value = 20;
+  limiter.attack.value = 0.001; limiter.release.value = 0.08;
+  master.connect(comp).connect(outGain).connect(limiter).connect(actx.destination);
 }
 
 function toneStatus(t){ $('toneV').textContent = t; }
@@ -442,7 +453,7 @@ function sampleVoice(n, when, dur){
   src.playbackRate.value = Math.pow(2, (n.midi - s.midi) / 12);
 
   const g = actx.createGain();
-  const peak = 0.42 * (0.35 + 0.65 * (n.vel / 127));
+  const peak = 0.9 * (0.35 + 0.65 * (n.vel / 127));    /* mẫu gốc đỉnh chỉ ~0.26 */
   const rel = when + Math.max(dur, 0.05);
   g.gain.setValueAtTime(peak, when);
   g.gain.setTargetAtTime(0.0001, rel, 0.09);     /* damper hãm dây, không cắt phựt */
@@ -795,12 +806,12 @@ function seekTo(t){
   lastKeySig = null;
   if (was) play();
 }
-/* Đổi ngay trên master gain, ramp ngắn cho khỏi "bụp". Nốt đã lên lịch vẫn nghe theo
-   mức mới vì gain nằm ở cuối chuỗi, không phải trong từng voice. */
+/* Đổi ngay ở cuối chuỗi (sau compressor), ramp ngắn cho khỏi "bụp".
+   Nốt đã lên lịch vẫn nghe theo mức mới vì gain không nằm trong từng voice. */
 function setVolume(pct){
   volume = pct / 100;
   $('volV').textContent = pct + '%';
-  if (master) master.gain.setTargetAtTime(volume, actx.currentTime, 0.02);
+  if (outGain) outGain.gain.setTargetAtTime(volume, actx.currentTime, 0.02);
 }
 function setRate(pct){
   const t = songTime();

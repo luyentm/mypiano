@@ -87,9 +87,12 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
   đừng "tối ưu" bằng cách bỏ luôn khỏi `active`. Khi đổi trạng thái lúc đang chơi phải
   `killVoices()` + `anchorAt(songTime())` + tính lại `schedIdx`, vì nốt đã được lên lịch
   trước ~100ms sẽ vẫn kêu nếu không dọn.
-- **Âm lượng nằm ở `master.gain`**, không nằm trong từng voice — đổi là ăn ngay cả với
-  nốt đã lên lịch. Giá trị giữ trong biến `volume` để còn áp được khi `AudioContext`
-  chưa kịp tạo (`initAudio()` đọc lại biến này).
+- **Chuỗi audio: voice → `master` (cố định 1.0) → compressor (-10 dB, 4:1) → `outGain`
+  → limiter (-1.5 dB, 20:1) → loa.** Ba điểm đã trả giá mới rút ra:
+  núm âm lượng phải nằm SAU compressor (để trước thì kéo to bao nhiêu cũng bị nén lại
+  gần hết — nghe mãi vẫn nhỏ); compressor để -18/6:1 là nén gần hết tín hiệu, nghe bẹt;
+  và vì slider lên tới 150% nên phải có limiter chốt cuối, không thì hợp âm dày vọt lên
+  đỉnh 1.18 và méo. Giá trị giữ trong biến `volume` để áp được cả khi `AudioContext` chưa tạo.
 - **Nút toàn màn hình tự ẩn** khi trình duyệt không hỗ trợ (`requestFullscreen` — iPhone
   Safari không cho fullscreen phần tử thường). Vào/ra fullscreen thì gọi `resize()`.
 - **`play()` phải thoát sớm khi `notes` rỗng** — không có bài mà bấm Chơi thì scheduler
