@@ -113,8 +113,9 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
   Cách đang dùng — phím trên bàn phím sáng dần lên khi nốt tới gần, kèm đường nét đứt
   nối đáy nốt với tâm phím:
   - `HINT_LEAD = 1.2s`, `p = 1 - (start - now)/HINT_LEAD` (0 = còn xa, 1 = sắp bấm).
-  - Vệt màu **dâng từ trên xuống** như đếm ngược (`0.28 + 0.72p` chiều cao phím) và
-    đậm dần `0.10 + 0.38p²`. Bình phương để lúc còn xa chỉ nhen nhẹ, tới sát mới bừng.
+  - Tô **kín cả phím**, chỉ đậm dần `0.10 + 0.42p²`. Bình phương để lúc còn xa chỉ nhen
+    nhẹ, tới sát mới bừng. Đã thử kiểu vệt màu dâng dần từ trên xuống như đếm ngược —
+    **rối hơn hẳn, đừng làm lại**: một tín hiệu (độ đậm) là đủ.
   - Trần độ đậm cố ý thấp hơn phím đang kêu, để không lẫn "sắp bấm" với "đang kêu".
   - `lastKeySig` phải gồm cả độ sáng gợi ý **làm tròn 8 nấc**, nếu không thì hoặc đứng
     hình hoặc vẽ lại mỗi frame. Đo được: 47/120 frame vẽ lại, 0.06ms/frame.

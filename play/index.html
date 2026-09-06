@@ -835,13 +835,11 @@ function drawKeys(state){
   shade.addColorStop(0, 'rgba(0,0,0,0)'); shade.addColorStop(1, 'rgba(0,0,0,.18)');
   kctx.textAlign = 'center'; kctx.textBaseline = 'alphabetic';
 
-  /* Hai tín hiệu cùng lúc cho dễ bắt: vệt màu DÂNG TỪ TRÊN XUỐNG như đồng hồ đếm
-     ngược, và đậm dần lên (bình phương nên lúc còn xa chỉ nhen nhẹ, tới sát mới bừng).
-     Vẫn nhạt hơn phím đang được bấm để không lẫn "sắp bấm" với "đang kêu". */
-  const hintAlpha = p => 0.10 + 0.38 * p * p;
-  const hintFill = (x, w, full, p) => {
-    kctx.fillRect(x, 0, w, full * (0.28 + 0.72 * p));
-  };
+  /* Tô KÍN cả phím, chỉ đậm dần lên theo p. Từng thử kiểu vệt màu dâng dần từ trên
+     xuống như đếm ngược — nhìn rối hơn hẳn, bỏ. Một tín hiệu duy nhất là đủ.
+     Bình phương nên lúc còn xa chỉ nhen nhẹ, tới sát mới bừng; trần vẫn nhạt hơn
+     phím đang kêu để không lẫn "sắp bấm" với "đang kêu". */
+  const hintAlpha = p => 0.10 + 0.42 * p * p;
 
   for (let m = loMidi; m <= hiMidi; m++){
     const g = geom[m]; if (!g || g.black) continue;
@@ -853,7 +851,7 @@ function drawKeys(state){
       if (hint){
         kctx.globalAlpha = hintAlpha(hint.p);
         kctx.fillStyle = handCol(hint.hand);
-        hintFill(g.x, g.w - 1, HK, hint.p);
+        kctx.fillRect(g.x, 0, g.w - 1, HK);
         kctx.globalAlpha = 1;
       }
     }
@@ -875,7 +873,7 @@ function drawKeys(state){
       if (hint){
         kctx.globalAlpha = hintAlpha(hint.p);
         kctx.fillStyle = handCol(hint.hand);
-        hintFill(g.x, g.w, bh, hint.p);
+        kctx.fillRect(g.x, 0, g.w, bh);
         kctx.globalAlpha = 1;
       }
     }
