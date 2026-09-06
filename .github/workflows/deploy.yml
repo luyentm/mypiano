@@ -50,6 +50,10 @@ jobs:
           if [ -f package.json ]; then
             echo "Dự án này không dùng npm/bundler — package.json không được tồn tại"; exit 1
           fi
+          # Ngoại lệ duy nhất được nhúng từ mạng: badge đếm lượt của hits.sh
+          if grep -rnoE '<img[^>]+src="https?://[^"]+"' --include='*.html' . | grep -v 'https://hits.sh/'; then
+            echo "Ảnh ngoài chỉ được phép từ hits.sh (counter)"; exit 1
+          fi
 
       - name: midi/meta.json phải là JSON hợp lệ
         run: |

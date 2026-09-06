@@ -1,4 +1,10 @@
 <!DOCTYPE html>
+<!--
+  mypiano — piano falling notes
+  Required Notice: Copyright © 2026 luyentm (https://github.com/luyentm/mypiano)
+  PolyForm Noncommercial License 1.0.0 — phi thương mại. Sao chép/sửa đổi thì giữ
+  nguyên dòng Required Notice ở trên. Xem LICENSE.
+-->
 <html lang="vi">
 <head>
 <meta charset="utf-8">
@@ -35,7 +41,6 @@
   .btn:hover{background:#283147}
   .btn:focus-visible{outline:2px solid var(--lh); outline-offset:2px}
   .btn.primary{background:var(--lh); border-color:var(--lh); color:#08111a; font-weight:600}
-  select.btn{max-width:200px}
 
   #stage{flex:1; display:flex; flex-direction:column; min-height:0; position:relative}
   #fall{flex:1; display:block; width:100%; min-height:0;
@@ -62,21 +67,23 @@
   .legend{display:flex; gap:12px; align-items:center; font-size:12px; color:var(--dim)}
   .legend i{display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:5px}
   .err{color:#e07a6a; font-size:12px}
+  .hit{position:absolute; left:-9999px; width:1px; height:1px; opacity:0; pointer-events:none}
+  #hits img{display:block; height:20px; width:auto}
   a.btn{text-decoration:none; display:inline-block}
   a.home{color:var(--rh); text-decoration:none; font-size:19px; line-height:1; flex:none}
   a.home:hover{opacity:.75}
   #busy{position:absolute; inset:0; display:none; place-items:center; color:var(--dim);
     background:rgba(13,16,23,.75); font-size:13px; z-index:2}
   #busy.on{display:grid}
-  #done{position:absolute; inset:0; display:none; place-items:center; z-index:1;
+  #done, #empty{position:absolute; inset:0; display:none; place-items:center; z-index:1;
     background:rgba(10,13,19,.82); padding:16px}
-  #done.on{display:grid}
-  #done .box{background:var(--panel); border:1px solid var(--line); border-radius:13px;
+  #done.on, #empty.on{display:grid}
+  #done .box, #empty .box{background:var(--panel); border:1px solid var(--line); border-radius:13px;
     padding:20px 22px; text-align:center; max-width:340px}
-  #done .h{font-size:17px; font-weight:600; margin-bottom:4px}
-  #done .s{font-size:13px; color:var(--dim); margin-bottom:16px;
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  #done .b{display:flex; gap:8px; justify-content:center; flex-wrap:wrap}
+  #done .h, #empty .h{font-size:17px; font-weight:600; margin-bottom:4px}
+  #done .s, #empty .s{font-size:13px; color:var(--dim); margin-bottom:16px; line-height:1.5}
+  #done .s{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  #done .b, #empty .b{display:flex; gap:8px; justify-content:center; flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -85,7 +92,6 @@
   <a class="home" href="../" title="Trang chủ">♪</a>
   <h1>Piano falling notes</h1>
   <a class="btn" href="../library/">Thư viện</a>
-  <select id="song" class="btn" title="Bài demo có sẵn"></select>
   <button class="btn" id="load">Mở MIDI</button>
   <input type="file" id="file" accept=".mid,.midi,audio/midi" hidden>
   <span class="sub" id="songname"></span>
@@ -96,6 +102,17 @@
   <canvas id="keys"></canvas>
   <div id="drop">Thả file .mid vào đây</div>
   <div id="busy">Đang tải…</div>
+
+  <div id="empty">
+    <div class="box">
+      <div class="h" id="emptyH">Chưa có bài nào</div>
+      <div class="s" id="emptyS">Chọn một bài trong thư viện, hoặc mở file .mid từ máy.</div>
+      <div class="b">
+        <a class="btn primary" href="../library/">Mở thư viện</a>
+        <button class="btn" id="emptyOpen">Mở file từ máy</button>
+      </div>
+    </div>
+  </div>
 
   <div id="done">
     <div class="box">
@@ -122,9 +139,13 @@
     <label class="ctl">Nhìn trước <input type="range" id="look" min="1" max="6" step="0.5" value="3.5"><b id="lookV">3.5s</b></label>
     <label class="ctl"><input type="checkbox" id="fit"> Thu gọn phím</label>
     <span class="legend"><span><i style="background:var(--rh)"></i>Tay phải</span><span><i style="background:var(--lh)"></i>Tay trái</span></span>
+    <span id="hits"></span>
     <span class="err" id="err"></span>
   </div>
 </footer>
+
+<!-- Counter TỔNG của site, giống hệt trang chủ và thư viện -->
+<img class="hit" src="https://hits.sh/luyentm.github.io/mypiano.svg" alt="" aria-hidden="true">
 
 <script>
 "use strict";
@@ -241,71 +262,7 @@ function parseMidi(buf){
 }
 
 /* ==========================================================================
-   2) BÀI DEMO HARDCODE — chạy được ngay khi mới mở, chưa upload gì
-      Nốt viết dạng [bắt đầu, độ dài, midi] theo đơn vị `unit` (giây).
-   ========================================================================== */
-const DEMOS = {
-  elise: {
-    label: 'Für Elise — Beethoven (mở đầu)',
-    unit: 0.16, lead: 2, bpb: 3, beatUnits: 2, gridAnchor: 0.64,   /* 3/8, lấy đà 2 móc kép */
-    rh: [
-      [0,1,76],[1,1,75],[2,1,76],[3,1,75],[4,1,76],[5,1,71],[6,1,74],[7,1,72],
-      [8,2,69],[10,1,60],[11,1,64],[12,1,69],
-      [13,2,71],[15,1,64],[16,1,68],[17,1,71],
-      [18,2,72],[20,1,64],[21,1,76],[22,1,75],[23,1,76],[24,1,75],[25,1,76],[26,1,71],[27,1,74],[28,1,72],
-      [29,2,69],[31,1,60],[32,1,64],[33,1,69],
-      [34,2,71],[36,1,64],[37,1,72],[38,1,71],[39,6,69]
-    ],
-    lh: [
-      [10,3,45],[10,3,52],[10,3,57],  [15,3,40],[15,3,52],[15,3,56],
-      [20,3,45],[20,3,52],[20,3,57],  [31,3,45],[31,3,52],[31,3,57],
-      [36,3,40],[36,3,52],[36,3,56],  [39,6,45],[39,6,52],[39,6,57]
-    ]
-  },
-
-  canon: {
-    label: 'Canon in D — Pachelbel (8 ô nhịp)',
-    unit: 0.28, lead: 0, bpb: 4, beatUnits: 2,                     /* 4/4, đơn vị = móc đơn */
-    rh: [
-      [0,4,78],[4,4,76],   [8,4,74],[12,4,73],
-      [16,4,71],[20,4,69], [24,4,71],[28,4,73],
-      [32,4,74],[36,4,78], [40,4,81],[44,4,79],
-      [48,4,78],[52,4,74], [56,4,78],[60,8,76]
-    ],
-    lh: [
-      [0,8,50],[0,8,57],   [8,8,45],[8,8,52],
-      [16,8,47],[16,8,54], [24,8,42],[24,8,49],
-      [32,8,43],[32,8,50], [40,8,38],[40,8,45],
-      [48,8,43],[48,8,50], [56,12,45],[56,12,52]
-    ]
-  }
-};
-
-function buildDemo(key){
-  const s = DEMOS[key], U = s.unit;
-  const mk = (arr, track, vel) => arr.map(([t,d,m]) => ({
-    start: (t + s.lead) * U,
-    end:   (t + s.lead + d) * U - U * 0.12,      /* nhả sớm chút cho ra tiếng rời */
-    midi: m, vel, track
-  }));
-  const notes = [...mk(s.rh, 0, 96), ...mk(s.lh, 1, 74)];
-
-  /* lưới phách cho demo */
-  const anchor = s.gridAnchor !== undefined ? s.gridAnchor : s.lead * U;
-  const beat = s.beatUnits * U, to = notes.reduce((m,n) => Math.max(m, n.end), 0) + 4;
-  const grid = [];
-  for (let i = Math.ceil(-anchor / beat); ; i++){
-    const sec = anchor + i * beat;
-    if (sec > to) break;
-    if (sec < -beat) continue;
-    const b = ((i % s.bpb) + s.bpb) % s.bpb;
-    grid.push({ sec, bar: b === 0, num: Math.floor(i / s.bpb) + 1 });
-  }
-  return { notes, grid, trackNames: ['Piano RH', 'Piano LH'] };   /* mel = tay phải, bass = tay trái */
-}
-
-/* ==========================================================================
-   3) STATE
+   2) STATE
    ========================================================================== */
 const A0 = 21, C8 = 108;
 const BLACK = [1,3,6,8,10];
@@ -326,7 +283,7 @@ const css = v  => getComputedStyle(document.documentElement).getPropertyValue(v)
 const handCol = h => css(h === 1 ? '--lh' : '--rh');
 
 /* ==========================================================================
-   4) AUDIO — Web Audio thuần, oscillator + ADSR
+   3) AUDIO — Web Audio thuần, oscillator + ADSR
    ========================================================================== */
 let actx = null, master = null;
 let voices = [], voiceCount = 0;
@@ -384,7 +341,7 @@ function killVoices(){
 }
 
 /* ==========================================================================
-   5) ĐỒNG HỒ — nguồn DUY NHẤT là audioCtx.currentTime
+   4) ĐỒNG HỒ — nguồn DUY NHẤT là audioCtx.currentTime
    ========================================================================== */
 function songTime(){
   if (!playing || !actx) return seekOffset;
@@ -394,7 +351,7 @@ function songToAudio(t){ return startedAt + (t - seekOffset) / rate; }
 function anchorAt(t){ seekOffset = t; if (actx) startedAt = actx.currentTime; }
 
 /* ==========================================================================
-   6) LOAD
+   5) LOAD
    ========================================================================== */
 /* File đời thật hay có 2 bộ track y hệt nhau (bắn ra 2 channel/2 thiết bị).
    Nạp cả hai thì nốt kêu đôi và hình bị chồng — nên so dấu vân tay từng track
@@ -454,7 +411,7 @@ function normalize(data){
 }
 
 function load(data, name){
-  hideDone();
+  hideDone(); $('empty').classList.remove('on');
   data = normalize(data);
   notes = data.notes.slice().sort((a,b) => a.start - b.start);
   grid  = (data.grid || []).slice().sort((a,b) => a.sec - b.sec);
@@ -481,7 +438,7 @@ function computeRange(){
 }
 
 /* ==========================================================================
-   7) GEOMETRY — precompute {x, w, black} cho từng phím, tách khỏi list nốt
+   6) GEOMETRY — precompute {x, w, black} cho từng phím, tách khỏi list nốt
    ========================================================================== */
 function buildGeom(){
   let whites = 0;
@@ -507,7 +464,7 @@ function resize(){
 new ResizeObserver(resize).observe($('stage'));
 
 /* ==========================================================================
-   8) VẼ
+   7) VẼ
    ========================================================================== */
 function lowerBound(t){                       /* binary search theo start */
   let lo = 0, hi = notes.length;
@@ -640,7 +597,7 @@ function drawKeys(active){
 }
 
 /* ==========================================================================
-   9) HAI ĐỒNG HỒ — rAF chỉ vẽ; timer 25ms lo lên lịch phát trước ~100ms
+   8) HAI ĐỒNG HỒ — rAF chỉ vẽ; timer 25ms lo lên lịch phát trước ~100ms
    ========================================================================== */
 const AHEAD = 0.1;
 setInterval(() => {
@@ -675,9 +632,10 @@ function frame(){
 }
 
 /* ==========================================================================
-   10) TRANSPORT
+   9) TRANSPORT
    ========================================================================== */
 function play(){
+  if (!notes.length) return;                  /* chưa có bài thì không có gì để phát */
   hideDone();
   initAudio();
   actx.resume();                              /* phải nằm trong user gesture — iOS Safari */
@@ -714,7 +672,7 @@ function setRate(pct){
 }
 
 /* ==========================================================================
-   11) UI
+   10) UI
    ========================================================================== */
 $('play').onclick = () => playing ? pause() : play();
 $('stop').onclick = () => stop();
@@ -729,9 +687,9 @@ $('seek').onchange = e => { dragging = false; seekTo(e.target.value/1000*duratio
 $('rate').oninput = e => setRate(+e.target.value);
 $('look').oninput = e => { lookahead = +e.target.value; $('lookV').textContent = lookahead + 's'; };
 $('fit').onchange = () => computeRange();
-$('song').onchange = e => load(buildDemo(e.target.value), DEMOS[e.target.value].label);
 
 $('load').onclick = () => $('file').click();
+$('emptyOpen').onclick = () => $('file').click();
 $('file').onchange = e => { if (e.target.files[0]) readFile(e.target.files[0]); };
 
 function readFile(f){
@@ -748,6 +706,23 @@ function readFile(f){
    Chỉ nhận tên file thuần để không fetch được URL tuỳ ý hay đi ngược thư mục. */
 const SAFE_NAME = /^[A-Za-z0-9._-]+\.midi?$/i;
 
+/* Đếm lượt bằng hits.sh: MỖI LẦN ảnh .svg được tải là +1, không có chế độ chỉ-xem.
+   Nên badge theo bài chỉ nhúng ở đây — lúc bài thật sự được mở ra để tập.
+   Xem thống kê: đổi đuôi .svg thành / trong URL. */
+const HITS = 'https://hits.sh/luyentm.github.io/mypiano';
+function countSong(file){
+  const a = document.createElement('a');
+  a.href = HITS + '/play/' + file + '/';
+  a.target = '_blank'; a.rel = 'noopener'; a.title = 'Thống kê lượt tập bài này';
+  const img = document.createElement('img');
+  img.src = HITS + '/play/' + encodeURIComponent(file) +
+            '.svg?style=flat-square&label=' + encodeURIComponent('lượt tập') +
+            '&color=edb04a&labelColor=232a38';
+  img.alt = 'lượt tập'; img.height = 20;
+  a.appendChild(img);
+  $('hits').replaceChildren(a);
+}
+
 async function loadFromLibrary(fileName){
   if (!SAFE_NAME.test(fileName)){ $('err').textContent = 'Tên file không hợp lệ'; return false; }
   $('busy').classList.add('on');
@@ -756,6 +731,7 @@ async function loadFromLibrary(fileName){
     if (!res.ok) throw new Error('không tải được (HTTP ' + res.status + ')');
     const meta = await songMeta(fileName);
     load(parseMidi(await res.arrayBuffer()), meta || fileName);
+    countSong(fileName);
     return true;
   } catch(err){
     $('err').textContent = 'Lỗi: ' + err.message;
@@ -763,14 +739,25 @@ async function loadFromLibrary(fileName){
   } finally { $('busy').classList.remove('on'); }
 }
 
-/* tên đẹp lấy từ midi/index.json — thiếu file này cũng không sao */
-async function songMeta(fileName){
+/* midi/index.json — đã xếp sẵn từ dễ tới khó. Fetch một lần rồi dùng lại. */
+let libCache = null;
+async function librarySongs(){
+  if (libCache) return libCache;
   try {
     const r = await fetch('../midi/index.json');
-    if (!r.ok) return null;
-    const s = (await r.json()).songs.find(x => x.file === fileName);
-    return s ? (s.composer ? s.title + ' — ' + s.composer : s.title) : null;
-  } catch(e){ return null; }
+    libCache = r.ok ? ((await r.json()).songs || []) : [];
+  } catch(e){ libCache = []; }
+  return libCache;
+}
+async function songMeta(fileName){
+  const s = (await librarySongs()).find(x => x.file === fileName);
+  return s ? (s.composer ? s.title + ' — ' + s.composer : s.title) : null;
+}
+
+function showEmpty(h, sub){
+  $('emptyH').textContent = h;
+  $('emptyS').textContent = sub;
+  $('empty').classList.add('on');
 }
 
 const drop = $('drop'), stage = $('stage');
@@ -781,20 +768,28 @@ stage.addEventListener('drop', e => {
   if (e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]);
 });
 document.addEventListener('keydown', e => {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (e.target.tagName === 'INPUT') return;
   if (e.code === 'Space'){ e.preventDefault(); playing ? pause() : play(); }
 });
 
-/* khởi động: có ?song= thì nạp từ thư viện, không thì demo hardcode —
-   kiểu gì cũng có bài để bấm Chơi ngay lần mở đầu tiên */
+/* Khởi động: có ?song= thì nạp bài đó; không thì lấy bài DỄ NHẤT trong thư viện
+   (index.json xếp theo độ khó) để vào là bấm Chơi được ngay. */
 $('fit').checked = window.innerWidth < 600;
-$('song').innerHTML = Object.entries(DEMOS)
-  .map(([k,v]) => '<option value="' + k + '">' + v.label + '</option>').join('');
-load(buildDemo('elise'), DEMOS.elise.label);
 requestAnimationFrame(frame);
 
-const wanted = new URLSearchParams(location.search).get('song');
-if (wanted) loadFromLibrary(wanted);
+(async () => {
+  const wanted = new URLSearchParams(location.search).get('song');
+  if (wanted){
+    if (await loadFromLibrary(wanted)) return;
+    showEmpty('Không nạp được bài', 'Thư viện không có "' + wanted + '". Chọn bài khác nhé.');
+    return;
+  }
+  const list = await librarySongs();
+  if (list.length && await loadFromLibrary(list[0].file)) return;
+  showEmpty(list.length ? 'Không nạp được bài' : 'Thư viện đang trống',
+            list.length ? 'Thử chọn bài khác trong thư viện, hoặc mở file .mid từ máy.'
+                        : 'Thêm file .mid vào thư viện, hoặc mở một file .mid từ máy bạn.');
+})();
 </script>
 </body>
 </html>

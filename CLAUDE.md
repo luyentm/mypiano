@@ -22,7 +22,9 @@ Live: <https://luyentm.github.io/mypiano/>
   3 trang là cố ý, đổi lại là mở file nào cũng chạy được file đó.
 - **Vanilla JS**. Không TypeScript, không Nuxt/Vue/React, không npm, không bundler,
   không `package.json`, không `node_modules`.
-- **Không tài nguyên ngoài**: không CDN, không script/style/font/ảnh tải qua mạng, không `import()` từ URL.
+- **Không tài nguyên ngoài**: không CDN, không script/style/font, không `import()` từ URL.
+  Ngoại lệ DUY NHẤT: ảnh badge đếm lượt của hits.sh (xem mục "Đếm lượt truy cập").
+  CI chặn mọi `<img src="https://…">` không phải hits.sh.
 - **Không thư viện nhạc**: parser Standard MIDI File tự viết, tiếng đàn tổng hợp bằng
   `OscillatorNode` + ADSR. Không `@tonejs/midi`, không `smplr`, không Tone.js, không soundfont/sample.
 - **Render bằng Canvas 2D**. Không SVG, không three.js, không tạo DOM element cho từng nốt.
@@ -34,17 +36,21 @@ CI chặn phần lớn các vi phạm này — xem job `check` trong [.github/wo
 
 | Mục | Dòng | Nội dung |
 | --- | --- | --- |
-| 1 | ~112 | `parseMidi()` — SMF format 0/1: VLQ, running status, note on/off, tempo (0x51), time signature (0x58), tên track (0x03), tempo map tick→giây |
-| 2 | ~223 | `DEMOS` + `buildDemo()` — bài demo hardcode (Für Elise, Canon in D), chạy được cả khi offline/không có `midi/` |
-| 3 | ~287 | State toàn cục: `notes`, `grid`, `duration`, `maxDur`, `geom`, canvas context |
-| 4 | ~308 | Audio: `initAudio()`, `voice()` (2 oscillator + ADSR), `killVoices()` |
-| 5 | ~366 | Đồng hồ: `songTime()`, `songToAudio()`, `anchorAt()` |
-| 6 | ~376 | `normalize()` (bỏ track nhân bản + gán tay), `load()`, `computeRange()` |
-| 7 | ~462 | `buildGeom()`, `resize()` — bảng geometry 88 phím + DPI |
-| 8 | ~488 | `drawFalling()`, `drawKeys()` — vòng vẽ |
-| 9 | ~621 | Scheduler 25ms + `frame()` (rAF) |
-| 10 | ~650 | Transport: `play/pause/stop/seekTo/setRate` |
-| 11 | ~700 | UI binding, `loadFromLibrary()`, overlay hết bài, drag-drop, phím tắt, khởi động |
+| 1 | ~154 | `parseMidi()` — SMF format 0/1: VLQ, running status, note on/off, tempo (0x51), time signature (0x58), tên track (0x03), tempo map tick→giây |
+| 2 | ~265 | State toàn cục: `notes`, `grid`, `duration`, `maxDur`, `geom`, canvas context |
+| 3 | ~286 | Audio: `initAudio()`, `voice()` (2 oscillator + ADSR), `killVoices()` |
+| 4 | ~344 | Đồng hồ: `songTime()`, `songToAudio()`, `anchorAt()` |
+| 5 | ~354 | `normalize()` (bỏ track nhân bản + gán tay), `load()`, `computeRange()` |
+| 6 | ~441 | `buildGeom()`, `resize()` — bảng geometry 88 phím + DPI |
+| 7 | ~467 | `drawFalling()`, `drawKeys()` — vòng vẽ |
+| 8 | ~600 | Scheduler 25ms + `frame()` (rAF) |
+| 9 | ~635 | Transport: `play/pause/stop/seekTo/setRate` |
+| 10 | ~675 | UI binding, `countSong()`, `loadFromLibrary()`, overlay hết bài / trống, drag-drop, phím tắt, khởi động |
+
+**Không còn bài demo hardcode** (đã gỡ cùng menu chọn bài trong header).
+`/play/` không tham số sẽ nạp **bài dễ nhất** trong `midi/index.json`; thư viện rỗng
+hoặc nạp lỗi thì hiện overlay `#empty` (Mở thư viện / Mở file từ máy).
+Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://` sẽ không fetch được gì.
 
 ## Quyết định kỹ thuật phải giữ
 
@@ -73,6 +79,8 @@ CI chặn phần lớn các vi phạm này — xem job `check` trong [.github/wo
   `right` / `left` / `treble` / `bass`), không có tên mới đoán theo cao độ mốc C4.
   Gán theo thứ tự track là sai với file có nhiều hơn 2 track nhạc.
   Tay phải `--rh`, tay trái `--lh`.
+- **`play()` phải thoát sớm khi `notes` rỗng** — không có bài mà bấm Chơi thì scheduler
+  thấy ngay `now >= duration` (= 0) và bắn overlay "Hết bài" vô nghĩa.
 - **Hết bài thì mời chọn bài tiếp** — scheduler thấy `now >= duration` thì `stop()` rồi
   `showDone()` (overlay `#done`: Chơi lại / Chọn bài khác / Đóng). Mọi đường quay lại phát
   (`play`, `stop`, `seekTo`, `load`) đều phải gọi `hideDone()`, nếu không overlay kẹt lại.
@@ -128,9 +136,6 @@ Ví dụ đã chấm — Für Elise trọn bài (`difficulty: 420`): 155s, 1051 
 mức trung cấp, tương đương ABRSM grade 5 / Henle 3–4.
 
 `midi/index.json` có commit trong repo cho tiện dev, nhưng bản trên site luôn là bản CI sinh lại.
-`tools/make-demo-midi.js` sinh file `.mid` mẫu từ mảng `DEMOS` trong `play/index.html` —
-chỉ cần khi muốn dựng lại bài mẫu.
-
 ## Chạy & kiểm tra
 
 **Dev server luôn chạy ở cổng 1234** để chủ repo mở <http://localhost:1234> xem thay đổi
@@ -149,6 +154,43 @@ Kiểm tra cú pháp JS inline cả 3 trang — CI chạy đúng vòng lặp nà
 ```bash
 for f in index.html play/index.html library/index.html; do sed -n '/^<script>/,/^<\/script>/p' "$f" | sed '1d;$d' > /tmp/inline.js && node --check /tmp/inline.js && echo "ok $f"; done
 ```
+
+## Đếm lượt truy cập (hits.sh)
+
+Dịch vụ: <https://hits.sh> — badge SVG, không cần tài khoản, không script.
+
+- Badge: `https://hits.sh/<url bỏ giao thức>.svg?style=&label=&color=&labelColor=&view=&extraCount=&logo=`
+- Xem thống kê: đổi đuôi `.svg` thành `/` trong đúng URL đó.
+- **Mỗi lần ảnh `.svg` được tải là +1. Không có chế độ chỉ-xem-không-tăng.**
+
+Sơ đồ khoá đếm của repo này:
+
+| Khoá | Nhúng ở đâu | Đếm cái gì |
+| --- | --- | --- |
+| `luyentm.github.io/mypiano` | cả 3 trang (`/` hiện rõ ở footer, `/play/` và `/library/` là ảnh 1px ẩn) | tổng traffic toàn site |
+| `luyentm.github.io/mypiano/play/<file>.mid` | chỉ `/play/`, do `countSong()` chèn sau khi nạp bài thành công | số lượt tập từng bài |
+
+**Tuyệt đối không nhúng badge theo bài vào trang thư viện.** Mỗi lần render danh sách là
+mỗi lần badge được tải, mở thư viện sẽ bị tính thành lượt tập và số liệu vô nghĩa.
+Cũng vì lý do đó, thư viện không hiển thị được số lượt của từng bài — muốn xem thì mở
+trang thống kê của hits.sh.
+
+File mở từ máy (`Mở MIDI`, kéo thả) không được đếm: nó không có trong thư viện.
+
+## Giấy phép
+
+[PolyForm Noncommercial License 1.0.0](LICENSE) — copyright © 2026 **luyentm**.
+
+- Cho phép dùng/sửa/phân phối **phi thương mại**; thương mại phải xin giấy phép riêng.
+- Mọi bản sao phải kèm giấy phép và **giữ nguyên dòng `Required Notice:`** — đây chính là
+  cơ chế bắt buộc giữ tên tác giả gốc khi clone. Dòng đó nằm trong `LICENSE` và lặp lại
+  ở đầu cả 3 file HTML; đừng xoá khi sửa file.
+- Vì có điều khoản phi thương mại nên đây là **source-available**, không phải open source
+  theo định nghĩa OSI (OSI cấm hạn chế lĩnh vực sử dụng). Cần chuẩn OSI thật thì phải đổi
+  sang MIT/Apache-2.0 và bỏ điều kiện phi thương mại.
+- File `.mid` trong `midi/` **không** thuộc phạm vi giấy phép này: bản nhạc có thể thuộc
+  phạm vi công cộng nhưng bản soạn MIDI cụ thể có thể có bản quyền riêng. Chỉ thêm file
+  mà bạn có quyền phân phối.
 
 ## Deploy
 

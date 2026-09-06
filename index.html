@@ -1,4 +1,10 @@
 <!DOCTYPE html>
+<!--
+  mypiano — piano falling notes
+  Required Notice: Copyright © 2026 luyentm (https://github.com/luyentm/mypiano)
+  PolyForm Noncommercial License 1.0.0 — phi thương mại. Sao chép/sửa đổi thì giữ
+  nguyên dòng Required Notice ở trên. Xem LICENSE.
+-->
 <html lang="vi">
 <head>
 <meta charset="utf-8">
@@ -84,6 +90,8 @@
     font-size:13px; color:var(--dim)}
   footer a{color:var(--lh); text-decoration:none}
   footer .spacer{margin-left:auto}
+  footer img{display:block; height:20px; width:auto}
+  footer .lic{color:var(--dim)}
 </style>
 </head>
 <body>
@@ -103,14 +111,14 @@
   <header class="hero">
     <h1>Nốt rơi xuống, bạn <span>bấm theo</span>.</h1>
     <p class="lead">
-      Mở file MIDI ngay trong browser: nốt rơi từ trên xuống và chạm bàn phím 88 phím
-      đúng khoảnh khắc nốt kêu. Chậm lại còn 25% để tập cho quen tay, rồi đẩy dần lên.
-      Không cài đặt, không tài khoản, không server — mọi thứ chạy tại máy bạn.
+      Nốt rơi từ trên xuống và chạm bàn phím 88 phím đúng khoảnh khắc nốt kêu.
+      Thư viện xếp sẵn từ dễ tới khó, hoặc mở file MIDI của bạn. Chậm lại còn 25%
+      để tập cho quen tay rồi đẩy dần lên. Không cài đặt, không tài khoản, không server.
     </p>
     <div class="cta">
       <a class="btn primary" href="play/">Chơi thử ngay</a>
       <a class="btn" href="library/">Chọn bài từ thư viện</a>
-      <span class="hint">có sẵn bài demo, chưa cần upload gì</span>
+      <span class="hint">mở là vào ngay bài dễ nhất</span>
     </div>
 
     <div class="demo">
@@ -181,7 +189,12 @@
 <footer>
   <div class="wrap">
     <span>mypiano — falling notes cho người tập piano</span>
+    <!-- Đếm TOÀN BỘ lượt truy cập site: mọi trang đều nạp đúng badge này -->
+    <a href="https://hits.sh/luyentm.github.io/mypiano/" target="_blank" rel="noopener" title="Thống kê lượt truy cập">
+      <img src="https://hits.sh/luyentm.github.io/mypiano.svg?style=flat-square&label=l%C6%B0%E1%BB%A3t%20truy%20c%E1%BA%ADp&color=57a8d4&labelColor=232a38"
+           alt="Lượt truy cập" height="20"></a>
     <span class="spacer"></span>
+    <a class="lic" href="https://github.com/luyentm/mypiano/blob/main/LICENSE">© 2026 luyentm · PolyForm NC 1.0.0</a>
     <a href="play/">Chơi</a>
     <a href="library/">Thư viện</a>
     <a href="https://github.com/luyentm/mypiano">Mã nguồn</a>

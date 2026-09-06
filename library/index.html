@@ -1,4 +1,10 @@
 <!DOCTYPE html>
+<!--
+  mypiano — piano falling notes
+  Required Notice: Copyright © 2026 luyentm (https://github.com/luyentm/mypiano)
+  PolyForm Noncommercial License 1.0.0 — phi thương mại. Sao chép/sửa đổi thì giữ
+  nguyên dòng Required Notice ở trên. Xem LICENSE.
+-->
 <html lang="vi">
 <head>
 <meta charset="utf-8">
@@ -67,6 +73,7 @@
     padding:2px 6px; font-size:12.5px; color:var(--text)}
   .msg pre{background:#0b0e14; border:1px solid var(--line); border-radius:8px; padding:11px 13px;
     overflow-x:auto; margin:11px 0 0; font-size:12.5px; color:var(--text); line-height:1.5}
+  .hit{position:absolute; left:-9999px; width:1px; height:1px; opacity:0; pointer-events:none}
 </style>
 </head>
 <body>
@@ -94,6 +101,10 @@
 
   <div class="grid" id="list"></div>
 </div>
+
+<!-- Chỉ đếm vào counter TỔNG của site. Tuyệt đối không nhúng badge theo từng bài ở đây:
+     hits.sh tăng đếm mỗi lần ảnh được tải, xem danh sách sẽ bị tính thành lượt tập. -->
+<img class="hit" src="https://hits.sh/luyentm.github.io/mypiano.svg" alt="" aria-hidden="true">
 
 <script>
 "use strict";
