@@ -228,6 +228,13 @@
       </select>
       <b id="toneV"></b>
     </label>
+    <label class="ctl">Tên nốt
+      <select id="names" class="btn tone">
+        <option value="off">Tắt</option>
+        <option value="solfa">Đô Rê Mi</option>
+        <option value="letter">C D E</option>
+      </select>
+    </label>
     <label class="ctl"><input type="checkbox" id="fit"> Thu gọn phím</label>
     <span class="hands">
       <button class="hand" id="h0" data-s="on" aria-pressed="true"><i style="background:var(--rh)"></i>Tay phải <b>phát</b></button>
@@ -375,6 +382,13 @@ let W = 0, HF = 0, HK = 0, dpr = 1, geom = {}, lastKeySig = null;
 const $   = id => document.getElementById(id);
 const css = v  => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const handCol = h => css(h === 1 ? '--lh' : '--rh');
+
+/* Tên nốt in trên thân nốt rơi. Chữ vẽ ở ĐÁY nốt — chỗ sắp chạm bàn phím — nên
+   mắt đọc được ngay trước lúc phải bấm. Nốt quá hẹp/quá ngắn thì bỏ qua, thà
+   thiếu chữ còn hơn thành một mớ chồng chéo. */
+const NAME_SOLFA  = ['Đô','Đô#','Rê','Rê#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];
+const NAME_LETTER = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+let noteNames = 'off';
 
 /* Mỗi tay 3 trạng thái: phát (nghe + nhìn) -> chỉ hiện (nhìn, tự đánh lấy) -> ẩn.
    "chỉ hiện" là chế độ tập từng tay: app im, nốt vẫn rơi và phím vẫn sáng dẫn đường. */
@@ -754,6 +768,12 @@ function drawFalling(now){
     visible.push([n, g]);
   }
 
+  const label = noteNames === 'solfa' ? NAME_SOLFA : (noteNames === 'letter' ? NAME_LETTER : null);
+  /* Nốt lặp lại liên tục (bè đệm) mà nốt nào cũng in chữ thì thành một cột chữ
+     giống hệt nhau, đọc mệt mà chẳng thêm thông tin. Chỉ in lại khi đã cách
+     đủ xa trên màn. */
+  const lastLabelY = label ? new Map() : null;
+  fctx.textAlign = 'center'; fctx.textBaseline = 'bottom';
   fctx.save(); fctx.beginPath(); fctx.rect(0, 0, W, HF); fctx.clip();
   /* phím trắng trước, phím đen sau (đè lên trên) */
   for (const black of [false, true]){
@@ -777,6 +797,25 @@ function drawFalling(now){
       fctx.fillStyle = '#fff';
       rrect(fctx, g.x + 1, top, Math.max(g.w * 0.22, 2), h, 3); fctx.fill();
       fctx.globalAlpha = 1;
+
+      if (label && h >= 14 && g.w >= 12){
+        const baseY = Math.min(top + h, HF);
+        const prevY = lastLabelY.get(n.midi);
+        if (prevY !== undefined && Math.abs(prevY - baseY) < 34) continue;
+        lastLabelY.set(n.midi, baseY);
+        const txt = label[n.midi % 12];
+        let fs = Math.min(Math.max(g.w * 0.40, 7), 11);
+        fctx.font = '600 ' + fs + 'px system-ui,-apple-system,sans-serif';
+        const room = g.w - 4;
+        const wid = fctx.measureText(txt).width;
+        if (wid > room){                        /* tên dài (Sol#) trên phím đen thì thu nhỏ */
+          fs = Math.max(fs * room / wid, 6);
+          if (fs < 6.5) continue;               /* nhỏ quá thì thôi, đừng vẽ cho rối */
+          fctx.font = '600 ' + fs + 'px system-ui,-apple-system,sans-serif';
+        }
+        fctx.fillStyle = silent ? 'rgba(0,0,0,.35)' : 'rgba(0,0,0,.62)';
+        fctx.fillText(txt, g.x + g.w / 2, baseY - 3);
+      }
     }
   }
   fctx.restore();
@@ -976,6 +1015,7 @@ $('tone').onchange = e => {
   savePrefs();
 };
 $('look').oninput = e => { lookahead = +e.target.value; $('lookV').textContent = lookahead + 's'; };
+$('names').onchange = e => { noteNames = e.target.value; savePrefs(); };
 $('fit').onchange = () => { computeRange(); savePrefs(); };
 
 /* Đổi trạng thái tay: nốt đã lên lịch trước ~100ms nên phải neo lại đồng hồ
@@ -1049,7 +1089,7 @@ function savePrefs(extra){
     localStorage.setItem(STORE, JSON.stringify(Object.assign(loadPrefs(), {
       v: 1,
       rate: +$('rate').value, look: +$('look').value, vol: +$('vol').value,
-      tone, fit: $('fit').checked, hands: handState.slice(),
+      tone, fit: $('fit').checked, names: noteNames, hands: handState.slice(),
       panel: !$('panel').classList.contains('collapsed'),
       song: currentSong
     }, extra || {})));
@@ -1142,6 +1182,7 @@ const prefs = loadPrefs();
 const q = new URLSearchParams(location.search);
 
 $('fit').checked = 'fit' in prefs ? !!prefs.fit : window.innerWidth < 600;
+if (prefs.names){ noteNames = prefs.names; $('names').value = prefs.names; }
 if (prefs.rate) setRate(prefs.rate);
 if (prefs.look){ lookahead = prefs.look; $('look').value = prefs.look; $('lookV').textContent = prefs.look + 's'; }
 if (typeof prefs.vol === 'number'){ $('vol').value = prefs.vol; setVolume(prefs.vol); }

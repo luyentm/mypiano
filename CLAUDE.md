@@ -108,6 +108,13 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
   play/pause liên tục sẽ làm layout nhảy. Lúc thu, thanh tay cầm in tóm tắt
   (`panelSummary()`) để vẫn biết đang ở tốc độ / tiếng đàn nào.
   Đo trên 844×390 (điện thoại ngang): vùng nốt rơi 144px → 220px khi thu panel.
+- **Tên nốt trên thân nốt rơi** (`noteNames`: `off` / `solfa` Đô Rê Mi / `letter` C D E,
+  mặc định tắt). Vẽ ở ĐÁY nốt — chỗ sắp chạm bàn phím — để mắt đọc kịp trước khi bấm.
+  Ba luật giữ cho khỏi rối: bỏ qua nốt hẹp < 12px hoặc ngắn < 14px; tên dài (Sol#) trên
+  phím đen thì đo `measureText` rồi thu nhỏ, dưới 6.5px thì thôi không vẽ; và **cùng một
+  cao độ lặp lại trong vòng 34px thì chỉ in nhãn một lần** — bè đệm lặp nốt mà nốt nào
+  cũng in chữ thì thành cột chữ giống hệt nhau, đọc mệt mà không thêm thông tin
+  (đo ở đoạn dày nhất của He's a Pirate: 63 nhãn → 42).
 - **Bật/tắt từng tay (`handState`)** — 3 trạng thái `on` → `silent` → `off`.
   `silent` = không kêu nhưng NỐT VẪN RƠI và phím vẫn sáng: đây là chế độ tập từng tay,
   đừng "tối ưu" bằng cách bỏ luôn khỏi `active`. Khi đổi trạng thái lúc đang chơi phải
