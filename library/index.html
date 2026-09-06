@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Thư viện MIDI — mypiano</title>
+<meta name="description" content="Danh sách bài MIDI có sẵn trong mypiano. Chọn một bài để mở màn chơi nốt rơi.">
+<style>
+  :root{
+    --bg:#0d1017; --panel:#151a24; --card:#131822; --line:#232a38;
+    --text:#d3dae6; --dim:#78849a;
+    --rh:#edb04a; --lh:#57a8d4;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--bg); color:var(--text); min-height:100vh;
+    font:400 15px/1.6 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; -webkit-text-size-adjust:100%}
+  .wrap{max-width:960px; margin:0 auto; padding:0 20px}
+
+  nav{position:sticky; top:0; z-index:9; background:rgba(13,16,23,.86);
+    backdrop-filter:blur(8px); border-bottom:1px solid var(--line)}
+  nav .wrap{display:flex; align-items:center; gap:16px; height:56px}
+  nav .brand{font-weight:600; font-size:15px; color:var(--text); text-decoration:none;
+    display:flex; align-items:center; gap:8px}
+  nav .brand i{color:var(--rh); font-style:normal; font-size:18px}
+  nav a{color:var(--dim); text-decoration:none; font-size:14px}
+  nav a:hover{color:var(--text)}
+  nav .spacer{margin-left:auto}
+
+  header.top{padding:34px 0 18px}
+  header.top h1{font-size:24px; margin:0 0 6px; letter-spacing:-.3px}
+  header.top p{color:var(--dim); font-size:14px; margin:0}
+
+  .tools{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:18px 0 22px}
+  #q{flex:1; min-width:180px; background:var(--card); border:1px solid var(--line);
+    border-radius:9px; padding:10px 13px; color:var(--text); font:inherit; font-size:14px}
+  #q:focus{outline:none; border-color:var(--lh)}
+  #q::placeholder{color:var(--dim)}
+  .btn{display:inline-block; border-radius:9px; padding:10px 16px; font-size:14px;
+    text-decoration:none; border:1px solid var(--line); background:#202737; color:var(--text)}
+  .btn:hover{background:#283147}
+  .count{color:var(--dim); font-size:13px; font-variant-numeric:tabular-nums}
+
+  .grid{display:grid; gap:13px; grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
+    padding-bottom:40px}
+  a.song{display:block; text-decoration:none; color:inherit; background:var(--card);
+    border:1px solid var(--line); border-radius:11px; padding:15px 16px; position:relative}
+  a.song:hover{background:#182030; border-color:#313c52}
+  a.song:focus-visible{outline:2px solid var(--lh); outline-offset:2px}
+  a.song .t{font-size:15px; font-weight:600; margin-bottom:3px; padding-right:26px}
+  a.song .c{font-size:13px; color:var(--lh)}
+  a.song .n{font-size:12.5px; color:var(--dim); margin-top:7px}
+  a.song .f{font-size:11.5px; color:#5c6880; margin-top:9px; font-variant-numeric:tabular-nums;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  a.song .go{position:absolute; top:14px; right:14px; color:var(--dim); font-size:15px}
+  a.song:hover .go{color:var(--rh)}
+
+  .msg{border:1px dashed var(--line); border-radius:11px; padding:26px 22px; color:var(--dim);
+    font-size:14px; grid-column:1/-1}
+  .msg b{color:var(--text); font-weight:600; display:block; margin-bottom:7px; font-size:15px}
+  .msg code{background:#0b0e14; border:1px solid var(--line); border-radius:5px;
+    padding:2px 6px; font-size:12.5px; color:var(--text)}
+  .msg pre{background:#0b0e14; border:1px solid var(--line); border-radius:8px; padding:11px 13px;
+    overflow-x:auto; margin:11px 0 0; font-size:12.5px; color:var(--text); line-height:1.5}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="../"><i>♪</i> mypiano</a>
+    <span class="spacer"></span>
+    <a href="../">Trang chủ</a>
+    <a href="../play/">Chơi</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <header class="top">
+    <h1>Thư viện MIDI</h1>
+    <p>Chọn một bài để mở thẳng màn chơi. File nằm trong repo, không cần upload lại mỗi lần.</p>
+  </header>
+
+  <div class="tools">
+    <input id="q" type="search" placeholder="Tìm theo tên bài hoặc tác giả…" autocomplete="off">
+    <a class="btn" href="../play/">Mở file từ máy</a>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="grid" id="list"></div>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const kb = n => n < 1024 ? n + ' B' : (n/1024).toFixed(1) + ' KB';
+
+let songs = [];
+
+function card(s){
+  return '<a class="song" href="../play/?song=' + encodeURIComponent(s.file) + '">' +
+    '<span class="go">›</span>' +
+    '<div class="t">' + esc(s.title) + '</div>' +
+    (s.composer ? '<div class="c">' + esc(s.composer) + '</div>' : '') +
+    (s.note ? '<div class="n">' + esc(s.note) + '</div>' : '') +
+    '<div class="f">' + esc(s.file) + ' · ' + kb(s.bytes || 0) + '</div>' +
+  '</a>';
+}
+
+function render(){
+  const q = $('q').value.trim().toLowerCase();
+  const hit = songs.filter(s =>
+    !q || (s.title + ' ' + s.composer + ' ' + s.file).toLowerCase().includes(q));
+
+  $('count').textContent = songs.length
+    ? (q ? hit.length + '/' + songs.length + ' bài' : songs.length + ' bài')
+    : '';
+
+  if (!songs.length){
+    $('list').innerHTML = '<div class="msg"><b>Thư viện đang trống</b>' +
+      'Bỏ file <code>.mid</code> vào folder <code>midi/</code> rồi push lên — CI tự cập nhật danh sách này.' +
+      '<pre>cp bai-cua-toi.mid midi/\ngit add midi/bai-cua-toi.mid\ngit commit -m "them bai moi" &amp;&amp; git push</pre>' +
+      'Muốn đặt tên đẹp và ghi tác giả thì khai thêm trong <code>midi/meta.json</code>.</div>';
+    return;
+  }
+  if (!hit.length){
+    $('list').innerHTML = '<div class="msg"><b>Không có bài nào khớp</b>Thử từ khoá khác xem sao.</div>';
+    return;
+  }
+  $('list').innerHTML = hit.map(card).join('');
+}
+
+function failed(err){
+  $('list').innerHTML = '<div class="msg"><b>Không đọc được danh sách bài</b>' +
+    esc(err) + '<br>Nếu bạn đang mở file bằng <code>file://</code> thì trình duyệt chặn fetch — ' +
+    'chạy qua http là được:' +
+    '<pre>python3 -m http.server 8000\n# rồi mở http://localhost:8000/library/</pre></div>';
+}
+
+fetch('../midi/index.json', { cache: 'no-cache' })
+  .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+  .then(data => { songs = data.songs || []; render(); })
+  .catch(e => failed(e.message));
+
+$('q').oninput = render;
+</script>
+</body>
+</html>

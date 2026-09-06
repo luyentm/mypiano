@@ -23,26 +23,38 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: index.html phải tồn tại
-        run: test -f index.html
-
-      - name: Kiểm tra cú pháp JS inline
+      - name: Đủ 3 trang
         run: |
-          sed -n '/^<script>/,/^<\/script>/p' index.html | sed '1d;$d' > /tmp/inline.js
-          test -s /tmp/inline.js || { echo "Không tách được khối <script> khỏi index.html"; exit 1; }
-          node --check /tmp/inline.js
+          for f in index.html play/index.html library/index.html; do
+            test -f "$f" || { echo "thiếu $f"; exit 1; }
+            grep -q '<title>' "$f" || { echo "$f thiếu <title>"; exit 1; }
+          done
+
+      - name: Kiểm tra cú pháp JS inline của từng trang
+        run: |
+          for f in index.html play/index.html library/index.html; do
+            sed -n '/^<script>/,/^<\/script>/p' "$f" | sed '1d;$d' > /tmp/inline.js
+            test -s /tmp/inline.js || { echo "$f: không tách được khối <script>"; exit 1; }
+            node --check /tmp/inline.js || exit 1
+            echo "ok $f"
+          done
 
       - name: Không được có dependency ngoài (CDN / import / npm)
         run: |
-          if grep -nEi '<(script|link)[^>]+(src|href)=["'"'"']https?://' index.html; then
+          if grep -rnEi '<(script|link)[^>]+(src|href)=["'"'"']https?://' --include='*.html' .; then
             echo "Site phải tự chứa: không nhúng script/style từ CDN"; exit 1
           fi
-          if grep -nE '\bfrom[[:space:]]+["'"'"']https?://|\bimport\(["'"'"']https?://' index.html; then
+          if grep -rnE '\bfrom[[:space:]]+["'"'"']https?://|\bimport\(["'"'"']https?://' --include='*.html' .; then
             echo "Site phải tự chứa: không import module qua mạng"; exit 1
           fi
           if [ -f package.json ]; then
             echo "Dự án này không dùng npm/bundler — package.json không được tồn tại"; exit 1
           fi
+
+      - name: midi/meta.json phải là JSON hợp lệ
+        run: |
+          test -f midi/meta.json || exit 0
+          node -e "JSON.parse(require('fs').readFileSync('midi/meta.json','utf8'))"
 
   deploy:
     name: Deploy
@@ -54,9 +66,14 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # Danh mục thư viện sinh từ nội dung thật của folder midi/,
+      # nên chỉ cần `git add midi/bai-moi.mid` là bài lên site.
+      - name: Sinh midi/index.json
+        run: node tools/build-midi-index.js
+
       - uses: actions/configure-pages@v6
 
-      # Không có build step: site chính là index.html ở gốc repo
+      # Không có bundler: site chính là mấy file HTML tĩnh ở gốc repo
       - uses: actions/upload-pages-artifact@v5
         with:
           path: .
