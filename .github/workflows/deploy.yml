@@ -56,6 +56,10 @@ jobs:
           test -f midi/meta.json || exit 0
           node -e "JSON.parse(require('fs').readFileSync('midi/meta.json','utf8'))"
 
+      # Fail nếu có bài chưa được chấm độ khó — thư viện xếp theo con số này.
+      - name: Mọi bài phải có difficulty 1–1000
+        run: node tools/build-midi-index.js
+
   deploy:
     name: Deploy
     needs: check

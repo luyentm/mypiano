@@ -1,19 +1,13 @@
 {
-  "count": 2,
+  "count": 1,
   "songs": [
-    {
-      "file": "canon-in-d.mid",
-      "title": "Canon in D",
-      "composer": "Pachelbel",
-      "note": "8 ô nhịp đầu",
-      "bytes": 345
-    },
     {
       "file": "fur-elise.mid",
       "title": "Für Elise",
       "composer": "Beethoven",
-      "note": "Đoạn mở đầu, 3/8",
-      "bytes": 507
+      "note": "Trọn bài (WoO 59) — có cả đoạn F trưởng và đoạn chạy ngón cuối",
+      "difficulty": 420,
+      "bytes": 20648
     }
   ]
 }
