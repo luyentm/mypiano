@@ -81,5 +81,7 @@ sed -n '/^<script>/,/^<\/script>/p' index.html | sed '1d;$d' > /tmp/inline.js &&
 Push lên `main` → workflow [deploy.yml](.github/workflows/deploy.yml) chạy `check` rồi đẩy
 nguyên gốc repo lên GitHub Pages (không build, không Jekyll — có `.nojekyll`).
 
-Lần đầu phải bật thủ công trên GitHub: **Settings → Pages → Source = GitHub Actions**.
-Có thể chạy tay bằng nút **Run workflow** ở tab Actions.
+Pages của repo đã bật sẵn ở chế độ **Source = GitHub Actions** (`build_type=workflow`),
+không cần thao tác gì thêm. Nếu clone sang repo mới thì phải bật lại:
+Settings → Pages → Source = GitHub Actions, hoặc `gh api -X POST repos/<owner>/<repo>/pages -f build_type=workflow`.
+Chạy tay bằng nút **Run workflow** ở tab Actions.
