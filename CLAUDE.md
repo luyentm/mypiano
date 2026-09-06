@@ -31,7 +31,8 @@ Live: <https://luyentm.github.io/mypiano/>
   Sample thu sẵn thì ĐƯỢC, với điều kiện file nằm trong repo (`audio/`) và tự giải mã bằng
   `decodeAudioData` — xem mục "Hai bộ tiếng đàn".
 - **Render bằng Canvas 2D**. Không SVG, không three.js, không tạo DOM element cho từng nốt.
-- **Không `localStorage` / `sessionStorage`**.
+- **`localStorage` chỉ để nhớ tuỳ chọn của người dùng** (khoá `mypiano.v1`) — xem mục
+  "Ghi nhớ tuỳ chọn". Không dùng nó làm nơi chứa dữ liệu bài hát hay cache file.
 
 CI chặn phần lớn các vi phạm này — xem job `check` trong [.github/workflows/deploy.yml](.github/workflows/deploy.yml).
 
@@ -206,12 +207,40 @@ Ba chi tiết bắt buộc giữ:
 3. **Trong lúc tải vẫn chơi bằng digital.** `voice()` kiểm tra `tone === 'grand' && piano`,
    `piano` còn `null` thì tự rơi về synth. Đừng chặn phát nhạc để chờ tải.
 
-Lựa chọn tiếng **không lưu bằng localStorage** (bị cấm) mà truyền qua URL `?tone=grand`:
-màn chơi ghi vào URL bằng `history.replaceState`, link sang thư viện mang theo `?tone=grand`,
-thư viện gắn tiếp vào link từng bài. Sửa một chỗ thì nhớ sửa cả ba.
+Lựa chọn tiếng được lưu ở hai nơi, cố ý: `localStorage` (để lần sau mở lại vẫn đúng) và
+URL `?tone=grand` (để link chia sẻ mang theo được). Màn chơi ghi vào URL bằng
+`history.replaceState`, link sang thư viện mang theo `?tone=grand`, thư viện gắn tiếp vào
+link từng bài. Sửa một chỗ thì nhớ sửa cả ba.
 
 Ghi công CC BY 3.0 cho Alexander Holm đang nằm ở footer trang chủ + `audio/piano/README.md`;
 CI kiểm tra file README đó còn nguyên. Đừng xoá.
+
+## Ghi nhớ tuỳ chọn (localStorage)
+
+Khoá `mypiano.v1`, một object phẳng:
+
+```json
+{ "v":1, "rate":75, "look":5, "vol":120, "tone":"grand", "fit":true,
+  "hands":["on","silent"], "panel":false, "song":"fur-elise.mid", "pos":90.25 }
+```
+
+**Thứ tự ưu tiên khi khởi động: tham số URL > localStorage > mặc định.** Link chia sẻ
+`?song=...&tone=grand` phải thắng, không thì prefs cũ đè lên và người nhận link mở ra sai bài.
+
+Quy tắc khôi phục chỗ đang tập dở (`pos`):
+
+- Chỉ nhảy về `pos` khi **không có `?song=`**, hoặc `?song=` trùng đúng bài đã lưu.
+  URL chỉ đích danh một bài khác thì tập lại từ đầu.
+- Chỉ nhảy khi `3 < pos < duration - 2` — tránh khôi phục vào đúng 2 giây cuối rồi
+  hiện ngay overlay "Hết bài".
+- Hết bài thì ghi `pos: 0`, lần sau mở lại là từ đầu.
+- `song` chỉ ghi khi bài đến từ thư viện; file mở từ máy không khôi phục được nên để `null`.
+- Bài đã lưu mà không còn trong thư viện thì im lặng rơi về bài dễ nhất, không báo lỗi.
+
+Ghi vào lúc: đổi bất kỳ tuỳ chọn nào, nạp bài xong, `pause()`, mỗi 2 giây khi đang chơi,
+và `pagehide` / `visibilitychange` (đóng tab, chuyển app trên iPad).
+Mọi truy cập `localStorage` đều bọc `try/catch` — chế độ riêng tư của Safari chặn ghi,
+app vẫn phải chạy bình thường.
 
 ## Đếm lượt truy cập (hits.sh)
 

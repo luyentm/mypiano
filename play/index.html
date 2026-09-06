@@ -399,6 +399,7 @@ const SAMPLE_FILES = ['A0','C1','Ds1','Fs1','A1','C2','Ds2','Fs2','A2','C3','Ds3
                       'A6','C7','Ds7','Fs7','A7','C8'];
 const SAMPLE_MIDI = i => 21 + 3 * i;                 /* A0 = 21, bước 3 nửa cung */
 let tone = 'digital', piano = null, pianoLoading = false;
+let currentSong = null;                        /* tên file trong thư viện, null nếu mở từ máy */
 let voices = [], voiceCount = 0;
 const MAX_VOICES = 16;
 
@@ -813,7 +814,7 @@ setInterval(() => {
     if (n.end < now || handState[n.hand] !== 'on') continue;
     voice(n, Math.max(songToAudio(n.start), actx.currentTime), (n.end - n.start) / rate);
   }
-  if (now >= duration){ stop(); showDone(); }     /* hết bài: mời chọn bài khác */
+  if (now >= duration){ stop(); savePrefs({ pos: 0 }); showDone(); }   /* hết bài: lần sau mở lại từ đầu */
 }, 25);
 
 function showDone(){
@@ -865,6 +866,7 @@ function pause(){
   if (!playing) return;
   const t = Math.max(0, songTime());
   playing = false; seekOffset = t; killVoices();
+  savePos();
   syncPlayBtn();                              /* panel KHÔNG tự bung ra: chỉ mở khi bấm tay cầm */
 }
 function stop(){
@@ -916,7 +918,7 @@ function setPanel(open){
   $('grip').setAttribute('aria-expanded', open ? 'true' : 'false');
   if (!open) $('panelSum').textContent = panelSummary();
 }
-$('grip').onclick = () => setPanel($('panel').classList.contains('collapsed'));
+$('grip').onclick = () => { setPanel($('panel').classList.contains('collapsed')); savePrefs(); };
 $('again').onclick = () => { seekOffset = 0; schedIdx = 0; play(); };
 $('closeDone').onclick = () => hideDone();
 $('done').onclick = e => { if (e.target === $('done')) hideDone(); };   /* bấm ra ngoài để đóng */
@@ -925,7 +927,7 @@ $('seek').oninput  = e => { dragging = true; const t = e.target.value/1000*durat
                             $('time').textContent = fmt(t) + ' / ' + fmt(duration); };
 $('seek').onchange = e => { dragging = false; seekTo(e.target.value/1000*duration); };
 
-const refreshSum = () => { if ($('panel').classList.contains('collapsed')) $('panelSum').textContent = panelSummary(); };
+const refreshSum = () => { if ($('panel').classList.contains('collapsed')) $('panelSum').textContent = panelSummary(); savePrefs(); };
 for (const id of ['rate','look','vol','tone','h0','h1'])
   document.getElementById(id).addEventListener(id === 'tone' ? 'change' : 'input', refreshSum);
 $('h0').addEventListener('click', refreshSum);
@@ -936,17 +938,18 @@ $('vol').oninput  = e => setVolume(+e.target.value);
 
 $('tone').onchange = e => {
   tone = e.target.value;
-  const u = new URL(location.href);              /* không dùng localStorage nên nhét lựa
-                                                    chọn vào URL để f5 / quay lại còn giữ */
+  const u = new URL(location.href);              /* vẫn ghi vào URL để link chia sẻ mang theo
+                                                    được lựa chọn, ngoài localStorage */
   if (tone === 'grand') u.searchParams.set('tone', 'grand'); else u.searchParams.delete('tone');
   history.replaceState(null, '', u);
   for (const a of document.querySelectorAll('a[href^="../library/"]'))
     a.href = '../library/' + (tone === 'grand' ? '?tone=grand' : '');
   if (tone === 'grand'){ piano ? toneStatus('sẵn sàng') : loadPiano(); }
   else toneStatus('');
+  savePrefs();
 };
 $('look').oninput = e => { lookahead = +e.target.value; $('lookV').textContent = lookahead + 's'; };
-$('fit').onchange = () => computeRange();
+$('fit').onchange = () => { computeRange(); savePrefs(); };
 
 /* Đổi trạng thái tay: nốt đã lên lịch trước ~100ms nên phải neo lại đồng hồ
    và tính lại schedIdx, nếu không tay vừa tắt vẫn kêu nốt cuối. */
@@ -1004,6 +1007,33 @@ function readFile(f){
    Chỉ nhận tên file thuần để không fetch được URL tuỳ ý hay đi ngược thư mục. */
 const SAFE_NAME = /^[A-Za-z0-9._-]+\.midi?$/i;
 
+/* ==========================================================================
+   Ghi nhớ lựa chọn + chỗ đang tập dở (localStorage)
+   Mở lại lần sau là đúng bài, đúng tốc độ, đúng tiếng đàn, đúng chỗ đang dở.
+   Thứ tự ưu tiên khi khởi động: tham số URL > localStorage > mặc định —
+   để link chia sẻ (?song=...&tone=grand) vẫn thắng, không bị prefs cũ đè.
+   ========================================================================== */
+const STORE = 'mypiano.v1';
+function loadPrefs(){
+  try { return JSON.parse(localStorage.getItem(STORE)) || {}; } catch(e){ return {}; }
+}
+function savePrefs(extra){
+  try {
+    localStorage.setItem(STORE, JSON.stringify(Object.assign(loadPrefs(), {
+      v: 1,
+      rate: +$('rate').value, look: +$('look').value, vol: +$('vol').value,
+      tone, fit: $('fit').checked, hands: handState.slice(),
+      panel: !$('panel').classList.contains('collapsed'),
+      song: currentSong
+    }, extra || {})));
+  } catch(e){}                                 /* chế độ riêng tư chặn ghi thì kệ, không phá app */
+}
+/* Vị trí đang nghe: ghi thưa thôi (2s/lần) cho đỡ đụng đĩa, cộng thêm các mốc quan trọng */
+function savePos(){ if (notes.length && currentSong) savePrefs({ pos: Math.max(0, songTime()) }); }
+setInterval(() => { if (playing) savePos(); }, 2000);
+addEventListener('pagehide', savePos);
+addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') savePos(); });
+
 /* Đếm lượt bằng hits.sh: MỖI LẦN ảnh .svg được tải là +1, không có chế độ chỉ-xem.
    Nên badge theo bài chỉ nhúng ở đây — lúc bài thật sự được mở ra để tập.
    Xem thống kê: đổi đuôi .svg thành / trong URL. */
@@ -1029,7 +1059,9 @@ async function loadFromLibrary(fileName){
     if (!res.ok) throw new Error('không tải được (HTTP ' + res.status + ')');
     const meta = await songMeta(fileName);
     load(parseMidi(await res.arrayBuffer()), meta || fileName);
+    currentSong = fileName;
     countSong(fileName);
+    savePrefs();
     return true;
   } catch(err){
     $('err').textContent = 'Lỗi: ' + err.message;
@@ -1071,20 +1103,37 @@ document.addEventListener('keydown', e => {
   if ((e.key === 'f' || e.key === 'F') && canFS) $('fs').click();
 });
 
-/* Khởi động: có ?song= thì nạp bài đó; không thì lấy bài DỄ NHẤT trong thư viện
-   (index.json xếp theo độ khó) để vào là bấm Chơi được ngay. */
-$('fit').checked = window.innerWidth < 600;
+/* Khởi động: áp lại tuỳ chọn đã lưu, rồi nạp bài theo thứ tự
+   ?song= trong URL > bài đang tập dở > bài DỄ NHẤT trong thư viện. */
+const prefs = loadPrefs();
+const q = new URLSearchParams(location.search);
+
+$('fit').checked = 'fit' in prefs ? !!prefs.fit : window.innerWidth < 600;
+if (prefs.rate) setRate(prefs.rate);
+if (prefs.look){ lookahead = prefs.look; $('look').value = prefs.look; $('lookV').textContent = prefs.look + 's'; }
+if (typeof prefs.vol === 'number'){ $('vol').value = prefs.vol; setVolume(prefs.vol); }
+if (Array.isArray(prefs.hands)) prefs.hands.forEach((st, i) => { if (st) setHand(i, st); });
+if (prefs.panel === false) setPanel(false);
+if (q.get('tone') === 'grand' || prefs.tone === 'grand'){
+  $('tone').value = 'grand';
+  $('tone').onchange({ target: $('tone') });
+}
 syncPlayBtn();
 requestAnimationFrame(frame);
 
 (async () => {
-  const q = new URLSearchParams(location.search);
-  if (q.get('tone') === 'grand'){ $('tone').value = tone = 'grand'; $('tone').onchange({ target: $('tone') }); }
-  const wanted = q.get('song');
+  const wanted = q.get('song') || prefs.song;
+  const resume = !q.get('song') || q.get('song') === prefs.song;   /* link chỉ đích danh bài khác thì tập lại từ đầu */
   if (wanted){
-    if (await loadFromLibrary(wanted)) return;
-    showEmpty('Không nạp được bài', 'Thư viện không có "' + wanted + '". Chọn bài khác nhé.');
-    return;
+    if (await loadFromLibrary(wanted)){
+      /* chỉ nhảy về chỗ dở khi nó thật sự nằm giữa bài, tránh nhảy vào 2 giây cuối */
+      if (resume && prefs.pos > 3 && prefs.pos < duration - 2) seekTo(prefs.pos);
+      return;
+    }
+    if (q.get('song')){
+      showEmpty('Không nạp được bài', 'Thư viện không có "' + wanted + '". Chọn bài khác nhé.');
+      return;
+    }
   }
   const list = await librarySongs();
   if (list.length && await loadFromLibrary(list[0].file)) return;
