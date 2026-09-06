@@ -1,5 +1,5 @@
 {
-  "count": 2,
+  "count": 3,
   "songs": [
     {
       "file": "marriage-damour.mid",
@@ -16,6 +16,14 @@
       "note": "Trọn bài (WoO 59) — có cả đoạn F trưởng và đoạn chạy ngón cuối",
       "difficulty": 420,
       "bytes": 20648
+    },
+    {
+      "file": "hes-a-pirate.mid",
+      "title": "He's a Pirate",
+      "composer": "Klaus Badelt",
+      "note": "Pirates of the Caribbean — tay trái đệm dồn dập không nghỉ, cần với được quãng 8",
+      "difficulty": 480,
+      "bytes": 11918
     }
   ]
 }
