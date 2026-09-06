@@ -228,13 +228,7 @@
       </select>
       <b id="toneV"></b>
     </label>
-    <label class="ctl">Tên nốt
-      <select id="names" class="btn tone">
-        <option value="off">Tắt</option>
-        <option value="solfa">Đô Rê Mi</option>
-        <option value="letter">C D E</option>
-      </select>
-    </label>
+    <label class="ctl"><input type="checkbox" id="hint" checked> Gợi ý phím</label>
     <label class="ctl"><input type="checkbox" id="fit"> Thu gọn phím</label>
     <span class="hands">
       <button class="hand" id="h0" data-s="on" aria-pressed="true"><i style="background:var(--rh)"></i>Tay phải <b>phát</b></button>
@@ -383,12 +377,10 @@ const $   = id => document.getElementById(id);
 const css = v  => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const handCol = h => css(h === 1 ? '--lh' : '--rh');
 
-/* Tên nốt in trên thân nốt rơi. Chữ vẽ ở ĐÁY nốt — chỗ sắp chạm bàn phím — nên
-   mắt đọc được ngay trước lúc phải bấm. Nốt quá hẹp/quá ngắn thì bỏ qua, thà
-   thiếu chữ còn hơn thành một mớ chồng chéo. */
-const NAME_SOLFA  = ['Đô','Đô#','Rê','Rê#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];
-const NAME_LETTER = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-let noteNames = 'off';
+/* Gợi ý phím sắp phải bấm: phím trên bàn phím sáng dần lên khi nốt rơi tới gần.
+   Người tập cần biết "bấm phím nào, ngay bây giờ" chứ không cần đọc tên nốt. */
+let showHint = true;
+const HINT_LEAD = 1.2;                         /* giây: bắt đầu nhen sáng từ đây */
 
 /* Mỗi tay 3 trạng thái: phát (nghe + nhìn) -> chỉ hiện (nhìn, tự đánh lấy) -> ẩn.
    "chỉ hiện" là chế độ tập từng tay: app im, nốt vẫn rơi và phím vẫn sáng dẫn đường. */
@@ -757,7 +749,7 @@ function drawFalling(now){
 
   /* culling: lùi window lại maxDur để nốt bass dài không biến mất */
   const from = lowerBound(now - maxDur);
-  const active = [], visible = [];
+  const active = [], visible = [], hints = new Map();
   for (let i = from; i < notes.length; i++){
     const n = notes[i];
     if (n.start > winEnd) break;
@@ -765,15 +757,14 @@ function drawFalling(now){
     if (handState[n.hand] === 'off') continue;
     const g = geom[n.midi]; if (!g) continue;
     if (n.start <= now) active.push(n);        /* 'chỉ hiện' vẫn làm sáng phím để dẫn tay */
+    else if (showHint && n.start <= now + HINT_LEAD){
+      const p = 1 - (n.start - now) / HINT_LEAD;      /* 0 = còn xa, 1 = sắp phải bấm */
+      const cur = hints.get(n.midi);
+      if (!cur || p > cur.p) hints.set(n.midi, { p, hand: n.hand });
+    }
     visible.push([n, g]);
   }
 
-  const label = noteNames === 'solfa' ? NAME_SOLFA : (noteNames === 'letter' ? NAME_LETTER : null);
-  /* Nốt lặp lại liên tục (bè đệm) mà nốt nào cũng in chữ thì thành một cột chữ
-     giống hệt nhau, đọc mệt mà chẳng thêm thông tin. Chỉ in lại khi đã cách
-     đủ xa trên màn. */
-  const lastLabelY = label ? new Map() : null;
-  fctx.textAlign = 'center'; fctx.textBaseline = 'bottom';
   fctx.save(); fctx.beginPath(); fctx.rect(0, 0, W, HF); fctx.clip();
   /* phím trắng trước, phím đen sau (đè lên trên) */
   for (const black of [false, true]){
@@ -797,53 +788,74 @@ function drawFalling(now){
       fctx.fillStyle = '#fff';
       rrect(fctx, g.x + 1, top, Math.max(g.w * 0.22, 2), h, 3); fctx.fill();
       fctx.globalAlpha = 1;
-
-      if (label && h >= 14 && g.w >= 12){
-        const baseY = Math.min(top + h, HF);
-        const prevY = lastLabelY.get(n.midi);
-        if (prevY !== undefined && Math.abs(prevY - baseY) < 34) continue;
-        lastLabelY.set(n.midi, baseY);
-        const txt = label[n.midi % 12];
-        let fs = Math.min(Math.max(g.w * 0.40, 7), 11);
-        fctx.font = '600 ' + fs + 'px system-ui,-apple-system,sans-serif';
-        const room = g.w - 4;
-        const wid = fctx.measureText(txt).width;
-        if (wid > room){                        /* tên dài (Sol#) trên phím đen thì thu nhỏ */
-          fs = Math.max(fs * room / wid, 6);
-          if (fs < 6.5) continue;               /* nhỏ quá thì thôi, đừng vẽ cho rối */
-          fctx.font = '600 ' + fs + 'px system-ui,-apple-system,sans-serif';
-        }
-        fctx.fillStyle = silent ? 'rgba(0,0,0,.35)' : 'rgba(0,0,0,.62)';
-        fctx.fillText(txt, g.x + g.w / 2, baseY - 3);
-      }
     }
   }
   fctx.restore();
 
+  /* Đường nét đứt nối đáy nốt sắp tới với đúng phím của nó — mắt khỏi phải dóng
+     theo cột. Chỉ vẽ cho nốt trong tầm gợi ý, và mờ dần theo cùng nhịp với phím. */
+  if (showHint && hints.size){
+    fctx.save();
+    fctx.setLineDash([5, 5]);
+    fctx.lineWidth = 1;
+    for (const [m, hint] of hints){
+      const g = geom[m]; if (!g) continue;
+      const x = Math.round(g.x + g.w / 2) + 0.5;
+      const yTop = HF - (1 - hint.p) * HINT_LEAD * PPS;
+      fctx.globalAlpha = 0.14 + 0.46 * hint.p * hint.p;
+      fctx.strokeStyle = handCol(hint.hand);
+      fctx.beginPath(); fctx.moveTo(x, yTop); fctx.lineTo(x, HF); fctx.stroke();
+    }
+    fctx.restore();
+  }
+
   fctx.fillStyle = 'rgba(211,218,230,.22)'; fctx.fillRect(0, HF - 2, W, 2);   /* vạch chạm */
-  return active;
+  return { active, hints };
 }
 
-function drawKeys(active){
+function drawKeys(state){
+  const { active, hints } = state;
   const on = new Map();
   for (const n of active) on.set(n.midi, handCol(n.hand));
 
-  const sig = [...on.keys()].sort((a,b) => a-b).join(',');
-  if (sig === lastKeySig) return;             /* không đổi thì khỏi vẽ lại */
+  /* Chữ ký gồm cả độ sáng gợi ý (làm tròn 8 nấc) — nhờ vậy vẫn tránh vẽ lại
+     mỗi frame, mà nhìn thì vẫn thấy phím sáng dần lên mượt. */
+  let sig = [...on.keys()].sort((a,b) => a-b).join(',');
+  if (hints.size){
+    const h = [];
+    for (const [m, v] of hints) h.push(m + ':' + Math.round(v.p * 8) + ':' + v.hand);
+    sig += '|' + h.sort().join(',');
+  }
+  if (sig === lastKeySig) return;
   lastKeySig = sig;
 
   kctx.clearRect(0, 0, W, HK);
   const ivory = css('--ivory'), ebony = css('--ebony');
+  const shade = kctx.createLinearGradient(0, HK*0.75, 0, HK);   /* dựng 1 lần, dùng cho mọi phím */
+  shade.addColorStop(0, 'rgba(0,0,0,0)'); shade.addColorStop(1, 'rgba(0,0,0,.18)');
   kctx.textAlign = 'center'; kctx.textBaseline = 'alphabetic';
+
+  /* Hai tín hiệu cùng lúc cho dễ bắt: vệt màu DÂNG TỪ TRÊN XUỐNG như đồng hồ đếm
+     ngược, và đậm dần lên (bình phương nên lúc còn xa chỉ nhen nhẹ, tới sát mới bừng).
+     Vẫn nhạt hơn phím đang được bấm để không lẫn "sắp bấm" với "đang kêu". */
+  const hintAlpha = p => 0.10 + 0.38 * p * p;
+  const hintFill = (x, w, full, p) => {
+    kctx.fillRect(x, 0, w, full * (0.28 + 0.72 * p));
+  };
 
   for (let m = loMidi; m <= hiMidi; m++){
     const g = geom[m]; if (!g || g.black) continue;
     kctx.fillStyle = on.has(m) ? on.get(m) : ivory;
     kctx.fillRect(g.x, 0, g.w - 1, HK);
     if (!on.has(m)){
-      const grd = kctx.createLinearGradient(0, HK*0.75, 0, HK);
-      grd.addColorStop(0, 'rgba(0,0,0,0)'); grd.addColorStop(1, 'rgba(0,0,0,.18)');
-      kctx.fillStyle = grd; kctx.fillRect(g.x, 0, g.w - 1, HK);
+      kctx.fillStyle = shade; kctx.fillRect(g.x, 0, g.w - 1, HK);
+      const hint = hints.get(m);
+      if (hint){
+        kctx.globalAlpha = hintAlpha(hint.p);
+        kctx.fillStyle = handCol(hint.hand);
+        hintFill(g.x, g.w - 1, HK, hint.p);
+        kctx.globalAlpha = 1;
+      }
     }
     if (m % 12 === 0 && g.w >= 10){
       const fs = Math.min(Math.max(g.w * 0.44, 7), 11);
@@ -857,8 +869,33 @@ function drawKeys(active){
     const g = geom[m]; if (!g || !g.black) continue;
     kctx.fillStyle = on.has(m) ? on.get(m) : ebony;
     kctx.fillRect(g.x, 0, g.w, bh);
-    if (!on.has(m)){ kctx.fillStyle = 'rgba(255,255,255,.07)'; kctx.fillRect(g.x, 0, g.w, bh*0.18); }
+    if (!on.has(m)){
+      kctx.fillStyle = 'rgba(255,255,255,.07)'; kctx.fillRect(g.x, 0, g.w, bh*0.18);
+      const hint = hints.get(m);
+      if (hint){
+        kctx.globalAlpha = hintAlpha(hint.p);
+        kctx.fillStyle = handCol(hint.hand);
+        hintFill(g.x, g.w, bh, hint.p);
+        kctx.globalAlpha = 1;
+      }
+    }
   }
+  /* Nối tiếp đường nét đứt xuống giữa thân phím, để nốt rơi và phím thành một
+     đường thẳng liền mạch trong mắt. */
+  if (showHint && hints.size){
+    kctx.save();
+    kctx.setLineDash([4, 4]);
+    kctx.lineWidth = 1;
+    for (const [m, hint] of hints){
+      const g = geom[m]; if (!g || on.has(m)) continue;
+      const x = Math.round(g.x + g.w / 2) + 0.5;
+      kctx.globalAlpha = 0.20 + 0.5 * hint.p * hint.p;
+      kctx.strokeStyle = g.black ? '#fff' : handCol(hint.hand);
+      kctx.beginPath(); kctx.moveTo(x, 0); kctx.lineTo(x, g.black ? bh : HK); kctx.stroke();
+    }
+    kctx.restore();
+  }
+
   kctx.fillStyle = 'rgba(0,0,0,.5)'; kctx.fillRect(0, 0, W, 2);
 }
 
@@ -994,8 +1031,8 @@ $('seek').oninput  = e => { dragging = true; const t = e.target.value/1000*durat
 $('seek').onchange = e => { dragging = false; seekTo(e.target.value/1000*duration); };
 
 const refreshSum = () => { if ($('panel').classList.contains('collapsed')) $('panelSum').textContent = panelSummary(); savePrefs(); };
-for (const id of ['rate','look','vol','tone','h0','h1'])
-  document.getElementById(id).addEventListener(id === 'tone' ? 'change' : 'input', refreshSum);
+for (const id of ['rate','look','vol','tone','hint','h0','h1'])
+  document.getElementById(id).addEventListener(id === 'tone' || id === 'hint' ? 'change' : 'input', refreshSum);
 $('h0').addEventListener('click', refreshSum);
 $('h1').addEventListener('click', refreshSum);
 
@@ -1015,7 +1052,7 @@ $('tone').onchange = e => {
   savePrefs();
 };
 $('look').oninput = e => { lookahead = +e.target.value; $('lookV').textContent = lookahead + 's'; };
-$('names').onchange = e => { noteNames = e.target.value; savePrefs(); };
+$('hint').onchange = e => { showHint = e.target.checked; lastKeySig = null; savePrefs(); };
 $('fit').onchange = () => { computeRange(); savePrefs(); };
 
 /* Đổi trạng thái tay: nốt đã lên lịch trước ~100ms nên phải neo lại đồng hồ
@@ -1089,7 +1126,7 @@ function savePrefs(extra){
     localStorage.setItem(STORE, JSON.stringify(Object.assign(loadPrefs(), {
       v: 1,
       rate: +$('rate').value, look: +$('look').value, vol: +$('vol').value,
-      tone, fit: $('fit').checked, names: noteNames, hands: handState.slice(),
+      tone, fit: $('fit').checked, hint: showHint, hands: handState.slice(),
       panel: !$('panel').classList.contains('collapsed'),
       song: currentSong
     }, extra || {})));
@@ -1182,7 +1219,7 @@ const prefs = loadPrefs();
 const q = new URLSearchParams(location.search);
 
 $('fit').checked = 'fit' in prefs ? !!prefs.fit : window.innerWidth < 600;
-if (prefs.names){ noteNames = prefs.names; $('names').value = prefs.names; }
+if ('hint' in prefs){ showHint = !!prefs.hint; $('hint').checked = showHint; }
 if (prefs.rate) setRate(prefs.rate);
 if (prefs.look){ lookahead = prefs.look; $('look').value = prefs.look; $('lookV').textContent = prefs.look + 's'; }
 if (typeof prefs.vol === 'number'){ $('vol').value = prefs.vol; setVolume(prefs.vol); }

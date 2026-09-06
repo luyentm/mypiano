@@ -108,13 +108,18 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
   play/pause liên tục sẽ làm layout nhảy. Lúc thu, thanh tay cầm in tóm tắt
   (`panelSummary()`) để vẫn biết đang ở tốc độ / tiếng đàn nào.
   Đo trên 844×390 (điện thoại ngang): vùng nốt rơi 144px → 220px khi thu panel.
-- **Tên nốt trên thân nốt rơi** (`noteNames`: `off` / `solfa` Đô Rê Mi / `letter` C D E,
-  mặc định tắt). Vẽ ở ĐÁY nốt — chỗ sắp chạm bàn phím — để mắt đọc kịp trước khi bấm.
-  Ba luật giữ cho khỏi rối: bỏ qua nốt hẹp < 12px hoặc ngắn < 14px; tên dài (Sol#) trên
-  phím đen thì đo `measureText` rồi thu nhỏ, dưới 6.5px thì thôi không vẽ; và **cùng một
-  cao độ lặp lại trong vòng 34px thì chỉ in nhãn một lần** — bè đệm lặp nốt mà nốt nào
-  cũng in chữ thì thành cột chữ giống hệt nhau, đọc mệt mà không thêm thông tin
-  (đo ở đoạn dày nhất của He's a Pirate: 63 nhãn → 42).
+- **Gợi ý phím sắp bấm** (`showHint`, mặc định BẬT). Từng thử in TÊN NỐT lên thân nốt
+  rơi rồi bỏ: người tập không cần đọc tên nốt, họ cần biết *bấm phím nào, ngay bây giờ*.
+  Cách đang dùng — phím trên bàn phím sáng dần lên khi nốt tới gần, kèm đường nét đứt
+  nối đáy nốt với tâm phím:
+  - `HINT_LEAD = 1.2s`, `p = 1 - (start - now)/HINT_LEAD` (0 = còn xa, 1 = sắp bấm).
+  - Vệt màu **dâng từ trên xuống** như đếm ngược (`0.28 + 0.72p` chiều cao phím) và
+    đậm dần `0.10 + 0.38p²`. Bình phương để lúc còn xa chỉ nhen nhẹ, tới sát mới bừng.
+  - Trần độ đậm cố ý thấp hơn phím đang kêu, để không lẫn "sắp bấm" với "đang kêu".
+  - `lastKeySig` phải gồm cả độ sáng gợi ý **làm tròn 8 nấc**, nếu không thì hoặc đứng
+    hình hoặc vẽ lại mỗi frame. Đo được: 47/120 frame vẽ lại, 0.06ms/frame.
+  - Gradient bóng phím trắng dựng MỘT lần ngoài vòng lặp; trước đây tạo lại cho từng
+    phím mỗi lần vẽ, giờ vẽ dày hơn nên phải sửa.
 - **Bật/tắt từng tay (`handState`)** — 3 trạng thái `on` → `silent` → `off`.
   `silent` = không kêu nhưng NỐT VẪN RƠI và phím vẫn sáng: đây là chế độ tập từng tay,
   đừng "tối ưu" bằng cách bỏ luôn khỏi `active`. Khi đổi trạng thái lúc đang chơi phải
