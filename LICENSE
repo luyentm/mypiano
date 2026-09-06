@@ -15,6 +15,11 @@ Tóm tắt — KHÔNG thay thế nguyên văn:
 Vì có điều khoản phi thương mại nên đây là giấy phép "source-available", không phải
 giấy phép open source theo định nghĩa của OSI (OSI không cho phép hạn chế lĩnh vực sử dụng).
 
+Riêng thư mục audio/piano/ là bộ mẫu Salamander Grand Piano của Alexander Holm,
+phát hành theo Creative Commons Attribution 3.0 (CC BY 3.0) — giấy phép riêng, độc lập
+với giấy phép của mã nguồn. Dùng lại thì phải ghi công tác giả; chi tiết ở
+audio/piano/README.md.
+
 Riêng các file .mid trong thư mục midi/ KHÔNG thuộc phạm vi giấy phép này: bản nhạc gốc
 có thể đã thuộc phạm vi công cộng, nhưng bản soạn MIDI cụ thể có thể có bản quyền riêng
 của người soạn. Chỉ thêm file mà bạn có quyền phân phối.

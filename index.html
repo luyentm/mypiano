@@ -42,6 +42,18 @@
   .btn.primary{background:var(--lh); border-color:var(--lh); color:#08111a; font-weight:600}
   .btn.primary:hover{filter:brightness(1.08)}
 
+  .banner{overflow:hidden; white-space:nowrap; margin:18px 0 -6px;
+    background:linear-gradient(90deg,#1b2230,#232c3e,#1b2230);
+    border:1px solid var(--line); border-radius:10px; padding:9px 0}
+  .banner span{display:inline-block; padding-left:100%; font-size:14px; font-weight:600;
+    color:var(--rh); animation:run 14s linear infinite}
+  .banner span b{color:var(--lh)}
+  @keyframes run{ from{transform:translateX(0)} to{transform:translateX(-100%)} }
+  .banner:hover span{animation-play-state:paused}
+  @media (prefers-reduced-motion:reduce){
+    .banner{text-align:center; padding:9px 12px; text-overflow:ellipsis}
+    .banner span{padding-left:0; animation:none; white-space:normal}
+  }
   header.hero{padding:52px 0 8px}
   header.hero h1{font-size:34px; line-height:1.2; margin:0 0 14px; letter-spacing:-.4px}
   header.hero h1 span{color:var(--rh)}
@@ -108,6 +120,10 @@
 
 <div class="wrap">
 
+  <div class="banner" aria-label="Lời chúc">
+    <span>🎁 Quà tặng <b>Minh Ngọc</b> — chúc <b>Minh Ngọc</b> học piano tốt!!! 🎹</span>
+  </div>
+
   <header class="hero">
     <h1>Nốt rơi xuống, bạn <span>bấm theo</span>.</h1>
     <p class="lead">
@@ -138,6 +154,11 @@
       <div class="card">
         <h3><b style="background:var(--lh)"></b>Tách hai tay</h3>
         <p>Tay phải và tay trái khác màu, tách theo track của file MIDI — file một track thì tách theo cao độ.</p>
+      </div>
+      <div class="card">
+        <h3><b></b>Hai bộ tiếng</h3>
+        <p>Mặc định là digital piano, nghe được ngay và không tốn byte nào. Đổi sang grand piano
+        thu từ đàn thật (2 MB) khi muốn tiếng đẹp — đang tải vẫn chơi bình thường.</p>
       </div>
       <div class="card">
         <h3><b></b>Tốc độ 25%–200%</h3>
@@ -195,6 +216,7 @@
            alt="Lượt truy cập" height="20"></a>
     <span class="spacer"></span>
     <a class="lic" href="https://github.com/luyentm/mypiano/blob/main/LICENSE">© 2026 luyentm · PolyForm NC 1.0.0</a>
+    <a class="lic" href="https://freepats.zenvoid.org/Piano/acoustic-grand-piano.html">Tiếng piano: Salamander của Alexander Holm (CC BY 3.0)</a>
     <a href="play/">Chơi</a>
     <a href="library/">Thư viện</a>
     <a href="https://github.com/luyentm/mypiano">Mã nguồn</a>

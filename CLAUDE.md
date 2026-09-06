@@ -11,6 +11,7 @@ Live: <https://luyentm.github.io/mypiano/>
 | `/play/` | [play/index.html](play/index.html) | App thật: nốt rơi, bàn phím, transport. Nhận `?song=<file>.mid` để nạp bài từ thư viện |
 | `/library/` | [library/index.html](library/index.html) | Thư viện: đọc `midi/index.json`, bấm một bài là sang `/play/?song=…` |
 | — | `midi/` | File `.mid` + `meta.json` (tên/tác giả tuỳ chọn) + `index.json` (sinh tự động) |
+| — | `audio/piano/` | 30 mẫu Salamander Grand Piano (CC BY 3.0) cho bộ tiếng "grand" |
 | — | `tools/` | Script bảo trì chạy bằng node, không phải phần của site |
 
 ## Ràng buộc cứng — không được phá
@@ -25,8 +26,10 @@ Live: <https://luyentm.github.io/mypiano/>
 - **Không tài nguyên ngoài**: không CDN, không script/style/font, không `import()` từ URL.
   Ngoại lệ DUY NHẤT: ảnh badge đếm lượt của hits.sh (xem mục "Đếm lượt truy cập").
   CI chặn mọi `<img src="https://…">` không phải hits.sh.
-- **Không thư viện nhạc**: parser Standard MIDI File tự viết, tiếng đàn tổng hợp bằng
-  `OscillatorNode` + ADSR. Không `@tonejs/midi`, không `smplr`, không Tone.js, không soundfont/sample.
+- **Không thư viện nhạc**: parser Standard MIDI File tự viết, engine tiếng đàn tự viết.
+  Không `@tonejs/midi`, không `smplr`, không Tone.js, không soundfont runtime.
+  Sample thu sẵn thì ĐƯỢC, với điều kiện file nằm trong repo (`audio/`) và tự giải mã bằng
+  `decodeAudioData` — xem mục "Hai bộ tiếng đàn".
 - **Render bằng Canvas 2D**. Không SVG, không three.js, không tạo DOM element cho từng nốt.
 - **Không `localStorage` / `sessionStorage`**.
 
@@ -164,6 +167,35 @@ Kiểm tra cú pháp JS inline cả 3 trang — CI chạy đúng vòng lặp nà
 ```bash
 for f in index.html play/index.html library/index.html; do sed -n '/^<script>/,/^<\/script>/p' "$f" | sed '1d;$d' > /tmp/inline.js && node --check /tmp/inline.js && echo "ok $f"; done
 ```
+
+## Hai bộ tiếng đàn
+
+| | `digital` (mặc định) | `grand` |
+| --- | --- | --- |
+| Cách tạo tiếng | 2 oscillator (triangle + sine quãng 8) + ADSR | 30 bản thu trong `audio/piano/` |
+| Tải về | 0 byte | ~2 MB, chỉ tải khi người dùng chọn |
+| RAM sau giải mã | 0 | ~31 MB |
+
+Vì sao "grand" nghe thật hơn hẳn: nó là **thu âm đàn Yamaha C5 thật**, nên có sẵn tiếng búa
+gõ dây, inharmonicity (bồi âm của dây cứng lệch cao hơn bội số nguyên), ~20 bồi âm tắt với
+tốc độ khác nhau, cộng hưởng thùng đàn — những thứ oscillator không dựng lại được.
+
+Ba chi tiết bắt buộc giữ:
+
+1. **Mẫu cách nhau quãng 3 thứ** (A0, C1, D#1, F#1, A1 … C8 = MIDI `21 + 3*i`), nên mỗi nốt
+   chỉ dịch tối đa **1 nửa cung** (`playbackRate` 0.944–1.059). Sample thưa hơn là méo tiếng
+   nghe ra ngay. (onlinesequencer.net làm đúng như vậy: 26 mẫu cách quãng 3 thứ, 16s mỗi mẫu.)
+2. **`trimMono()` cắt còn 6 giây + trộn mono.** Bản gốc dài tới 25 giây và stereo — để nguyên
+   là ~160 MB RAM, máy yếu chết. Có vuốt nhỏ 0.25s cuối để không "cụp".
+3. **Trong lúc tải vẫn chơi bằng digital.** `voice()` kiểm tra `tone === 'grand' && piano`,
+   `piano` còn `null` thì tự rơi về synth. Đừng chặn phát nhạc để chờ tải.
+
+Lựa chọn tiếng **không lưu bằng localStorage** (bị cấm) mà truyền qua URL `?tone=grand`:
+màn chơi ghi vào URL bằng `history.replaceState`, link sang thư viện mang theo `?tone=grand`,
+thư viện gắn tiếp vào link từng bài. Sửa một chỗ thì nhớ sửa cả ba.
+
+Ghi công CC BY 3.0 cho Alexander Holm đang nằm ở footer trang chủ + `audio/piano/README.md`;
+CI kiểm tra file README đó còn nguyên. Đừng xoá.
 
 ## Đếm lượt truy cập (hits.sh)
 

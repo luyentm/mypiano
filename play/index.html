@@ -76,6 +76,8 @@
   .hand[data-s="silent"]{border-style:dashed; opacity:.8}
   .hand[data-s="off"]{opacity:.42}
   .hand[data-s="off"] i{background:#4a5468 !important}
+  select.tone{padding:5px 8px; font-size:12px; border-radius:7px}
+  #toneV{color:var(--dim); font-weight:400; min-width:0}
   .btn.icon{padding:6px 9px; display:inline-flex; align-items:center}
   .btn.icon svg{display:block}
   .err{color:#e07a6a; font-size:12px}
@@ -156,6 +158,13 @@
     <label class="ctl">Tốc độ <input type="range" id="rate" min="25" max="200" step="5" value="100"><b id="rateV">100%</b></label>
     <label class="ctl">Nhìn trước <input type="range" id="look" min="1" max="6" step="0.5" value="3.5"><b id="lookV">3.5s</b></label>
     <label class="ctl">Âm lượng <input type="range" id="vol" min="0" max="100" step="5" value="90"><b id="volV">90%</b></label>
+    <label class="ctl">Tiếng đàn
+      <select id="tone" class="btn tone">
+        <option value="digital">Digital piano</option>
+        <option value="grand">Grand piano (2 MB)</option>
+      </select>
+      <b id="toneV"></b>
+    </label>
     <label class="ctl"><input type="checkbox" id="fit"> Thu gọn phím</label>
     <span class="hands">
       <button class="hand" id="h0" data-s="on" aria-pressed="true"><i style="background:var(--rh)"></i>Tay phải <b>phát</b></button>
@@ -315,6 +324,18 @@ const HAND_LABEL = { on:'phát', silent:'chỉ hiện', off:'ẩn' };
    ========================================================================== */
 let actx = null, master = null;
 let volume = 0.9;                              /* nhớ cả khi AudioContext chưa được tạo */
+
+/* Hai bộ tiếng:
+   - digital: oscillator + ADSR, 0 byte, luôn sẵn sàng (mặc định)
+   - grand:   30 bản thu Salamander Grand Piano trong audio/piano/, cách nhau quãng 3 thứ
+              (A0, C1, D#1, F#1, A1 … C8 => midi 21 + 3*i), nên mỗi nốt chỉ phải dịch
+              tối đa 1 nửa cung — dịch xa hơn là méo tiếng ngay.
+   Tải xong mới đổi; trong lúc chờ vẫn chơi bằng digital, không ai phải ngồi im. */
+const SAMPLE_FILES = ['A0','C1','Ds1','Fs1','A1','C2','Ds2','Fs2','A2','C3','Ds3','Fs3',
+                      'A3','C4','Ds4','Fs4','A4','C5','Ds5','Fs5','A5','C6','Ds6','Fs6',
+                      'A6','C7','Ds7','Fs7','A7','C8'];
+const SAMPLE_MIDI = i => 21 + 3 * i;                 /* A0 = 21, bước 3 nửa cung */
+let tone = 'digital', piano = null, pianoLoading = false;
 let voices = [], voiceCount = 0;
 const MAX_VOICES = 16;
 
@@ -327,9 +348,64 @@ function initAudio(){
   master.connect(comp).connect(actx.destination);
 }
 
+function toneStatus(t){ $('toneV').textContent = t; }
+
+async function loadPiano(){
+  if (piano || pianoLoading) return;
+  initAudio();
+  pianoLoading = true;
+  let done = 0;
+  toneStatus('đang tải 0%');
+  try {
+    const bufs = await Promise.all(SAMPLE_FILES.map(async nm => {
+      const r = await fetch('../audio/piano/' + nm + '.mp3');
+      if (!r.ok) throw new Error(nm + '.mp3 — HTTP ' + r.status);
+      const buf = trimMono(await actx.decodeAudioData(await r.arrayBuffer()));
+      toneStatus('đang tải ' + Math.round(++done / SAMPLE_FILES.length * 100) + '%');
+      return buf;
+    }));
+    piano = bufs.map((buf, i) => ({ midi: SAMPLE_MIDI(i), buf }));
+    toneStatus(tone === 'grand' ? 'sẵn sàng' : '');
+  } catch(err){
+    toneStatus('lỗi tải tiếng');
+    $('err').textContent = 'Không tải được tiếng grand piano: ' + err.message;
+    $('tone').value = tone = 'digital';
+  } finally { pianoLoading = false; }
+}
+
+/* Bản thu gốc dài tới 25 giây và stereo — giữ nguyên cả bộ là ~160 MB RAM, máy yếu chết.
+   Nốt trong app dài nhất cũng chỉ vài giây rồi bị damper hãm, nên cắt còn 6 giây và
+   trộn về mono: xuống dưới ~30 MB. Vuốt nhỏ 0.25s cuối để không "cụp" nếu nốt còn ngân. */
+const SAMPLE_MAX_SEC = 6, SAMPLE_FADE = 0.25;
+function trimMono(buf){
+  const rate = buf.sampleRate;
+  const frames = Math.min(buf.length, Math.round(SAMPLE_MAX_SEC * rate));
+  const out = actx.createBuffer(1, frames, rate);
+  const dst = out.getChannelData(0);
+  const chans = [];
+  for (let c = 0; c < buf.numberOfChannels; c++) chans.push(buf.getChannelData(c));
+  for (let i = 0; i < frames; i++){
+    let v = 0;
+    for (const ch of chans) v += ch[i];
+    dst[i] = v / chans.length;
+  }
+  if (frames === Math.round(SAMPLE_MAX_SEC * rate)){
+    const fade = Math.round(SAMPLE_FADE * rate);
+    for (let i = 0; i < fade; i++) dst[frames - fade + i] *= 1 - i / fade;
+  }
+  return out;
+}
+
+/* Bản thu gần nhất — lệch tối đa 1 nửa cung với nốt trong tầm 88 phím */
+function nearestSample(midi){
+  const i = Math.max(0, Math.min(SAMPLE_FILES.length - 1, Math.round((midi - 21) / 3)));
+  return piano[i];
+}
+
 function voice(n, when, dur){
   if (voiceCount >= MAX_VOICES) return;          /* giới hạn voice, tránh vỡ tiếng */
   voiceCount++;
+  if (tone === 'grand' && piano) return sampleVoice(n, when, dur);
   const f = 440 * Math.pow(2, (n.midi - 69) / 12);
   const g = actx.createGain();
   /* gain thấp, nốt càng cao càng nhỏ lại cho cân */
@@ -353,6 +429,30 @@ function voice(n, when, dur){
   }
   const rec = { g, oscs }; voices.push(rec);
   oscs[0].onended = () => {
+    voiceCount--; const i = voices.indexOf(rec); if (i >= 0) voices.splice(i, 1);
+  };
+}
+
+/* Nốt piano thu sẵn: chỉ cần chỉnh cao độ bằng playbackRate rồi cho damper hãm lại
+   khi nhả phím. Không ADSR — attack/decay đã nằm trong bản thu. */
+function sampleVoice(n, when, dur){
+  const s = nearestSample(n.midi);
+  const src = actx.createBufferSource();
+  src.buffer = s.buf;
+  src.playbackRate.value = Math.pow(2, (n.midi - s.midi) / 12);
+
+  const g = actx.createGain();
+  const peak = 0.42 * (0.35 + 0.65 * (n.vel / 127));
+  const rel = when + Math.max(dur, 0.05);
+  g.gain.setValueAtTime(peak, when);
+  g.gain.setTargetAtTime(0.0001, rel, 0.09);     /* damper hãm dây, không cắt phựt */
+  src.connect(g).connect(master);
+  src.start(when);
+  src.stop(rel + 0.7);
+
+  const rec = { g, oscs: [src] };
+  voices.push(rec);
+  src.onended = () => {
     voiceCount--; const i = voices.indexOf(rec); if (i >= 0) voices.splice(i, 1);
   };
 }
@@ -724,6 +824,18 @@ $('seek').onchange = e => { dragging = false; seekTo(e.target.value/1000*duratio
 
 $('rate').oninput = e => setRate(+e.target.value);
 $('vol').oninput  = e => setVolume(+e.target.value);
+
+$('tone').onchange = e => {
+  tone = e.target.value;
+  const u = new URL(location.href);              /* không dùng localStorage nên nhét lựa
+                                                    chọn vào URL để f5 / quay lại còn giữ */
+  if (tone === 'grand') u.searchParams.set('tone', 'grand'); else u.searchParams.delete('tone');
+  history.replaceState(null, '', u);
+  for (const a of document.querySelectorAll('a[href^="../library/"]'))
+    a.href = '../library/' + (tone === 'grand' ? '?tone=grand' : '');
+  if (tone === 'grand'){ piano ? toneStatus('sẵn sàng') : loadPiano(); }
+  else toneStatus('');
+};
 $('look').oninput = e => { lookahead = +e.target.value; $('lookV').textContent = lookahead + 's'; };
 $('fit').onchange = () => computeRange();
 
@@ -856,7 +968,9 @@ $('fit').checked = window.innerWidth < 600;
 requestAnimationFrame(frame);
 
 (async () => {
-  const wanted = new URLSearchParams(location.search).get('song');
+  const q = new URLSearchParams(location.search);
+  if (q.get('tone') === 'grand'){ $('tone').value = tone = 'grand'; $('tone').onchange({ target: $('tone') }); }
+  const wanted = q.get('song');
   if (wanted){
     if (await loadFromLibrary(wanted)) return;
     showEmpty('Không nạp được bài', 'Thư viện không có "' + wanted + '". Chọn bài khác nhé.');

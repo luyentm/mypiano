@@ -114,6 +114,11 @@ const kb = n => n < 1024 ? n + ' B' : (n/1024).toFixed(1) + ' KB';
 
 let songs = [];
 
+/* Người dùng chọn Grand piano ở màn chơi thì giữ lựa chọn đó khi đổi bài
+   (không dùng localStorage, nên truyền qua URL). */
+const TONE = new URLSearchParams(location.search).get('tone') === 'grand' ? 'grand' : '';
+const withTone = qs => qs + (TONE ? (qs ? '&' : '?') + 'tone=grand' : '');
+
 /* Độ khó 1–1000 do người chấm, ghi trong midi/meta.json. Danh sách đã được
    tools/build-midi-index.js sắp sẵn theo số này nên ở đây giữ nguyên thứ tự. */
 const BANDS = [
@@ -128,7 +133,7 @@ const band = d => BANDS.find(b => d < b[0]) || BANDS[BANDS.length-1];
 
 function card(s, rank){
   const [, label, color] = band(s.difficulty);
-  return '<a class="song" href="../play/?song=' + encodeURIComponent(s.file) + '">' +
+  return '<a class="song" href="../play/' + withTone('?song=' + encodeURIComponent(s.file)) + '">' +
     '<span class="go">›</span>' +
     '<div class="t"><span class="rank">' + rank + '.</span>' + esc(s.title) + '</div>' +
     (s.composer ? '<div class="c">' + esc(s.composer) + '</div>' : '') +
@@ -171,6 +176,8 @@ function failed(err){
     'chạy qua http là được:' +
     '<pre>python3 -m http.server 1234\n# rồi mở http://localhost:1234/library/</pre></div>';
 }
+
+if (TONE) for (const a of document.querySelectorAll('a[href="../play/"]')) a.href = '../play/?tone=grand';
 
 fetch('../midi/index.json', { cache: 'no-cache' })
   .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })

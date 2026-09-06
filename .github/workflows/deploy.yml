@@ -60,6 +60,14 @@ jobs:
           test -f midi/meta.json || exit 0
           node -e "JSON.parse(require('fs').readFileSync('midi/meta.json','utf8'))"
 
+      # Sample piano dùng theo CC BY 3.0: mất ghi công là vi phạm giấy phép.
+      - name: Giữ ghi công cho bộ sample piano
+        run: |
+          test -f audio/piano/README.md || { echo "thiếu audio/piano/README.md (ghi công CC BY)"; exit 1; }
+          grep -q "CC BY" audio/piano/README.md || { echo "README của sample mất phần giấy phép"; exit 1; }
+          grep -q "Alexander Holm" audio/piano/README.md || { echo "README của sample mất tên tác giả"; exit 1; }
+          n=$(ls audio/piano/*.mp3 | wc -l); test "$n" -eq 30 || { echo "cần đủ 30 mẫu, đang có $n"; exit 1; }
+
       # Fail nếu có bài chưa được chấm độ khó — thư viện xếp theo con số này.
       - name: Mọi bài phải có difficulty 1–1000
         run: node tools/build-midi-index.js
