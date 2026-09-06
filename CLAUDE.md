@@ -39,16 +39,16 @@ CI chặn phần lớn các vi phạm này — xem job `check` trong [.github/wo
 
 | Mục | Dòng | Nội dung |
 | --- | --- | --- |
-| 1 | ~154 | `parseMidi()` — SMF format 0/1: VLQ, running status, note on/off, tempo (0x51), time signature (0x58), tên track (0x03), tempo map tick→giây |
-| 2 | ~265 | State toàn cục: `notes`, `grid`, `duration`, `maxDur`, `geom`, canvas context |
-| 3 | ~286 | Audio: `initAudio()`, `voice()` (2 oscillator + ADSR), `killVoices()` |
-| 4 | ~344 | Đồng hồ: `songTime()`, `songToAudio()`, `anchorAt()` |
-| 5 | ~354 | `normalize()` (bỏ track nhân bản + gán tay), `load()`, `computeRange()` |
-| 6 | ~441 | `buildGeom()`, `resize()` — bảng geometry 88 phím + DPI |
-| 7 | ~467 | `drawFalling()`, `drawKeys()` — vòng vẽ |
-| 8 | ~600 | Scheduler 25ms + `frame()` (rAF) |
-| 9 | ~635 | Transport: `play/pause/stop/seekTo/setRate` |
-| 10 | ~690 | UI binding, `setHand()`, toàn màn hình, `countSong()`, `loadFromLibrary()`, overlay hết bài / trống, drag-drop, phím tắt, khởi động |
+| 1 | ~231 | `parseMidi()` — SMF format 0/1: VLQ, running status, note on/off, tempo (0x51), time signature (0x58), tên track (0x03), tempo map tick→giây |
+| 2 | ~342 | State toàn cục: `notes`, `grid`, `duration`, `maxDur`, `geom`, canvas context |
+| 3 | ~369 | Audio: `initAudio()`, `voice()` (2 oscillator + ADSR), `killVoices()` |
+| 4 | ~530 | Đồng hồ: `songTime()`, `songToAudio()`, `anchorAt()` |
+| 5 | ~540 | `normalize()` (bỏ track nhân bản + gán tay), `load()`, `computeRange()` |
+| 6 | ~627 | `buildGeom()`, `resize()` — bảng geometry 88 phím + DPI |
+| 7 | ~653 | `drawFalling()`, `drawKeys()` — vòng vẽ |
+| 8 | ~788 | Scheduler 25ms + `frame()` (rAF) |
+| 9 | ~833 | Transport: `play/pause/stop/seekTo/setRate` |
+| 10 | ~881 | UI binding, `setHand()`, `setPanel()`, toàn màn hình, `countSong()`, `loadFromLibrary()`, overlay hết bài / trống, drag-drop, phím tắt, khởi động |
 
 **Không còn bài demo hardcode** (đã gỡ cùng menu chọn bài trong header).
 `/play/` không tham số sẽ nạp **bài dễ nhất** trong `midi/index.json`; thư viện rỗng
@@ -82,6 +82,14 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
   `right` / `left` / `treble` / `bass`), không có tên mới đoán theo cao độ mốc C4.
   Gán theo thứ tự track là sai với file có nhiều hơn 2 track nhạc.
   Tay phải `--rh`, tay trái `--lh`.
+- **Bố cục màn chơi tối ưu cho iPad/điện thoại NẰM NGANG** — chiều cao là thứ khan hiếm
+  nhất, nên: transport gom vào top bar (một nút play/pause duy nhất, không có nút Dừng
+  riêng), thanh tua bám sát mép dưới top bar để lúc nào cũng tua được, "lượt tập" cũng
+  nằm trên top bar, và panel chỉnh ở đáy **tự thu lại khi bấm Chơi**.
+  Panel chỉ mở lại khi bấm thanh tay cầm — cố tình KHÔNG tự bung ra lúc pause, vì
+  play/pause liên tục sẽ làm layout nhảy. Lúc thu, thanh tay cầm in tóm tắt
+  (`panelSummary()`) để vẫn biết đang ở tốc độ / tiếng đàn nào.
+  Đo trên 844×390 (điện thoại ngang): vùng nốt rơi 144px → 220px khi thu panel.
 - **Bật/tắt từng tay (`handState`)** — 3 trạng thái `on` → `silent` → `off`.
   `silent` = không kêu nhưng NỐT VẪN RƠI và phím vẫn sáng: đây là chế độ tập từng tay,
   đừng "tối ưu" bằng cách bỏ luôn khỏi `active`. Khi đổi trạng thái lúc đang chơi phải

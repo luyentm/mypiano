@@ -26,14 +26,31 @@
     display:flex; flex-direction:column;
     overscroll-behavior:none; -webkit-text-size-adjust:100%;
   }
-  header{
-    display:flex; align-items:center; gap:10px; flex:none;
-    padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--line);
-  }
+  /* Top bar: play/pause + đồng hồ + lượt tập nằm hết trên này, thanh tua bám sát
+     mép dưới của bar để lúc nào cũng tua được mà không phải mở panel. */
+  header{flex:none; background:var(--panel); border-bottom:1px solid var(--line);
+    display:flex; flex-direction:column}
+  header .bar{display:flex; align-items:center; gap:9px; padding:7px 12px}
   header h1{font-size:14px; font-weight:600; margin:0; white-space:nowrap}
   header .sub{margin-left:auto; color:var(--dim); font-size:12px;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:38%}
-  @media (max-width:600px){ header h1{display:none} header .sub{display:none} }
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:34%}
+  @media (max-width:900px){ header h1{display:none} }
+  @media (max-width:600px){ header .sub{display:none} }
+
+  .btn.pp{padding:7px 12px; display:inline-flex; align-items:center; justify-content:center;
+    min-width:44px; min-height:34px}
+  .btn.pp svg{display:block}
+
+  #seek{-webkit-appearance:none; appearance:none; display:block; width:100%; height:17px;
+    margin:0; padding:0; background:transparent; cursor:pointer; touch-action:none}
+  #seek::-webkit-slider-runnable-track{height:5px;
+    background:linear-gradient(90deg,var(--lh) var(--p,0%), #2a3346 var(--p,0%))}
+  #seek::-webkit-slider-thumb{-webkit-appearance:none; width:15px; height:15px; margin-top:-5px;
+    border-radius:50%; background:var(--lh); border:2px solid var(--panel)}
+  #seek::-moz-range-track{height:5px; background:#2a3346}
+  #seek::-moz-range-progress{height:5px; background:var(--lh)}
+  #seek::-moz-range-thumb{width:13px; height:13px; border:2px solid var(--panel);
+    border-radius:50%; background:var(--lh)}
 
   .btn{background:#202737; color:var(--text); border:1px solid var(--line);
     border-radius:7px; padding:7px 13px; font:inherit; font-size:13px;
@@ -47,17 +64,38 @@
     background:linear-gradient(180deg,#0b0e14 0%,#0d1017 62%,#111620 100%)}
   #keys{display:block; width:100%; height:110px; flex:none}
   @media (max-width:600px){ #keys{height:76px} }
+  /* Điện thoại/iPad xoay ngang: chiều cao là thứ khan hiếm nhất, bóp mọi thứ trừ vùng nốt rơi */
+  @media (orientation:landscape) and (max-height:520px){
+    #keys{height:62px}
+    header .bar{padding:4px 10px; gap:7px}
+    .btn{padding:5px 10px; font-size:12px}
+    .btn.pp{min-height:30px; min-width:40px; padding:5px 10px}
+    footer .body{padding-top:1px; gap:5px}
+    .row{gap:8px}
+  }
 
   #drop{position:absolute; inset:0; display:none; place-items:center; font-size:15px;
     background:rgba(13,16,23,.92); border:2px dashed var(--lh); color:var(--lh)}
   #drop.on{display:grid}
 
+  /* Panel dưới tự thu lại khi đang chơi để nhường chiều cao cho nốt rơi
+     (iPad/điện thoại nằm ngang rất thiếu chỗ). Bấm thanh tay cầm để mở lại. */
   footer{flex:none; background:var(--panel); border-top:1px solid var(--line);
-    padding:9px 14px calc(9px + env(safe-area-inset-bottom));
-    display:flex; flex-direction:column; gap:8px}
+    display:flex; flex-direction:column}
+  footer .grip{all:unset; display:flex; align-items:center; justify-content:center; gap:11px;
+    height:24px; flex:none; cursor:pointer; color:var(--dim); font-size:11.5px;
+    touch-action:manipulation; padding-bottom:env(safe-area-inset-bottom)}
+  footer .grip:hover{background:#1a2130}
+  footer .grip .chev{width:28px; height:3px; border-radius:2px; background:#3a4459; flex:none}
+  footer .grip .sum{display:none; font-variant-numeric:tabular-nums;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  footer.collapsed .grip{padding-bottom:calc(2px + env(safe-area-inset-bottom))}
+  footer.collapsed .grip .sum{display:inline}
+  footer.collapsed .body{display:none}
+  footer .body{padding:2px 13px calc(9px + env(safe-area-inset-bottom));
+    display:flex; flex-direction:column; gap:7px}
   .row{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
-  .time{font-variant-numeric:tabular-nums; color:var(--dim); font-size:12px; min-width:84px}
-  #seek{flex:1; min-width:130px}
+  .time{font-variant-numeric:tabular-nums; color:var(--dim); font-size:12px; min-width:80px}
   label.ctl{display:flex; align-items:center; gap:7px; font-size:12px; color:var(--dim)}
   label.ctl input[type=range]{width:110px}
   label.ctl b{color:var(--text); font-weight:500; font-variant-numeric:tabular-nums;
@@ -103,7 +141,15 @@
 <body>
 
 <header>
+ <div class="bar">
   <a class="home" href="../" title="Trang chủ">♪</a>
+  <button class="btn primary pp" id="play" title="Chơi (Space)" aria-label="Chơi">
+    <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+      <path id="ppIcon" fill="currentColor" d="M3.5 2.2 13 8l-9.5 5.8z"/>
+    </svg>
+  </button>
+  <span class="time" id="time">0:00 / 0:00</span>
+  <span id="hits"></span>
   <h1>Piano falling notes</h1>
   <a class="btn" href="../library/">Thư viện</a>
   <button class="btn" id="load">Mở MIDI</button>
@@ -115,6 +161,8 @@
   </button>
   <input type="file" id="file" accept=".mid,.midi,audio/midi" hidden>
   <span class="sub" id="songname"></span>
+ </div>
+ <input type="range" id="seek" min="0" max="1000" step="1" value="0" aria-label="Tua bài">
 </header>
 
 <div id="stage">
@@ -147,13 +195,11 @@
   </div>
 </div>
 
-<footer>
-  <div class="row">
-    <button class="btn primary" id="play">Chơi</button>
-    <button class="btn" id="stop">Dừng</button>
-    <span class="time" id="time">0:00 / 0:00</span>
-    <input type="range" id="seek" min="0" max="1000" step="1" value="0">
-  </div>
+<footer id="panel">
+  <button class="grip" id="grip" aria-expanded="true" aria-controls="panelBody" title="Ẩn/hiện bảng chỉnh">
+    <span class="chev"></span><span class="sum" id="panelSum"></span>
+  </button>
+  <div class="body" id="panelBody">
   <div class="row">
     <label class="ctl">Tốc độ <input type="range" id="rate" min="25" max="200" step="5" value="100"><b id="rateV">100%</b></label>
     <label class="ctl">Nhìn trước <input type="range" id="look" min="1" max="6" step="0.5" value="3.5"><b id="lookV">3.5s</b></label>
@@ -170,8 +216,8 @@
       <button class="hand" id="h0" data-s="on" aria-pressed="true"><i style="background:var(--rh)"></i>Tay phải <b>phát</b></button>
       <button class="hand" id="h1" data-s="on" aria-pressed="true"><i style="background:var(--lh)"></i>Tay trái <b>phát</b></button>
     </span>
-    <span id="hits"></span>
     <span class="err" id="err"></span>
+  </div>
   </div>
 </footer>
 
@@ -760,6 +806,14 @@ function showDone(){
 function hideDone(){ $('done').classList.remove('on'); }
 
 let dragging = false;
+const PP_PLAY  = 'M3.5 2.2 13 8l-9.5 5.8z';
+const PP_PAUSE = 'M4 2.5h3v11H4zM9 2.5h3v11H9z';
+function syncPlayBtn(){
+  $('ppIcon').setAttribute('d', playing ? PP_PAUSE : PP_PLAY);
+  const t = playing ? 'Tạm dừng' : 'Chơi';
+  $('play').title = t + ' (Space)';
+  $('play').setAttribute('aria-label', t);
+}
 const fmt = s => { s = Math.max(0, s|0); return (s/60|0) + ':' + String(s % 60).padStart(2, '0'); };
 
 function frame(){
@@ -767,7 +821,9 @@ function frame(){
   drawKeys(drawFalling(now));
   if (!dragging){
     const shown = Math.max(0, Math.min(now, duration));
-    $('seek').value = duration ? (shown / duration * 1000) | 0 : 0;
+    const pct = duration ? shown / duration * 100 : 0;
+    $('seek').value = (pct * 10) | 0;
+    $('seek').style.setProperty('--p', pct.toFixed(2) + '%');
     $('time').textContent = fmt(shown) + ' / ' + fmt(duration);
   }
   requestAnimationFrame(frame);
@@ -785,18 +841,19 @@ function play(){
   startedAt = actx.currentTime;
   schedIdx = lowerBound(seekOffset);
   playing = true;
-  $('play').textContent = 'Tạm dừng';
+  setPanel(false);                            /* nhường chiều cao cho nốt rơi */
+  syncPlayBtn();
 }
 function pause(){
   if (!playing) return;
   const t = Math.max(0, songTime());
   playing = false; seekOffset = t; killVoices();
-  $('play').textContent = 'Chơi';
+  syncPlayBtn();                              /* panel KHÔNG tự bung ra: chỉ mở khi bấm tay cầm */
 }
 function stop(){
   hideDone();
   pause(); seekOffset = 0; schedIdx = 0; lastKeySig = null;
-  $('play').textContent = 'Chơi';
+  syncPlayBtn();
 }
 function seekTo(t){
   hideDone();
@@ -824,7 +881,25 @@ function setRate(pct){
    10) UI
    ========================================================================== */
 $('play').onclick = () => playing ? pause() : play();
-$('stop').onclick = () => stop();
+
+/* Panel chỉnh: thu lại khi đang chơi, bấm thanh tay cầm để mở.
+   Lúc thu thì in tóm tắt để vẫn biết đang ở tốc độ / tiếng đàn nào. */
+function panelSummary(){
+  const label = { silent:'chỉ hiện', off:'ẩn' };
+  const hands = [];                            /* chỉ nhắc tay nào đang khác "phát" */
+  if (handState[0] !== 'on') hands.push('tay phải ' + label[handState[0]]);
+  if (handState[1] !== 'on') hands.push('tay trái ' + label[handState[1]]);
+  return $('rateV').textContent + ' · nhìn ' + $('lookV').textContent +
+         ' · vol ' + $('volV').textContent +
+         ' · ' + $('tone').selectedOptions[0].text.replace(' (2 MB)', '') +
+         (hands.length ? ' · ' + hands.join(', ') : '');
+}
+function setPanel(open){
+  $('panel').classList.toggle('collapsed', !open);
+  $('grip').setAttribute('aria-expanded', open ? 'true' : 'false');
+  if (!open) $('panelSum').textContent = panelSummary();
+}
+$('grip').onclick = () => setPanel($('panel').classList.contains('collapsed'));
 $('again').onclick = () => { seekOffset = 0; schedIdx = 0; play(); };
 $('closeDone').onclick = () => hideDone();
 $('done').onclick = e => { if (e.target === $('done')) hideDone(); };   /* bấm ra ngoài để đóng */
@@ -832,6 +907,12 @@ $('done').onclick = e => { if (e.target === $('done')) hideDone(); };   /* bấm
 $('seek').oninput  = e => { dragging = true; const t = e.target.value/1000*duration;
                             $('time').textContent = fmt(t) + ' / ' + fmt(duration); };
 $('seek').onchange = e => { dragging = false; seekTo(e.target.value/1000*duration); };
+
+const refreshSum = () => { if ($('panel').classList.contains('collapsed')) $('panelSum').textContent = panelSummary(); };
+for (const id of ['rate','look','vol','tone','h0','h1'])
+  document.getElementById(id).addEventListener(id === 'tone' ? 'change' : 'input', refreshSum);
+$('h0').addEventListener('click', refreshSum);
+$('h1').addEventListener('click', refreshSum);
 
 $('rate').oninput = e => setRate(+e.target.value);
 $('vol').oninput  = e => setVolume(+e.target.value);
@@ -976,6 +1057,7 @@ document.addEventListener('keydown', e => {
 /* Khởi động: có ?song= thì nạp bài đó; không thì lấy bài DỄ NHẤT trong thư viện
    (index.json xếp theo độ khó) để vào là bấm Chơi được ngay. */
 $('fit').checked = window.innerWidth < 600;
+syncPlayBtn();
 requestAnimationFrame(frame);
 
 (async () => {
