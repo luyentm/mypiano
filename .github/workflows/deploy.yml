@@ -1,0 +1,69 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Cho phép GITHUB_TOKEN deploy lên Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Không huỷ run đang chạy; chỉ giữ 1 deploy xếp hàng
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Kiểm tra site tĩnh
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: index.html phải tồn tại
+        run: test -f index.html
+
+      - name: Kiểm tra cú pháp JS inline
+        run: |
+          sed -n '/^<script>/,/^<\/script>/p' index.html | sed '1d;$d' > /tmp/inline.js
+          test -s /tmp/inline.js || { echo "Không tách được khối <script> khỏi index.html"; exit 1; }
+          node --check /tmp/inline.js
+
+      - name: Không được có dependency ngoài (CDN / import / npm)
+        run: |
+          if grep -nEi '<(script|link)[^>]+(src|href)=["'"'"']https?://' index.html; then
+            echo "Site phải tự chứa: không nhúng script/style từ CDN"; exit 1
+          fi
+          if grep -nE '\bfrom[[:space:]]+["'"'"']https?://|\bimport\(["'"'"']https?://' index.html; then
+            echo "Site phải tự chứa: không import module qua mạng"; exit 1
+          fi
+          if [ -f package.json ]; then
+            echo "Dự án này không dùng npm/bundler — package.json không được tồn tại"; exit 1
+          fi
+
+  deploy:
+    name: Deploy
+    needs: check
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/configure-pages@v5
+
+      # Không có build step: site chính là index.html ở gốc repo
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
