@@ -73,7 +73,13 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
 - **DPI**: `canvas.width = clientWidth * devicePixelRatio` rồi `ctx.scale(dpr, dpr)`, hook `ResizeObserver`.
 - **Mobile**: bắt buộc có chế độ "thu gọn" (quét min/max MIDI của bài, chỉ render khoảng đó).
   Mặc định BẬT khi viewport < 600px.
-- **Audio**: tối đa ~16 voice đồng thời, peak gain ~0.15/voice để không clip khi hợp âm dày.
+- **Audio**: `MAX_VOICES = 48`, chạm trần thì **CƯỚP voice cũ nhất** (`stealOldest()`),
+  tuyệt đối không bỏ nốt mới. Trần cũ 16 + bỏ nốt mới đã làm He's a Pirate (16 nốt/giây)
+  rơi 15% số nốt, nghe y như đánh sai giai điệu — bug này rất khó thấy vì phần nhìn
+  vẫn đúng, chỉ tiếng là thiếu. Đo lại sau khi sửa: đỉnh 25 voice, rơi 0%.
+  Đuôi voice cắt ở `rel + 0.45s` (sample) / `rel + 0.4s` (synth) — sau đó envelope đã im,
+  giữ lâu hơn chỉ tổ chiếm chỗ. `retire()` là chỗ DUY NHẤT giảm `voiceCount`, gọi từ cả
+  `onended` lẫn `stealOldest` và có cờ `dead` chống trừ hai lần.
   `actx.resume()` phải nằm trong user gesture đầu tiên — nếu không iOS Safari sẽ im lặng.
 - **Chuẩn hoá file thật (`normalize()`)** — file MIDI ngoài đời hay có **2 bộ track y hệt nhau**
   (bắn ra 2 channel/2 thiết bị; Für Elise hiện tại là ví dụ: 611+440 nốt lặp lại ở channel 12/13).
