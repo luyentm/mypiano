@@ -86,6 +86,11 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
   nhất, nên: transport gom vào top bar (một nút play/pause duy nhất, không có nút Dừng
   riêng), thanh tua bám sát mép dưới top bar để lúc nào cũng tua được, "lượt tập" cũng
   nằm trên top bar, và panel chỉnh ở đáy **tự thu lại khi bấm Chơi**.
+  Top bar chia `grid-template-columns: 1fr auto 1fr` — thông tin trái, **nút Chơi màu cam
+  chính giữa** (nút chính của cả app, to 74×40 để dễ trúng ngón tay), thao tác dồn phải.
+  Grid chứ không phải flex + margin auto, để nút Chơi nằm đúng tâm màn bất kể hai bên
+  dài ngắn thế nào. `.btn` phải `white-space:nowrap` không thì nhãn xuống dòng và top bar
+  cao vọt lên ở màn hẹp.
   Panel chỉ mở lại khi bấm thanh tay cầm — cố tình KHÔNG tự bung ra lúc pause, vì
   play/pause liên tục sẽ làm layout nhảy. Lúc thu, thanh tay cầm in tóm tắt
   (`panelSummary()`) để vẫn biết đang ở tốc độ / tiếng đàn nào.
