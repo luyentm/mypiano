@@ -261,7 +261,14 @@
     </label>
   </div>
   <div class="row">
-    <label class="ctl"><input type="checkbox" id="hint" checked> Gợi ý phím</label>
+    <label class="ctl" title="Hiện note = tên nốt như cũ. Hai chế độ số in số lên cả phím lẫn nốt rơi, để luyện đọc ra phím thật nhanh.">Gợi ý phím
+      <select id="hint" class="btn tone">
+        <option value="note">Hiện note</option>
+        <option value="abs">Số phím 1–88</option>
+        <option value="deg">Số theo C 1–7</option>
+        <option value="off">Tắt</option>
+      </select>
+    </label>
     <label class="ctl" title="Phủ xám những phím không dùng trong ô nhịp đang chơi, để tay chuẩn bị trước."><input type="checkbox" id="scope" checked> Khoanh ô nhịp</label>
     <label class="ctl" title="Số ngón 1–5 in trên thân nốt. Chỉ hiện ở chỗ chắc chắn, chỗ khó thì để trống."><input type="checkbox" id="fing" checked> Số ngón</label>
     <label class="ctl"><input type="checkbox" id="cin" checked> Đếm vào</label>
@@ -459,7 +466,14 @@ let showFx = true;
 let parts = [], flashes = [], prevOn = new Set(), fxSkip = false;
 const MAX_PARTS = 420;
 
-let showHint = true;
+/* Gợi ý phím có BỐN chế độ (combo box, không còn là bật/tắt):
+     note = hiện TÊN nốt (như cũ)  ·  abs = số phím 1–88  ·  deg = số bậc theo C 1–7  ·  off
+   Chỗ khó nhất của người tập piano là ĐỌC bản nhạc, không phải nhớ bài. Hai chế độ
+   số nhắm đúng chỗ đó: mắt đọc một con số rồi tìm thẳng ra phím, không phải đi
+   đường vòng qua tên nốt. Chế độ số in số lên CẢ phím LẪN thân nốt đang rơi. */
+let hintMode = 'note';
+const hintOn  = () => hintMode !== 'off';
+const numMode = () => hintMode === 'abs' || hintMode === 'deg';
 let showFing = true;                           /* số ngón 1–5, chỉ hiện ở chỗ chắc */
 let showScope = true;                          /* phủ xám phím ngoài ô nhịp đang chơi */
 /* Đoạn lặp — khai ở đây vì ResizeObserver có thể bắn layoutLoop() trước khi
@@ -488,6 +502,12 @@ const NAME_SOLFA  = ['Đô','Đô#','Rê','Rê#','Mi','Fa','Fa#','Sol','Sol#','L
 let noteLang = 'solfa';                        /* trẻ Việt học solfège, không học chữ cái */
 const keyName = m => (noteLang === 'solfa' ? NAME_SOLFA : NAME_LETTER)[m % 12];
 const octName = m => keyName(m) + (Math.floor(m / 12) - 1);
+/* Hai cách đánh số. `abs`: số tuyệt đối 1–88 theo thứ tự phím thật (A0 = 1, C8 = 88)
+   — mỗi số ứng đúng MỘT phím, nên đọc số là ra phím, không cần biết quãng tám.
+   `deg`: số bậc theo C (C=1 D=2 E=3 F=4 G=5 A=6 B=7) — mọi C đều là 1, còn quãng tám
+   thì VỊ TRÍ cột nốt rơi tự nói ra. Phím đen mang dấu # của bậc ngay dưới nó. */
+const DEG_TXT = ['1','1#','2','2#','3','4','4#','5','5#','6','6#','7'];
+const numText = m => hintMode === 'abs' ? String(m - 20) : DEG_TXT[m % 12];
 /* Đô giữa (C4) là mốc neo mọi giáo trình vỡ lòng dạy tìm trước tiên. In nhãn của
    nó trong một viên thuốc đậm để phân biệt với các Đô khác — không thêm ký hiệu mới
    nào, chỉ làm nổi cái nhãn đã có. */
@@ -1207,7 +1227,7 @@ function drawFalling(now, dt){
     if (handState[n.hand] === 'off') continue;
     const g = geom[n.midi]; if (!g) continue;
     if (n.start <= now) active.push(n);        /* 'chỉ hiện' vẫn làm sáng phím để dẫn tay */
-    else if (showHint && n.start <= now + HINT_LEAD){
+    else if (hintOn() && n.start <= now + HINT_LEAD){
       const p = 1 - (n.start - now) / HINT_LEAD;      /* 0 = còn xa, 1 = sắp phải bấm */
       const cur = hints.get(n.midi);
       if (!cur || p > cur.p) hints.set(n.midi, { p, hand: n.hand });
@@ -1240,10 +1260,55 @@ function drawFalling(now, dt){
       fctx.globalAlpha = 1;
     }
 
+    /* CHẾ ĐỘ SỐ: in số phím lên GIỮA thân nốt. Đây là thứ chính phải đọc ở chế độ
+       này nên nó được chỗ giữa; số ngón (nếu bật) phải nhường xuống đáy.
+       Không mâu thuẫn với quyết định cũ "đã thử in TÊN NỐT lên thân nốt rồi bỏ":
+       tên nốt dài 2–4 chữ và chỉ cho biết "nốt gì", còn số ở đây 1–2 chữ và ứng
+       đúng một phím — tức trả lời được "bấm phím NÀO", chính là câu người tập cần. */
+    if (numMode()){
+      fctx.textAlign = 'center'; fctx.textBaseline = 'middle';
+      for (const fs of FING_SIZES){
+        let set = false;
+        for (const [n, g] of visible){
+          if (g.black !== black) continue;
+          const top = y(n.end), h = Math.max((n.end - n.start) * PPS, 3);
+          if (top > HF) continue;
+          const txt = numText(n.midi);
+          /* số hai chữ cần chỗ ngang gấp ~1.75 lần số một chữ, không chia thì "88"
+             chọn nấc font quá to rồi chìa ra ngoài thân nốt */
+          if (fingSize(txt.length > 1 ? g.w / 1.75 : g.w, h) !== fs) continue;
+          const cy = top + h / 2;
+          if (cy < fs * 0.6 || cy > HF - 2) continue;
+          if (!set){ fctx.font = '800 ' + fs + 'px system-ui,-apple-system,sans-serif'; set = true; }
+          fctx.fillStyle = handState[n.hand] === 'silent' ? '#c9d6ea' : '#0d1118';
+          fctx.fillText(txt, g.x + g.w / 2, cy);
+        }
+      }
+    }
+
+    /* Số ngón khi ĐANG ở chế độ số: xuống ĐÁY thân nốt, cỡ nhỏ nhất, mực mờ hơn.
+       Phải khác cả chỗ lẫn độ đậm với số phím ở giữa — hai con số cùng cỡ nằm cùng
+       một thân nốt (mà 1–5 với 1–7 lại trùng khoảng) thì đọc ra nghĩa gì cũng được.
+       Thân nốt ngắn hơn 30px thì bỏ số ngón, nhường chỗ cho số phím. */
+    if (showFing && numMode()){
+      const fs = FING_SIZES[FING_SIZES.length - 1];
+      fctx.textAlign = 'center'; fctx.textBaseline = 'middle';
+      fctx.font = '800 ' + fs + 'px system-ui,-apple-system,sans-serif';
+      for (const [n, g] of visible){
+        if (g.black !== black || !n.fing) continue;
+        const top = y(n.end), h = Math.max((n.end - n.start) * PPS, 3);
+        if (top > HF || h < 30) continue;
+        const cy = top + h - fs * 0.9;
+        if (cy < fs * 0.6 || cy > HF - 2) continue;
+        fctx.fillStyle = handState[n.hand] === 'silent' ? '#8fa2bd' : '#46536a';
+        fctx.fillText(n.fing, g.x + g.w / 2, cy);
+      }
+    }
+
     /* Số ngón, in giữa thân nốt. Vẽ thành lượt riêng cho mỗi loại phím để chỉ
        phải set font 2 lần một frame — trước đây đặt trong vòng trên là set font
        cho từng nốt, đắt vô ích vì bề ngang phím là hằng số. */
-    if (showFing){
+    if (showFing && !numMode()){
       /* Cỡ chữ co theo CẢ bề ngang phím LẪN chiều cao thân nốt. Bản đầu chỉ theo
          bề ngang (cố định 15px) nên nốt phải dài 0.26s mới nhét được chữ — đo trên
          điện thoại ngang: Für Elise 0/9 nốt, He's a Pirate 0/52, tức tính năng gần
@@ -1275,7 +1340,7 @@ function drawFalling(now, dt){
 
   /* Đường nét đứt nối đáy nốt sắp tới với đúng phím của nó — mắt khỏi phải dóng
      theo cột. Chỉ vẽ cho nốt trong tầm gợi ý, và mờ dần theo cùng nhịp với phím. */
-  if (showHint && hints.size){
+  if (hintOn() && hints.size){
     fctx.save();
     fctx.setLineDash([5, 5]);
     fctx.lineWidth = 1;
@@ -1372,7 +1437,16 @@ function drawKeys(state){
     }
     if (dim(m)){ kctx.fillStyle = 'rgba(74,84,102,.62)'; kctx.fillRect(g.x, 0, g.w - 1, HK); }
     const cx = g.x + (g.w - 1) / 2, by = HK - Math.max(HK * 0.07, 5);
-    if (m === 60 && g.w >= 10)
+    /* Chế độ số thì in số lên MỌI phím, không chỉ phím đang sáng: cả bàn phím trở
+       thành cái thước để mắt dóng vào. Làm được vì số chỉ 1–2 chữ, chứ nhãn tên nốt
+       ("Sol#") in hết 88 phím thì thành rừng chữ — đó là lý do chế độ note vẫn chỉ
+       in ở phím đang kêu / sắp bấm. Viên thuốc đậm ở Đô giữa thì giữ nguyên cho cả
+       ba chế độ: ở deg mọi C đều là "1" nên đó là thứ duy nhất còn neo được mắt. */
+    if (numMode()){
+      if (m === 60 && g.w >= 10) keyBadge(numText(m), cx, by, g.w - 3);
+      else if (g.w >= 9) keyLabel(numText(m), cx, by, g.w - 3, 12, '#1b202b');
+    }
+    else if (m === 60 && g.w >= 10)
       keyBadge(octName(m), cx, by, g.w - 3);   /* Đô giữa */
     else if (m % 12 === 0 && g.w >= 10)
       keyLabel(octName(m), cx, by, g.w - 3, 11, '#1b202b');
@@ -1395,12 +1469,15 @@ function drawKeys(state){
       }
     }
     if (dim(m)){ kctx.fillStyle = 'rgba(150,163,186,.30)'; kctx.fillRect(g.x, 0, g.w, bh); }
-    if (lit.has(m))
+    if (numMode()){
+      if (g.w >= 9) keyLabel(numText(m), g.x + g.w / 2, bh - Math.max(bh * 0.08, 3), g.w - 2, 10, '#fff');
+    }
+    else if (lit.has(m))
       keyLabel(keyName(m), g.x + g.w / 2, bh - Math.max(bh * 0.08, 3), g.w - 2, 10, '#fff');
   }
   /* Nối tiếp đường nét đứt xuống giữa thân phím, để nốt rơi và phím thành một
      đường thẳng liền mạch trong mắt. */
-  if (showHint && hints.size){
+  if (hintOn() && hints.size){
     kctx.save();
     kctx.setLineDash([4, 4]);
     kctx.lineWidth = 1;
@@ -1689,7 +1766,9 @@ function panelSummary(){
   const hands = [];                            /* chỉ nhắc tay nào đang khác "phát" */
   if (handState[0] !== 'on') hands.push('tay phải ' + label[handState[0]]);
   if (handState[1] !== 'on') hands.push('tay trái ' + label[handState[1]]);
-  return $('rateV').textContent + ' · nhìn ' + $('lookV').textContent +
+  const HINT_SUM = { abs:'số 1–88', deg:'số theo C', off:'không gợi ý' };
+  return (HINT_SUM[hintMode] ? HINT_SUM[hintMode] + ' · ' : '') +
+         $('rateV').textContent + ' · nhìn ' + $('lookV').textContent +
          ' · vol ' + $('volV').textContent + ' · vang ' + $('revV').textContent +
          ' · ' + $('tone').selectedOptions[0].text.replace(' (2 MB)', '') +
          (hands.length ? ' · ' + hands.join(', ') : '');
@@ -1731,7 +1810,10 @@ $('tone').onchange = e => {
   savePrefs();
 };
 $('look').oninput = e => { lookahead = +e.target.value; $('lookV').textContent = lookahead + 's'; };
-$('hint').onchange = e => { showHint = e.target.checked; lastKeySig = null; savePrefs(); };
+$('hint').onchange = e => { hintMode = e.target.value; syncHintUI(); lastKeySig = null; refreshSum(); };
+/* Ô "Tên nốt" (Đô Rê Mi / C D E) chỉ có nghĩa ở chế độ note — chế độ số không dùng
+   tên nốt nào cả, nên khoá lại thay vì để người ta đổi mà không thấy gì thay đổi. */
+function syncHintUI(){ $('lang').disabled = numMode(); }
 $('cin').onchange  = e => { countIn = e.target.checked; savePrefs(); };
 $('met').onchange  = e => { metro = e.target.checked; savePrefs(); };
 $('fx').onchange   = e => { showFx = e.target.checked; savePrefs(); };
@@ -1815,7 +1897,7 @@ function savePrefs(extra){
     localStorage.setItem(STORE, JSON.stringify(Object.assign(loadPrefs(), {
       v: 1,
       rate: +$('rate').value, look: +$('look').value, vol: +$('vol').value, rev: +$('rev').value,
-      tone, fit: $('fit').checked, hint: showHint, fx: showFx, lang: noteLang, fing: showFing, scope: showScope,
+      tone, fit: $('fit').checked, hint: hintMode, fx: showFx, lang: noteLang, fing: showFing, scope: showScope,
       cin: countIn, met: metro,
       hands: handState.slice(),
       panel: !$('panel').classList.contains('collapsed'),
@@ -1899,7 +1981,7 @@ stage.addEventListener('drop', e => {
   if (e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]);
 });
 document.addEventListener('keydown', e => {
-  if (e.target.tagName === 'INPUT') return;
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
   if (e.code === 'Space'){ e.preventDefault(); playing ? pause() : play(); }
   if ((e.key === 'f' || e.key === 'F') && canFS) $('fs').click();
 });
@@ -1914,7 +1996,15 @@ const q = new URLSearchParams(location.search);
    ngón tay trẻ con, mà bài dễ như Happy Birthday chỉ dùng 23 phím. Thu gọn cho
    42.7px, rộng 2.2 lần. */
 $('fit').checked = 'fit' in prefs ? !!prefs.fit : true;
-if ('hint' in prefs){ showHint = !!prefs.hint; $('hint').checked = showHint; }
+/* prefs bản cũ lưu `hint` là boolean. Đổi true -> 'note' (đúng hành vi cũ),
+   false -> 'off', chứ không bỏ qua — người đang dùng sẽ mất tuỳ chọn của họ. */
+if ('hint' in prefs){
+  const h = prefs.hint;
+  hintMode = typeof h === 'boolean' ? (h ? 'note' : 'off')
+           : ['note','abs','deg','off'].includes(h) ? h : 'note';
+  $('hint').value = hintMode;
+}
+syncHintUI();
 if ('fx' in prefs){ showFx = !!prefs.fx; $('fx').checked = showFx; }
 if ('fing' in prefs){ showFing = !!prefs.fing; $('fing').checked = showFing; }
 if ('scope' in prefs){ showScope = !!prefs.scope; $('scope').checked = showScope; }

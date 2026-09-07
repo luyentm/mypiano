@@ -88,6 +88,7 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
     chữ thường. Đây là mốc neo mọi giáo trình vỡ lòng dạy tìm trước tiên. Cố ý KHÔNG
     thêm ký hiệu mới — chỉ làm nổi cái nhãn đã có, đỡ một thứ phải học.
   - Tên nốt mặc định **Đô Rê Mi** (`noteLang = 'solfa'`), có tuỳ chọn đổi sang C D E.
+    (Chỉ có tác dụng ở chế độ gợi ý `note` — xem mục "Hai chế độ SỐ" bên dưới.)
     Trẻ Việt học solfège; chữ cái là thứ phải học thêm chứ không giúp học nhanh hơn.
   - Nhãn chỉ in trên phím đang kêu / sắp bấm và trên các phím Đô — in hết 88 phím
     thì thành rừng chữ.
@@ -129,8 +130,12 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
   play/pause liên tục sẽ làm layout nhảy. Lúc thu, thanh tay cầm in tóm tắt
   (`panelSummary()`) để vẫn biết đang ở tốc độ / tiếng đàn nào.
   Đo trên 844×390 (điện thoại ngang): vùng nốt rơi 144px → 220px khi thu panel.
-- **Gợi ý phím sắp bấm** (`showHint`, mặc định BẬT). Từng thử in TÊN NỐT lên thân nốt
-  rơi rồi bỏ: người tập không cần đọc tên nốt, họ cần biết *bấm phím nào, ngay bây giờ*.
+- **Gợi ý phím sắp bấm** — combo box `hintMode` bốn chế độ, mặc định `note`:
+  `note` (hiện tên nốt, hành vi cũ) · `abs` (số phím 1–88) · `deg` (số bậc theo C 1–7) · `off`.
+  Cơ chế sáng dần + nét đứt là CHUNG cho ba chế độ đầu; chúng chỉ khác nhau ở
+  **hệ nhãn** in ra. `hintOn()` = khác `off`, `numMode()` = `abs` hoặc `deg`.
+  Từng thử in TÊN NỐT lên thân nốt rơi rồi bỏ: người tập không cần đọc tên nốt,
+  họ cần biết *bấm phím nào, ngay bây giờ*.
   Cách đang dùng — phím trên bàn phím sáng dần lên khi nốt tới gần, kèm đường nét đứt
   nối đáy nốt với tâm phím:
   - `HINT_LEAD = 1.2s`, `p = 1 - (start - now)/HINT_LEAD` (0 = còn xa, 1 = sắp bấm).
@@ -148,6 +153,40 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
     không đổi màu khi phím được bấm. Phím C chỉ in `C4`, không in đè thêm chữ `C`.
     Chữ tự co theo `measureText` cho vừa bề ngang phím, dưới 6.5px thì bỏ không vẽ.
     In cho cả phím đang kêu lẫn phím sắp bấm, để nhãn không nháy mất đúng lúc chạm phím.
+- **Hai chế độ SỐ** (`numText()`, `DEG_TXT`) — nhắm đúng chỗ khó nhất của người tập
+  piano: **đọc** bản nhạc, không phải nhớ bài. Mắt đọc một con số rồi tìm thẳng ra phím,
+  bỏ được bước dịch qua tên nốt.
+  - `abs`: số tuyệt đối 1–88 theo thứ tự phím thật, `m - 20` (A0 = 1, Đô giữa = 40,
+    C8 = 88). Mỗi số ứng đúng MỘT phím nên đọc số là ra phím, không cần biết quãng tám.
+  - `deg`: số bậc theo C — C=1 D=2 E=3 F=4 G=5 A=6 B=7, phím đen mang dấu `#` của bậc
+    ngay dưới nó (`1#`, `2#`, `4#`, `5#`, `6#`). Mọi C đều là 1; quãng tám thì VỊ TRÍ
+    cột nốt rơi trên màn tự nói ra, không cần in.
+  - Số in lên **cả phím lẫn thân nốt rơi**. In lên thân nốt KHÔNG mâu thuẫn với quyết
+    định cũ ("đã thử in tên nốt lên thân nốt rồi bỏ"): tên nốt dài 2–4 chữ và chỉ cho
+    biết *nốt gì*, còn số ở đây 1–2 chữ và ứng đúng một phím, tức trả lời được
+    *bấm phím nào*.
+  - Chế độ số in nhãn lên **MỌI phím**, không chỉ phím đang sáng — cả bàn phím thành
+    cái thước để mắt dóng vào. Làm được vì số chỉ 1–2 chữ; nhãn tên nốt (`Sol#`) in hết
+    88 phím thì thành rừng chữ, nên chế độ `note` vẫn chỉ in ở phím đang kêu / sắp bấm.
+  - **Viên thuốc đậm ở Đô giữa giữ cho cả ba chế độ.** Ở `deg` mọi C đều là "1" nên đó
+    là thứ duy nhất còn neo được mắt.
+  - **Xung đột với số ngón đã phải xử tay.** Số ngón 1–5 vốn nằm GIỮA thân nốt, mà số
+    phím cũng muốn chỗ đó — hai con số cùng cỡ trên một thân nốt (ở `deg` lại còn trùng
+    khoảng 1–5 với 1–7) thì đọc ra nghĩa gì cũng được. Cách tách: số phím giữ chỗ giữa
+    (to, mực đậm), số ngón xuống **đáy** thân nốt ở nấc font nhỏ nhất và **mực mờ hơn**
+    (`#46536a`) — khác cả chỗ, cả cỡ, cả độ đậm. Thân nốt dưới 30px thì bỏ số ngón,
+    nhường chỗ cho số phím. Chế độ `note`/`off` thì số ngón vẫn ở giữa như cũ
+    (`if (showFing && !numMode())`).
+  - Số hai chữ cần chỗ ngang gấp ~1.75 lần số một chữ, nên chọn nấc font phải chia
+    `g.w / 1.75`; không chia thì "88" ăn nấc font quá to rồi chìa ra ngoài thân nốt.
+  - Ô "Tên nốt" (Đô Rê Mi / C D E) **tự khoá** ở chế độ số — chế độ số không dùng tên
+    nốt nào cả, để mở thì người ta đổi mà không thấy gì thay đổi.
+  - `hintMode` có mặt trong `panelSummary()` nên handler phải gọi `refreshSum()`,
+    không phải `savePrefs()`, nếu không lúc panel đang thu thì tóm tắt còn ghi chế độ cũ.
+  - Prefs bản cũ lưu `hint` là **boolean** — phải đổi `true → 'note'`, `false → 'off'`
+    chứ không bỏ qua, không thì người đang dùng mất tuỳ chọn của họ.
+  - Đổi checkbox thành `<select>` làm mất phím Space trên chính ô đó (guard `keydown`
+    chỉ chặn `INPUT`), nên guard phải chặn cả `SELECT`.
 - **Đoạn lặp** (`loopA`/`loopB`, `setLoop()`, `schedule()`) — kéo hai tay cầm ở hai
   đầu thanh tua để chọn đoạn, hệ thống chơi lặp trong đoạn đó thay vì hết bài là xong.
   - `<input type=range>` chỉ có MỘT nút, nên hai tay cầm là hai `div` riêng đặt
@@ -411,7 +450,7 @@ CI kiểm tra file README đó còn nguyên. Đừng xoá.
 Khoá `mypiano.v1`, một object phẳng:
 
 ```json
-{ "v":1, "rate":75, "look":5, "vol":120, "tone":"grand", "fit":true,
+{ "v":1, "rate":75, "look":5, "vol":120, "tone":"grand", "fit":true, "hint":"deg",
   "hands":["on","silent"], "panel":false, "song":"fur-elise.mid", "pos":90.25 }
 ```
 
