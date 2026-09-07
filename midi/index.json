@@ -1,5 +1,5 @@
 {
-  "count": 15,
+  "count": 16,
   "songs": [
     {
       "file": "happy-birthday.mid",
@@ -56,6 +56,14 @@
       "note": "Bản phối piano của An Coong. Nhịp co giãn nhiều (10 lần đổi tempo, cuối bài chậm dần còn 25) và dài gần 5 phút",
       "difficulty": 330,
       "bytes": 9914
+    },
+    {
+      "file": "noi-nay-co-anh.mid",
+      "title": "Nơi này có anh",
+      "composer": "Sơn Tùng M-TP · phối: Jason Srey",
+      "note": "Giọng Đô trưởng — chỉ 4 nốt đen trong 1961 nốt, gần như toàn phím trắng; bù lại bài dày và dài 4:13, tay trái đệm gần như không nghỉ",
+      "difficulty": 360,
+      "bytes": 12695
     },
     {
       "file": "love-story.mid",
