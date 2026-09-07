@@ -34,5 +34,11 @@
     "composer": "Yiruma",
     "note": "Giọng Fa thứ (4 dấu giáng) — 57% nốt rơi vào phím đen, cao nhất thư viện; nhịp chậm nhưng dài 4:30. File một track nên màu hai tay chỉ là phỏng đoán",
     "difficulty": 310
+  },
+  "rondo-alla-turca.mid": {
+    "title": "Rondo Alla Turca",
+    "composer": "Mozart",
+    "note": "Sonata K.331 chương cuối — 2101 nốt, nhanh (140 bpm) và dày đặc, có bát độ liên tục ở đoạn cuối. File một track nên màu hai tay chỉ là phỏng đoán",
+    "difficulty": 560
   }
 }
