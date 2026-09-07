@@ -148,6 +148,36 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
     không đổi màu khi phím được bấm. Phím C chỉ in `C4`, không in đè thêm chữ `C`.
     Chữ tự co theo `measureText` cho vừa bề ngang phím, dưới 6.5px thì bỏ không vẽ.
     In cho cả phím đang kêu lẫn phím sắp bấm, để nhãn không nháy mất đúng lúc chạm phím.
+- **Số ngón 1–5** (`fingering()`, `showFing`, mặc định BẬT) — chỉ gán ở chỗ CHẮC,
+  chỗ không chắc để TRỐNG. Số ngón sai tệ hơn không có số: nó dạy sai thế tay và
+  rất khó sửa. Mô hình là "thế 5 ngón" của sách vỡ lòng, ba luật:
+  1. Cả đoạn nằm trong một khung 5 bậc phím trắng, không có hai nốt tranh cùng bậc
+     (F với F#) → gán theo bậc. **Neo phía NGÓN CÁI**: tay phải ngón 1 ở nốt thấp
+     nhất khung, tay trái ngón 1 ở nốt CAO nhất. Neo từ nốt thấp cho cả hai tay là
+     SAI — hợp âm trái C4+E4 sẽ ra 5+3 thay vì 3+1, vì ngón cái luôn về phía giữa đàn.
+  2. Hợp âm rộng đúng một quãng tám **và lúc đó tay đang rảnh** → hai nốt ngoài là
+     1 và 5 (đúng với mọi bản nhạc), nốt giữa để trống. Không kiểm "rảnh tay" thì
+     A Comme Amour sinh 63 ngón trùng.
+  3. Nốt trầm với ra ngoài khung hợp âm liền kề → ngón 5 (mẫu đệm bass + hợp âm).
+  Cố tình KHÔNG gán ở: **nốt đơn đứng một mình** (không hề cho biết đang bấm ngón
+  nào — nếu gán, tay trái C3 rồi C4+E4 sẽ ra 5 rồi 5+3, bất khả thi), **biên khung
+  mà là chạy ngón liên tục** (cách nhau <0.15s và dịch ≤2 bậc → đó là luồn ngón cái,
+  không phải đặt lại tay; nhờ luật này mà đoạn chạy ngón Für Elise và Rondo để trống
+  đúng chỗ cần để trống), và hợp âm rộng hơn quãng tám.
+  **Lượt dọn cuối là bắt buộc**: hai nốt cùng tay cùng vang mà trùng ngón hoặc ngón
+  chéo ngược chiều cao độ thì bỏ số cả hai. Đo trên 20 bài / 22.412 nốt: 47% số nốt
+  có số, **0 ngón trùng, 0 ngón chéo**. Đối chiếu chỗ biết đáp án: Happy Birthday tay
+  phải ra đúng thế 5 ngón trên G (`G:1 G:1 A:2 G:1 C:4 B:3`), River Flows in You tay
+  phải ra đúng thế D–A, He's a Pirate tay trái ra 5+1 cho mọi quãng tám.
+  Vẽ: **cỡ chữ phải co theo cả bề ngang phím LẪN chiều cao thân nốt** (nấc 15/12/10/8).
+  Bản đầu cố định 15px theo bề ngang nên nốt phải dài 0.26s mới nhét được chữ — đo
+  trên điện thoại ngang: Für Elise 0/9 nốt, He's a Pirate 0/52. Chia nấc thì lên
+  46%, và chỉ set font tối đa 4 lần cho mỗi loại phím thay vì set cho từng nốt
+  (chênh lệch 0.007ms/frame ở bài dày nhất, dưới ngưỡng đo được).
+  Tay **'chỉ hiện' vẫn phải in số** — đó chính là lúc người tập tự đánh tay đó — nhưng
+  phải đổi sang MỰC SÁNG: mực đen trên thân nốt đã mờ gần như không đọc được
+  (đo pixel ô chữ: mực đen trên thân mờ 240 tối/480 sáng, đổi mực rồi mới đọc được).
+
 - **Đếm vào + gõ nhịp** (`countIn`, `metro`, mặc định BẬT cả hai) — người mới không có
   mốc nào trong tai để canh lúc bấm. Mốc phách lấy từ `grid` sẵn có, không tính lại.
   - Đếm vào = **neo `startedAt` ra tương lai**, nên `songTime()` ÂM trong lúc đếm: nốt
