@@ -1,5 +1,5 @@
 {
-  "count": 5,
+  "count": 6,
   "songs": [
     {
       "file": "river-flows-in-you.mid",
@@ -16,6 +16,14 @@
       "note": "Giọng Son thứ, tay trái rải hợp âm gần như suốt bài",
       "difficulty": 300,
       "bytes": 21759
+    },
+    {
+      "file": "kiss-the-rain.mid",
+      "title": "Kiss the Rain",
+      "composer": "Yiruma",
+      "note": "Giọng Fa thứ (4 dấu giáng) — 57% nốt rơi vào phím đen, cao nhất thư viện; nhịp chậm nhưng dài 4:30. File một track nên màu hai tay chỉ là phỏng đoán",
+      "difficulty": 310,
+      "bytes": 8976
     },
     {
       "file": "fur-elise.mid",
