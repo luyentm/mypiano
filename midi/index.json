@@ -1,5 +1,5 @@
 {
-  "count": 11,
+  "count": 12,
   "songs": [
     {
       "file": "happy-birthday.mid",
@@ -56,6 +56,14 @@
       "note": "Bản phối piano của An Coong. Nhịp co giãn nhiều (10 lần đổi tempo, cuối bài chậm dần còn 25) và dài gần 5 phút",
       "difficulty": 330,
       "bytes": 9914
+    },
+    {
+      "file": "hungarian-sonata.mid",
+      "title": "Hungarian Sonata",
+      "composer": "Paul de Senneville",
+      "note": "Mở đầu bằng chuỗi nốt đổ từ E7 xuống hết 5 quãng tám; 42% phím đen và nhiều nốt ngoài giọng, nhịp đổi 4/4 ↔ 2/4 sáu lần",
+      "difficulty": 400,
+      "bytes": 7818
     },
     {
       "file": "fur-elise.mid",

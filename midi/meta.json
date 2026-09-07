@@ -64,5 +64,11 @@
     "composer": "Yiruma",
     "note": "Giọng Đô thứ (3 dấu giáng), dài 4:39 — quãng rộng 5.1 quãng tám nên tay trái phải nhảy nhiều",
     "difficulty": 320
+  },
+  "hungarian-sonata.mid": {
+    "title": "Hungarian Sonata",
+    "composer": "Paul de Senneville",
+    "note": "Mở đầu bằng chuỗi nốt đổ từ E7 xuống hết 5 quãng tám; 42% phím đen và nhiều nốt ngoài giọng, nhịp đổi 4/4 ↔ 2/4 sáu lần",
+    "difficulty": 400
   }
 }
