@@ -138,6 +138,11 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
   đừng "tối ưu" bằng cách bỏ luôn khỏi `active`. Khi đổi trạng thái lúc đang chơi phải
   `killVoices()` + `anchorAt(songTime())` + tính lại `schedIdx`, vì nốt đã được lên lịch
   trước ~100ms sẽ vẫn kêu nếu không dọn.
+- **Lùi tempo/nhịp về tick 0 khi file khai muộn** — có file (PhotoScore xuất) đặt tempo
+  và time signature ở CUỐI track meta: Spring Time khai tempo 80 ở tick 45696, nên 40%
+  đầu bài chạy ở 120 mặc định, nhanh hơn 1.5 lần (đo được 234s thay vì 279s). Không có
+  mốc nào ở tick 0 thì lùi mốc đầu tiên về 0 — file cố tình chạy 120 thì nó không khai
+  tempo, chứ không khai ở giữa bài. Đã kiểm 10 bài còn lại: thời lượng không đổi một giây.
 - **Pedal ngân (CC64)** — parser đọc controller 64, `normalize()` dựng mốc đạp/nhả rồi
   tính `n.hold` = lúc tiếng thật sự tắt. **Không được kéo dài `n.end`**: `end` là lúc
   nhấc ngón, thân nốt rơi phải vẽ đúng thế, kéo dài thành ra dạy người ta giữ phím sai.

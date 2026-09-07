@@ -229,6 +229,8 @@
       </select>
       <b id="toneV"></b>
     </label>
+  </div>
+  <div class="row">
     <label class="ctl"><input type="checkbox" id="hint" checked> Gợi ý phím</label>
     <label class="ctl"><input type="checkbox" id="fit"> Thu gọn phím</label>
     <span class="hands">
@@ -325,6 +327,19 @@ function parseMidi(buf){
     for (const n of [...active.keys()]) closeNote(n);   /* nốt treo ở cuối track */
     if (tick > maxTick) maxTick = tick;
     p = end;
+  }
+
+  /* Có file (PhotoScore xuất) đặt tempo/nhịp ở CUỐI track meta chứ không phải tick 0 —
+     Spring Time là ví dụ: tempo 80 nằm ở tick 45696, nên 40% đầu bài chạy ở 120 mặc
+     định, nhanh hơn 1.5 lần. Không có tempo ở tick 0 thì lùi mốc đầu tiên về 0:
+     file cố tình chạy 120 thì nó không khai tempo, chứ không khai ở giữa bài. */
+  if (tempos.length > 1 && tempos[1].tick > 0){
+    tempos.sort((a,b) => a.tick - b.tick);
+    tempos[0].us = tempos[1].us;               /* tempos[0] là mốc mặc định ở tick 0 */
+  }
+  if (sigs.length > 1 && sigs[1].tick > 0){
+    sigs.sort((a,b) => a.tick - b.tick);
+    sigs[0].num = sigs[1].num; sigs[0].den = sigs[1].den;
   }
 
   /* tempo map: tick -> giây (tích luỹ theo từng đoạn tempo) */
@@ -1185,7 +1200,10 @@ $('file').onchange = e => { if (e.target.files[0]) readFile(e.target.files[0]); 
 function readFile(f){
   const r = new FileReader();
   r.onload = () => {
-    try { load(parseMidi(r.result), f.name); }
+    /* File từ máy không có trong thư viện: xoá currentSong, nếu không savePos()
+       sẽ ghi vị trí của file này lên tên bài thư viện đang nhớ, và lần sau mở
+       lại sẽ nhảy vào giữa một bài khác. */
+    try { currentSong = null; load(parseMidi(r.result), f.name); savePrefs(); }
     catch(err){ $('err').textContent = 'Lỗi: ' + err.message; }
   };
   r.onerror = () => { $('err').textContent = 'Không đọc được file'; };
