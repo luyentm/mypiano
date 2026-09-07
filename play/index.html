@@ -232,6 +232,7 @@
   </div>
   <div class="row">
     <label class="ctl"><input type="checkbox" id="hint" checked> Gợi ý phím</label>
+    <label class="ctl"><input type="checkbox" id="fx" checked> Hiệu ứng</label>
     <label class="ctl"><input type="checkbox" id="fit"> Thu gọn phím</label>
     <span class="hands">
       <button class="hand" id="h0" data-s="on" aria-pressed="true"><i style="background:var(--rh)"></i>Tay phải <b>phát</b></button>
@@ -408,6 +409,13 @@ const handCol = h => css(h === 1 ? '--lh' : '--rh');
 
 /* Gợi ý phím sắp phải bấm: phím trên bàn phím sáng dần lên khi nốt rơi tới gần.
    Người tập cần biết "bấm phím nào, ngay bây giờ" chứ không cần đọc tên nốt. */
+/* Hiệu ứng nốt chạm phím: tia sáng bật lên + vệt loé ở vạch chạm, kiểu Synthesia.
+   Vật lý hạt lấy delta của rAF — được phép, vì đây là thứ trang trí, không dính
+   tới đồng hồ bài nhạc (đồng hồ đó vẫn chỉ lấy từ audioCtx.currentTime). */
+let showFx = true;
+let parts = [], flashes = [], prevOn = new Set(), fxSkip = false;
+const MAX_PARTS = 420;
+
 let showHint = true;
 const HINT_LEAD = 1.2;                         /* giây: bắt đầu nhen sáng từ đây */
 /* Tên nốt in ở ĐÁY phím đang được gợi ý. Màu chữ CỐ ĐỊNH — đen trên phím trắng,
@@ -809,7 +817,80 @@ function rrect(ctx, x, y, w, h, r){
          ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
 }
 
-function drawFalling(now){
+function spawnHit(midi, hand){
+  const g = geom[midi]; if (!g) return;
+  const cx = g.x + g.w / 2;
+  flashes.push({ x: cx, w: g.w, hand, life: 0, max: 0.3 });
+  const n = g.black ? 8 : 12;
+  for (let i = 0; i < n && parts.length < MAX_PARTS; i++){
+    const a = -Math.PI/2 + (Math.random() - 0.5) * 1.7;     /* toè lên trên */
+    const sp = 110 + Math.random() * 230;
+    parts.push({
+      x: cx + (Math.random() - 0.5) * g.w * 0.6, y: HF - 2,
+      vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+      r: 1.8 + Math.random() * 2.4, hand, life: 0, max: 0.4 + Math.random() * 0.45
+    });
+  }
+}
+
+function drawFx(dt){
+  if (!parts.length && !flashes.length) return;
+  /* vệt loé ở vạch chạm: 2 vòng mờ lồng nhau, KHÔNG shadowBlur */
+  for (let i = flashes.length - 1; i >= 0; i--){
+    const f = flashes[i];
+    f.life += dt;
+    if (f.life >= f.max){ flashes.splice(i, 1); continue; }
+    const p = f.life / f.max, col = handCol(f.hand), fade = 1 - p;
+    /* cột sáng vọt lên từ phím: 4 khối xếp cao dần, mờ dần — thay cho gradient
+       (tạo gradient cho từng cú chạm mỗi frame thì quá đắt) */
+    fctx.fillStyle = col;
+    for (let k = 0; k < 4; k++){
+      fctx.globalAlpha = fade * (0.30 - k * 0.06);
+      const h = (10 + k * 13) * (0.5 + p);
+      const w = f.w * (0.85 - k * 0.12);
+      fctx.fillRect(f.x - w / 2, HF - h, w, h);
+    }
+    /* loé trắng ngay tại vạch chạm cho có điểm nhấn */
+    const rw = f.w * (1.0 + p * 1.5), rh = 7 + p * 18;
+    fctx.globalAlpha = fade * 0.75;
+    fctx.fillStyle = '#fff';
+    fctx.beginPath(); fctx.ellipse(f.x, HF - 1, rw / 3, rh / 3, 0, 0, Math.PI * 2); fctx.fill();
+    fctx.globalAlpha = fade * 0.5;
+    fctx.fillStyle = col;
+    fctx.beginPath(); fctx.ellipse(f.x, HF - 1, rw / 2, rh / 2, 0, 0, Math.PI * 2); fctx.fill();
+    fctx.globalAlpha = fade * 0.25;
+    fctx.beginPath(); fctx.ellipse(f.x, HF - 1, rw, rh, 0, 0, Math.PI * 2); fctx.fill();
+  }
+  /* hạt: gom theo tay + 4 nấc độ mờ để chỉ tốn vài lệnh fill */
+  const buckets = new Map();
+  for (let i = parts.length - 1; i >= 0; i--){
+    const q = parts[i];
+    q.life += dt;
+    if (q.life >= q.max || q.y > HF + 6){ parts.splice(i, 1); continue; }
+    q.x += q.vx * dt;
+    q.y += q.vy * dt;
+    q.vy += 300 * dt;                                       /* trọng lực nhẹ */
+    const a = Math.max(0, 1 - q.life / q.max);
+    const k = q.hand + ':' + Math.ceil(a * 4);
+    let arr = buckets.get(k); if (!arr){ arr = []; buckets.set(k, arr); }
+    arr.push(q);
+  }
+  for (const [k, arr] of buckets){
+    const [hand, step] = k.split(':');
+    fctx.globalAlpha = (+step / 4) * 0.95;
+    fctx.fillStyle = handCol(+hand);
+    fctx.beginPath();
+    for (const q of arr){
+      const a = Math.max(0, 1 - q.life / q.max);
+      fctx.moveTo(q.x + q.r * a, q.y);
+      fctx.arc(q.x, q.y, Math.max(q.r * a, 0.4), 0, Math.PI * 2);
+    }
+    fctx.fill();
+  }
+  fctx.globalAlpha = 1;
+}
+
+function drawFalling(now, dt){
   fctx.clearRect(0, 0, W, HF);
   const PPS = HF / lookahead;                 /* pixel mỗi giây */
   const y = t => HF - (t - now) * PPS;        /* t == now  ->  chạm bàn phím */
@@ -904,6 +985,20 @@ function drawFalling(now){
   }
 
   fctx.fillStyle = 'rgba(211,218,230,.22)'; fctx.fillRect(0, HF - 2, W, 2);   /* vạch chạm */
+
+  /* nốt nào vừa chạm phím trong frame này thì bắn hạt — so với frame trước */
+  if (showFx){
+    const on = new Set();
+    for (const n of active) on.add(n.midi);
+    /* Sau khi tua, cả nắm nốt đang vang đều "mới" — bắn hạt cho hết thì loé
+       cả màn. Bỏ qua đúng một frame để nạp lại prevOn. */
+    if (playing && !fxSkip) for (const n of active) if (!prevOn.has(n.midi)) spawnHit(n.midi, n.hand);
+    fxSkip = false;
+    prevOn = on;
+    drawFx(Math.min(dt || 0, 0.05));                /* chặn dt to sau lúc tab bị treo */
+  } else if (parts.length || flashes.length){
+    parts = []; flashes = [];
+  }
   return { active, hints };
 }
 
@@ -1031,9 +1126,12 @@ function syncPlayBtn(){
 }
 const fmt = s => { s = Math.max(0, s|0); return (s/60|0) + ':' + String(s % 60).padStart(2, '0'); };
 
-function frame(){
+let lastTs = 0;
+function frame(ts){
+  const dt = lastTs ? (ts - lastTs) / 1000 : 0;
+  lastTs = ts;
   const now = songTime();
-  drawKeys(drawFalling(now));
+  drawKeys(drawFalling(now, dt));
   if (!dragging){
     const shown = Math.max(0, Math.min(now, duration));
     const pct = duration ? shown / duration * 100 : 0;
@@ -1073,6 +1171,7 @@ function stop(){
 }
 function seekTo(t){
   hideDone();
+  fxSkip = true; parts = []; flashes = [];
   const was = playing; pause();
   seekOffset = Math.max(0, Math.min(t, duration));
   schedIdx = lowerBound(seekOffset);
@@ -1130,8 +1229,8 @@ $('seek').oninput  = e => { dragging = true; const t = e.target.value/1000*durat
 $('seek').onchange = e => { dragging = false; seekTo(e.target.value/1000*duration); };
 
 const refreshSum = () => { if ($('panel').classList.contains('collapsed')) $('panelSum').textContent = panelSummary(); savePrefs(); };
-for (const id of ['rate','look','vol','rev','tone','hint','h0','h1'])
-  document.getElementById(id).addEventListener(id === 'tone' || id === 'hint' ? 'change' : 'input', refreshSum);
+for (const id of ['rate','look','vol','rev','tone','hint','fx','h0','h1'])
+  document.getElementById(id).addEventListener(['tone','hint','fx'].includes(id) ? 'change' : 'input', refreshSum);
 $('h0').addEventListener('click', refreshSum);
 $('h1').addEventListener('click', refreshSum);
 
@@ -1153,6 +1252,7 @@ $('tone').onchange = e => {
 };
 $('look').oninput = e => { lookahead = +e.target.value; $('lookV').textContent = lookahead + 's'; };
 $('hint').onchange = e => { showHint = e.target.checked; lastKeySig = null; savePrefs(); };
+$('fx').onchange   = e => { showFx = e.target.checked; savePrefs(); };
 $('fit').onchange = () => { computeRange(); savePrefs(); };
 
 /* Đổi trạng thái tay: nốt đã lên lịch trước ~100ms nên phải neo lại đồng hồ
@@ -1229,7 +1329,7 @@ function savePrefs(extra){
     localStorage.setItem(STORE, JSON.stringify(Object.assign(loadPrefs(), {
       v: 1,
       rate: +$('rate').value, look: +$('look').value, vol: +$('vol').value, rev: +$('rev').value,
-      tone, fit: $('fit').checked, hint: showHint, hands: handState.slice(),
+      tone, fit: $('fit').checked, hint: showHint, fx: showFx, hands: handState.slice(),
       panel: !$('panel').classList.contains('collapsed'),
       song: currentSong
     }, extra || {})));
@@ -1323,6 +1423,7 @@ const q = new URLSearchParams(location.search);
 
 $('fit').checked = 'fit' in prefs ? !!prefs.fit : window.innerWidth < 600;
 if ('hint' in prefs){ showHint = !!prefs.hint; $('hint').checked = showHint; }
+if ('fx' in prefs){ showFx = !!prefs.fx; $('fx').checked = showFx; }
 if (prefs.rate) setRate(prefs.rate);
 if (prefs.look){ lookahead = prefs.look; $('look').value = prefs.look; $('lookV').textContent = prefs.look + 's'; }
 if (typeof prefs.vol === 'number'){ $('vol').value = prefs.vol; setVolume(prefs.vol); }

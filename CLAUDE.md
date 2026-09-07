@@ -133,6 +133,22 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
     không đổi màu khi phím được bấm. Phím C chỉ in `C4`, không in đè thêm chữ `C`.
     Chữ tự co theo `measureText` cho vừa bề ngang phím, dưới 6.5px thì bỏ không vẽ.
     In cho cả phím đang kêu lẫn phím sắp bấm, để nhãn không nháy mất đúng lúc chạm phím.
+- **Hiệu ứng nốt chạm phím** (`showFx`, mặc định BẬT) — kiểu Synthesia: cột sáng vọt lên
+  từ phím + loé trắng ở vạch chạm + tia hạt bay lên rồi rơi xuống theo trọng lực.
+  Vài điểm phải giữ:
+  - Vật lý hạt lấy **delta của rAF** (`frame(ts)`), chặn trần 0.05s cho lúc tab vừa
+    bị treo. Đây là ngoại lệ hợp lệ của luật đồng hồ: hạt chỉ để nhìn, không dính
+    tới vị trí bài nhạc (vị trí vẫn chỉ lấy từ `audioCtx.currentTime`).
+  - Phát hiện "vừa chạm phím" bằng cách so tập midi đang vang với frame trước
+    (`prevOn`), và chỉ bắn khi `playing`.
+  - **Sau khi tua phải bỏ qua đúng một frame** (`fxSkip`): cả nắm nốt đang vang đều
+    tính là "mới", bắn hết thì loé sáng cả màn hình.
+  - Gom hạt theo (tay × 4 nấc độ mờ) rồi vẽ mỗi nhóm một lệnh `fill()` — không vẽ
+    từng hạt một. Cột sáng dùng 4 khối `fillRect` xếp cao dần thay vì gradient, vì
+    tạo gradient cho từng cú chạm mỗi frame thì quá đắt. Vẫn KHÔNG `shadowBlur`.
+  - Trần `MAX_PARTS = 420`. Đo ở He's a Pirate (16 nốt/giây, bài dày nhất): đỉnh 87
+    hạt, 0.238ms/frame so với 0.113ms khi tắt — tức tốn thêm 0.13ms, 1% ngân sách
+    của một frame 60fps.
 - **Bật/tắt từng tay (`handState`)** — 3 trạng thái `on` → `silent` → `off`.
   `silent` = không kêu nhưng NỐT VẪN RƠI và phím vẫn sáng: đây là chế độ tập từng tay,
   đừng "tối ưu" bằng cách bỏ luôn khỏi `active`. Khi đổi trạng thái lúc đang chơi phải
