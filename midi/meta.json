@@ -22,5 +22,11 @@
     "composer": "Pachelbel",
     "note": "Giọng Rê trưởng, có biến tấu chạy nốt và hợp âm dày — file một track nên màu hai tay chỉ là phỏng đoán",
     "difficulty": 450
+  },
+  "river-flows-in-you.mid": {
+    "title": "River Flows in You",
+    "composer": "Yiruma",
+    "note": "Giọng Fa# thứ (3 dấu thăng, nhiều phím đen), mẫu tay phải lặp đều suốt bài; có một ô nhịp 5/4 ở giữa",
+    "difficulty": 290
   }
 }
