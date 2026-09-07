@@ -1,6 +1,14 @@
 {
-  "count": 9,
+  "count": 10,
   "songs": [
+    {
+      "file": "happy-birthday.mid",
+      "title": "Happy Birthday to You",
+      "composer": "Mildred & Patty Hill · phối: Manjuprasad",
+      "note": "Ngắn nhất thư viện (28 giây), giọng Đô trưởng gần như không có phím đen — nhưng tay trái bấm hợp âm khối chứ không phải nốt đơn",
+      "difficulty": 140,
+      "bytes": 1084
+    },
     {
       "file": "hoa-vang-tren-co-xanh.mid",
       "title": "Tôi thấy hoa vàng trên cỏ xanh",

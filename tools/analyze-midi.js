@@ -10,7 +10,8 @@ const path = require('path');
 const SRC = fs.readFileSync(path.join(__dirname, '..', 'play/index.html'), 'utf8');
 const grab = (from, to) => SRC.slice(SRC.indexOf(from), SRC.indexOf(to, SRC.indexOf(from)));
 eval(grab('function parseMidi', '/* ======'));
-eval(grab('function normalize(data)', 'function load(data, name)'));
+/* lấy cả HOLD_MAX vì normalize() dùng nó — đừng cắt hẹp hơn, cắt hẹp là tool vỡ */
+eval(grab('const HOLD_MAX', 'function load(data, name)'));
 
 const file = process.argv[2];
 if (!file) { console.error('cách dùng: node tools/analyze-midi.js <file.mid>'); process.exit(1); }

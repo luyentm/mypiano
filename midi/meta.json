@@ -52,5 +52,11 @@
     "composer": "Nathan Wang · phối: An Coong",
     "note": "Bản phối piano của An Coong. Nhịp co giãn nhiều (10 lần đổi tempo, cuối bài chậm dần còn 25) và dài gần 5 phút",
     "difficulty": 330
+  },
+  "happy-birthday.mid": {
+    "title": "Happy Birthday to You",
+    "composer": "Mildred & Patty Hill · phối: Manjuprasad",
+    "note": "Ngắn nhất thư viện (28 giây), giọng Đô trưởng gần như không có phím đen — nhưng tay trái bấm hợp âm khối chứ không phải nốt đơn",
+    "difficulty": 140
   }
 }
