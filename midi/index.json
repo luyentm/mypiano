@@ -1,5 +1,5 @@
 {
-  "count": 14,
+  "count": 15,
   "songs": [
     {
       "file": "happy-birthday.mid",
@@ -104,6 +104,14 @@
       "note": "Pirates of the Caribbean — tay trái đệm dồn dập không nghỉ, cần với được quãng 8",
       "difficulty": 480,
       "bytes": 11918
+    },
+    {
+      "file": "golden-hour.mid",
+      "title": "Golden Hour",
+      "composer": "JVKE · phối: Shawn",
+      "note": "Giọng Đô# thứ (4 dấu thăng, 55% phím đen), 2024 nốt và rải nhanh gần như không nghỉ; dùng pedal ngân suốt bài",
+      "difficulty": 500,
+      "bytes": 13465
     },
     {
       "file": "rondo-alla-turca.mid",

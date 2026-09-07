@@ -79,10 +79,13 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
 - **DPI**: `canvas.width = clientWidth * devicePixelRatio` rồi `ctx.scale(dpr, dpr)`, hook `ResizeObserver`.
 - **Mobile**: bắt buộc có chế độ "thu gọn" (quét min/max MIDI của bài, chỉ render khoảng đó).
   Mặc định BẬT khi viewport < 600px.
-- **Audio**: `MAX_VOICES = 48`, chạm trần thì **CƯỚP voice cũ nhất** (`stealOldest()`),
+- **Audio**: `MAX_VOICES = 96`, chạm trần thì **CƯỚP voice cũ nhất** (`stealOldest()`),
   tuyệt đối không bỏ nốt mới. Trần cũ 16 + bỏ nốt mới đã làm He's a Pirate (16 nốt/giây)
   rơi 15% số nốt, nghe y như đánh sai giai điệu — bug này rất khó thấy vì phần nhìn
   vẫn đúng, chỉ tiếng là thiếu. Đo lại sau khi sửa: đỉnh 25 voice, rơi 0%.
+  Trần đã phải nâng hai lần vì pedal ngân: 48 → 64 (Für Elise đỉnh 39) → 96
+  (Golden Hour 2024 nốt + pedal 140 mốc, đo thực tế chạm hẳn 64 và cướp voice 6 lần
+  trong 8 giây; với trần 96 thì đỉnh 67, cướp 0 lần).
   Đuôi voice cắt ở `rel + 0.45s` (sample) / `rel + 0.4s` (synth) — sau đó envelope đã im,
   giữ lâu hơn chỉ tổ chiếm chỗ. `retire()` là chỗ DUY NHẤT giảm `voiceCount`, gọi từ cả
   `onended` lẫn `stealOldest` và có cờ `dead` chống trừ hai lần.

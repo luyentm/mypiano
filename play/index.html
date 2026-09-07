@@ -464,9 +464,10 @@ let voices = [], voiceCount = 0;
 /* 16 là quá ít: bài dày như He's a Pirate (16 nốt/giây) giữ tới 16 voice cùng lúc
    suốt bài, làm rơi 15% số nốt — nghe như đánh sai giai điệu. Trình duyệt gánh
    được vài chục BufferSource thoải mái.
-   Từ lúc áp pedal ngân thì đỉnh còn cao hơn: Für Elise 39, He's a Pirate 32 —
-   nên để 64 cho có biên, đừng hạ xuống. */
-const MAX_VOICES = 64;
+   Từ lúc áp pedal ngân thì đỉnh còn cao hơn: Für Elise 39, He's a Pirate 32.
+   Golden Hour (2024 nốt, pedal đạp 140 lần, 55% phím đen) còn chạm hẳn trần 64 và
+   phải cướp voice — nên nâng lên 96. Đừng hạ xuống. */
+const MAX_VOICES = 96;
 
 /* Đuôi vang tự dựng, không tải file IR nào: nhiễu trắng tắt dần theo hàm mũ, lọc
    thông thấp mạnh dần về cuối cho đuôi tối lại giống tiếng phòng thật. Hai kênh
