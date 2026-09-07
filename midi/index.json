@@ -1,5 +1,5 @@
 {
-  "count": 8,
+  "count": 9,
   "songs": [
     {
       "file": "hoa-vang-tren-co-xanh.mid",
@@ -32,6 +32,14 @@
       "note": "Giọng Fa thứ (4 dấu giáng) — 57% nốt rơi vào phím đen, cao nhất thư viện; nhịp chậm nhưng dài 4:30. File một track nên màu hai tay chỉ là phỏng đoán",
       "difficulty": 310,
       "bytes": 8976
+    },
+    {
+      "file": "endless-love.mid",
+      "title": "Endless Love (Thần Thoại)",
+      "composer": "Nathan Wang · phối: An Coong",
+      "note": "Bản phối piano của An Coong. Nhịp co giãn nhiều (10 lần đổi tempo, cuối bài chậm dần còn 25) và dài gần 5 phút",
+      "difficulty": 330,
+      "bytes": 9914
     },
     {
       "file": "fur-elise.mid",

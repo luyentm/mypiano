@@ -46,5 +46,11 @@
     "composer": "Christopher Wong",
     "note": "Bản đơn giản: toàn phím trắng, tối đa 2 nốt cùng lúc, nhịp chậm — bài dễ nhất thư viện, hợp để bắt đầu",
     "difficulty": 170
+  },
+  "endless-love.mid": {
+    "title": "Endless Love (Thần Thoại)",
+    "composer": "Nathan Wang · phối: An Coong",
+    "note": "Bản phối piano của An Coong. Nhịp co giãn nhiều (10 lần đổi tempo, cuối bài chậm dần còn 25) và dài gần 5 phút",
+    "difficulty": 330
   }
 }
