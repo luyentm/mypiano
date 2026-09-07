@@ -1,5 +1,5 @@
 {
-  "count": 3,
+  "count": 4,
   "songs": [
     {
       "file": "marriage-damour.mid",
@@ -16,6 +16,14 @@
       "note": "Trọn bài (WoO 59) — có cả đoạn F trưởng và đoạn chạy ngón cuối",
       "difficulty": 420,
       "bytes": 20648
+    },
+    {
+      "file": "canon-in-d.mid",
+      "title": "Canon in D",
+      "composer": "Pachelbel",
+      "note": "Giọng Rê trưởng, có biến tấu chạy nốt và hợp âm dày — file một track nên màu hai tay chỉ là phỏng đoán",
+      "difficulty": 450,
+      "bytes": 8509
     },
     {
       "file": "hes-a-pirate.mid",

@@ -95,6 +95,12 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
   `right` / `left` / `treble` / `bass`), không có tên mới đoán theo cao độ mốc C4.
   Gán theo thứ tự track là sai với file có nhiều hơn 2 track nhạc.
   Tay phải `--rh`, tay trái `--lh`.
+  **File một track (format 0) thì màu tay chỉ là phỏng đoán** — Canon in D là ví dụ:
+  tay trái vừa ôm bè trầm D1 vừa rải lên tới F#4, vắt qua mốc C4 nên một phần bè rải
+  bị tô màu tay phải. Đã thử thay mốc cứng C4 bằng 2-means trên cao độ: cho mốc 57,
+  **tệ hơn** (vì hai cụm cao độ không trùng với hai tay). Tách đúng cần bám vết bè
+  theo thời gian, không phải một ngưỡng cao độ — đừng phí công với ngưỡng nữa.
+  Muốn màu đúng thì kiếm file có track tên `Right Hand` / `Left Hand`.
 - **Bố cục màn chơi tối ưu cho iPad/điện thoại NẰM NGANG** — chiều cao là thứ khan hiếm
   nhất, nên: transport gom vào top bar (một nút play/pause duy nhất, không có nút Dừng
   riêng), thanh tua bám sát mép dưới top bar để lúc nào cũng tua được, "lượt tập" cũng
