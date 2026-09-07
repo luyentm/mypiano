@@ -148,6 +148,33 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
     không đổi màu khi phím được bấm. Phím C chỉ in `C4`, không in đè thêm chữ `C`.
     Chữ tự co theo `measureText` cho vừa bề ngang phím, dưới 6.5px thì bỏ không vẽ.
     In cho cả phím đang kêu lẫn phím sắp bấm, để nhãn không nháy mất đúng lúc chạm phím.
+- **Đoạn lặp** (`loopA`/`loopB`, `setLoop()`, `schedule()`) — kéo hai tay cầm ở hai
+  đầu thanh tua để chọn đoạn, hệ thống chơi lặp trong đoạn đó thay vì hết bài là xong.
+  - `<input type=range>` chỉ có MỘT nút, nên hai tay cầm là hai `div` riêng đặt
+    tuyệt đối trên thanh tua. Vùng bấm 22×23px (ngón tay cần chỗ), phần nhìn thấy
+    chỉ là vạch cam 4px, và **vươn LÊN 6px** vào top bar chứ không vươn xuống —
+    vươn xuống là đè lên vùng nốt rơi.
+  - Vị trí tính bằng PIXEL (`seekX()`, lề `SEEK_PAD = 7.5` = nửa nút tròn native,
+    để tay cầm dóng thẳng với nút tua) nên `resize()` phải gọi lại `layoutLoop()`.
+    Phải **kẹp vào trong khung**: không kẹp thì tay cầm bên phải chìa ra 4px và làm
+    cả trang tràn ngang (đo được `scrollWidth` 847 trên khung 844), tức trên điện
+    thoại là vuốt ngang được cả trang.
+  - `loopOn()` chỉ cần đoạn HẸP HƠN cả bài, **một đầu thôi cũng được**. Bản đầu đòi
+    B phải nhỏ hơn cuối bài nên kéo riêng đầu A ("từ giây 7.5 tới hết, lặp lại")
+    không bật được lặp.
+  - Quay vòng thì **neo lại tại chỗ** (`anchorAt(loopA)`), KHÔNG gọi `seekTo()`:
+    `seekTo` đi qua `play()` nên mỗi vòng lặp lại đếm vào một lần, chen im lặng vào
+    giữa câu nhạc.
+  - Nhánh lặp phải nằm TRƯỚC nhánh `now >= duration`, không thì đoạn lặp chạm cuối
+    bài sẽ bắn overlay "Hết bài" thay vì lặp.
+  - Thân scheduler đã tách thành hàm `schedule()` có tên để gọi được mà kiểm — pane
+    xem trước luôn `visibilityState: hidden` nên không chạy thật được, phải gọi
+    `schedule()` với đồng hồ dựng sẵn. Bốn ca đã kiểm: vượt cuối đoạn → về đầu đoạn
+    (không đếm vào), trong đoạn → không nhảy, hết bài mà không lặp → vẫn dừng + hiện
+    overlay như cũ, đoạn lặp chạm cuối bài → vẫn lặp.
+  - Lưu `la`/`lb` theo đúng luật của `pos`: chỉ khôi phục khi đúng bài đã lưu, và
+    `load()` bài mới thì `resetLoop()`.
+
 - **Khoanh ô nhịp** (`barScope()`, `showScope`, mặc định BẬT) — phủ xám mọi phím
   KHÔNG dùng trong ô nhịp đang chơi. Đo ở Happy Birthday: mỗi ô nhịp chỉ 5–6 phím
   trên tổng 40 phím đang hiện, tức mắt bớt phải quét ~85% bàn phím.

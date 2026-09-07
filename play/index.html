@@ -70,6 +70,20 @@
   #seek::-moz-range-thumb{width:13px; height:13px; border:2px solid var(--panel);
     border-radius:50%; background:var(--lh)}
 
+  #seekwrap{position:relative}
+  #loopband{position:absolute; top:6px; height:5px; border-radius:3px;
+    background:var(--rh); opacity:.5; pointer-events:none; display:none}
+  /* Tay cầm đoạn lặp. Vùng bấm 22×23px (ngón tay cần chỗ), phần nhìn thấy chỉ là
+     một vạch cam 4px — vươn LÊN 6px vào thanh top bar chứ không vươn xuống, để
+     không đè lên vùng nốt rơi. */
+  .lgrip{position:absolute; top:-6px; width:22px; height:23px; z-index:2;
+    cursor:ew-resize; touch-action:none}
+  .lgrip::before{content:''; position:absolute; left:9px; top:5px; width:4px; height:17px;
+    border-radius:2px; background:var(--rh); box-shadow:0 0 0 1.5px var(--panel)}
+  .lgrip.on::before{height:19px; top:4px; width:5px; left:8.5px}
+  .btn.loop{padding:3px 7px; font-size:11px; border-color:var(--rh);
+    color:var(--rh); background:rgba(245,158,11,.12)}
+
   .btn{background:#202737; color:var(--text); border:1px solid var(--line);
     border-radius:7px; padding:7px 13px; font:inherit; font-size:13px;
     cursor:pointer; touch-action:manipulation; white-space:nowrap; flex:none}
@@ -167,6 +181,7 @@
     <span class="leg" title="Màu nốt theo tay">
       <i style="background:var(--rh)"></i>phải<i style="background:var(--lh)"></i>trái
     </span>
+    <button class="btn loop" id="loopchip" title="Bấm để bỏ lặp" hidden></button>
     <span id="hits"></span>
   </div>
 
@@ -189,7 +204,12 @@
   <input type="file" id="file" accept=".mid,.midi,audio/midi" hidden>
   </div>
  </div>
- <input type="range" id="seek" min="0" max="1000" step="1" value="0" aria-label="Tua bài">
+ <div id="seekwrap">
+  <input type="range" id="seek" min="0" max="1000" step="1" value="0" aria-label="Tua bài">
+  <div id="loopband"></div>
+  <div class="lgrip" id="lga" title="Kéo để đặt đầu đoạn lặp"></div>
+  <div class="lgrip" id="lgb" title="Kéo để đặt cuối đoạn lặp"></div>
+ </div>
 </header>
 
 <div id="stage">
@@ -440,8 +460,18 @@ let parts = [], flashes = [], prevOn = new Set(), fxSkip = false;
 const MAX_PARTS = 420;
 
 let showHint = true;
-let showFing = true;
-let showScope = true;                          /* phủ xám phím ngoài ô nhịp đang chơi */                           /* số ngón 1–5, chỉ hiện ở chỗ chắc */
+let showFing = true;                           /* số ngón 1–5, chỉ hiện ở chỗ chắc */
+let showScope = true;                          /* phủ xám phím ngoài ô nhịp đang chơi */
+/* Đoạn lặp — khai ở đây vì ResizeObserver có thể bắn layoutLoop() trước khi
+   chạy tới mục transport, mà `let` thì chưa khởi tạo là lỗi TDZ. */
+const LOOP_MIN = 1.5;                          /* đoạn ngắn hơn thì lặp thành tiếng lụp bụp */
+let loopA = 0, loopB = 0;
+/* Lặp bật khi đoạn HẸP HƠN cả bài — một đầu thôi cũng được. Bản đầu đòi B phải
+   nhỏ hơn cuối bài, nên kéo riêng đầu A ("từ giây 7.5 tới hết, lặp lại") không
+   bật được lặp. */
+const loopOn = () => loopB - loopA >= LOOP_MIN &&
+  (loopA > 0.05 || loopB < duration - 0.05);
+
 const FING_SIZES = [15, 12, 10, 8];             /* nấc cỡ chữ số ngón, to → nhỏ */
 const fingSize = (w, h) => {                   /* nấc lớn nhất vừa cả bề ngang lẫn chiều cao */
   const cap = Math.min(w * 0.62, h * 0.78);
@@ -945,6 +975,7 @@ function load(data, name){
   maxDur   = notes.reduce((m,n) => Math.max(m, n.end - n.start), 0);
 
   stop();
+  resetLoop();                                 /* bài mới thì bỏ đoạn lặp của bài cũ */
   $('songname').textContent = name;
   $('err').textContent = '';
   computeRange(); resize();
@@ -960,6 +991,7 @@ function computeRange(){
     while (isBlack(hiMidi) && hiMidi < C8) hiMidi++;
   } else { loMidi = A0; hiMidi = C8; }
   buildGeom(); lastKeySig = null;
+  layoutLoop();                                /* tay cầm đặt theo pixel nên phải dóng lại */
 }
 
 /* ==========================================================================
@@ -1376,7 +1408,9 @@ function drawKeys(state){
    khựng thực tế mà đổi tốc độ / tắt tay vẫn nhạy vì các đường đó đều killVoices() +
    tính lại schedIdx. */
 const AHEAD = 0.5;
-setInterval(() => {
+/* Thân scheduler tách thành hàm có tên để gọi được mà kiểm, thay vì đóng kín
+   trong callback của setInterval. */
+function schedule(){
   if (!playing || !actx) return;
   const now = songTime(), until = now + AHEAD * rate;
   while (schedIdx < notes.length && notes[schedIdx].start < until){
@@ -1392,14 +1426,103 @@ setInterval(() => {
     }
   }
 
+  /* Đang lặp thì quay về đầu đoạn. Neo lại TẠI CHỖ chứ không gọi seekTo(): seekTo
+     đi qua play() nên mỗi vòng lặp lại đếm vào một lần, chen im lặng vào giữa câu. */
+  if (loopOn() && now >= loopB){
+    killVoices(); fxSkip = true; parts = []; flashes = [];
+    anchorAt(loopA);
+    schedIdx = lowerBound(loopA); clickIdx = gridLB(loopA);
+    lastKeySig = null;
+    return;
+  }
   if (now >= duration){ stop(); savePrefs({ pos: 0 }); showDone(); }   /* hết bài: lần sau mở lại từ đầu */
-}, 25);
+}
+setInterval(schedule, 25);
 
 function showDone(){
   $('doneName').textContent = $('songname').textContent;
   $('done').classList.add('on');
 }
 function hideDone(){ $('done').classList.remove('on'); }
+
+/* --------------------------------------------------------------------------
+   Đoạn lặp. Kéo hai tay cầm ở hai đầu thanh tua để chọn đoạn, hệ thống chơi
+   lặp trong đoạn đó thay vì hết bài là xong — đúng cách người ta tập một câu
+   khó: cày đúng câu đó vài chục lần.
+   Mặc định A = 0, B = hết bài, tức KHÔNG lặp (`loopOn()` đòi đoạn hẹp hơn cả
+   bài và dài ít nhất LOOP_MIN giây).
+   -------------------------------------------------------------------------- */
+function resetLoop(){ loopA = 0; loopB = duration; layoutLoop(); }
+
+/* Đổi đoạn lặp. Giữ A <= B - LOOP_MIN, và nếu đang chơi ngoài đoạn thì nhảy vào. */
+function setLoop(a, b, jump){
+  const lim = Math.max(duration, LOOP_MIN);
+  loopA = Math.min(Math.max(a, 0), lim - LOOP_MIN);
+  loopB = Math.min(Math.max(b, loopA + LOOP_MIN), lim);
+  layoutLoop();
+  if (jump && loopOn()){
+    const t = songTime();
+    if (t < loopA || t > loopB) seekTo(loopA);
+  }
+  savePrefs({ la: loopOn() ? loopA : 0, lb: loopOn() ? loopB : 0 });
+}
+
+/* Vị trí pixel trên thanh tua. Dùng đúng khoảng lề của nút tròn native (nửa
+   bề rộng nút = 7.5px) để tay cầm và nút tròn dóng thẳng với nhau. */
+const SEEK_PAD = 7.5;
+function seekX(t){
+  const w = $('seekwrap').clientWidth;
+  const f = duration ? Math.min(Math.max(t / duration, 0), 1) : 0;
+  return SEEK_PAD + f * (w - 2 * SEEK_PAD);
+}
+function seekT(clientX){
+  const r = $('seekwrap').getBoundingClientRect();
+  const f = (clientX - r.left - SEEK_PAD) / Math.max(r.width - 2 * SEEK_PAD, 1);
+  return Math.min(Math.max(f, 0), 1) * duration;
+}
+function layoutLoop(){
+  const xa = seekX(loopA), xb = seekX(loopB), on = loopOn();
+  /* Kẹp vào trong khung: không kẹp thì tay cầm bên phải chìa ra 4px và làm cả
+     trang tràn ngang (đo được scrollWidth 847 trên khung 844), tức trên điện
+     thoại là vuốt ngang được cả trang. Lệch tối đa 3.5px, mắt không thấy. */
+  const wrapW = $('seekwrap').clientWidth;
+  const clamp = x => Math.min(Math.max(x - 11, 0), Math.max(wrapW - 22, 0));
+  $('lga').style.left = clamp(xa) + 'px';
+  $('lgb').style.left = clamp(xb) + 'px';
+  $('lga').classList.toggle('on', on);
+  $('lgb').classList.toggle('on', on);
+  const band = $('loopband');
+  band.style.display = on ? 'block' : 'none';
+  band.style.left = xa + 'px';
+  band.style.width = Math.max(xb - xa, 0) + 'px';
+  const chip = $('loopchip');
+  chip.hidden = !on;
+  if (on) chip.textContent = 'Lặp ' + fmt(loopA) + '–' + fmt(loopB) + ' ✕';
+}
+
+/* Kéo tay cầm. Không dùng nút native thứ hai vì <input type=range> chỉ có một
+   nút; hai div riêng lại tiện cho vùng bấm to hơn ngón tay. */
+for (const [id, which] of [['lga', 0], ['lgb', 1]]){
+  const el = $(id);
+  el.addEventListener('pointerdown', e => {
+    e.preventDefault(); el.setPointerCapture(e.pointerId);
+    const move = ev => {
+      const t = seekT(ev.clientX);
+      if (which === 0) setLoop(t, Math.max(loopB, t + LOOP_MIN), false);
+      else             setLoop(Math.min(loopA, t - LOOP_MIN), t, false);
+    };
+    const up = ev => {
+      el.removeEventListener('pointermove', move);
+      el.removeEventListener('pointerup', up);
+      el.removeEventListener('pointercancel', up);
+      setLoop(loopA, loopB, true);             /* đang chơi ngoài đoạn thì nhảy vào */
+    };
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+  });
+}
+$('loopchip').onclick = () => { resetLoop(); savePrefs({ la: 0, lb: 0 }); };
 
 let dragging = false;
 const PP_PLAY  = 'M3.5 2.2 13 8l-9.5 5.8z';
@@ -1437,6 +1560,7 @@ function play(){
   initAudio();
   actx.resume();                              /* phải nằm trong user gesture — iOS Safari */
   if (seekOffset >= duration - 0.05) seekOffset = 0;
+  if (loopOn() && (seekOffset < loopA || seekOffset >= loopB)) seekOffset = loopA;
 
   /* Đếm vào: đẩy mốc neo ra tương lai, songTime() sẽ âm trong lúc đếm — nốt vẫn rơi
      sẵn trên màn, chỉ chưa tới vạch. Số phách cắt bớt nếu tempo chậm, đừng để bé
@@ -1797,6 +1921,7 @@ requestAnimationFrame(frame);
   if (wanted){
     if (await loadFromLibrary(wanted)){
       /* chỉ nhảy về chỗ dở khi nó thật sự nằm giữa bài, tránh nhảy vào 2 giây cuối */
+      if (resume && prefs.lb > prefs.la) setLoop(prefs.la, prefs.lb, false);
       if (resume && prefs.pos > 3 && prefs.pos < duration - 2) seekTo(prefs.pos);
       return;
     }
