@@ -138,6 +138,11 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
   đừng "tối ưu" bằng cách bỏ luôn khỏi `active`. Khi đổi trạng thái lúc đang chơi phải
   `killVoices()` + `anchorAt(songTime())` + tính lại `schedIdx`, vì nốt đã được lên lịch
   trước ~100ms sẽ vẫn kêu nếu không dọn.
+- **Đuôi vang (`makeReverbIR`)**: IR **tự dựng bằng code**, không tải file — nhiễu trắng
+  tắt theo hàm mũ + lọc thông thấp mạnh dần cho đuôi tối lại. Đường vang chạy SONG SONG
+  và **tách khỏi compressor** (`master → convolver → wetGain → outGain`) để đuôi vang
+  không bị nén bóp. Đo được: đuôi nghe rõ 0.6s khi tắt → 1.1s ở mức 35%, mà đỉnh gần như
+  không đổi (0.228 → 0.235) — tức dài hơi hơn chứ không to hơn.
 - **Chuỗi audio: voice → `master` (cố định 1.0) → compressor (-10 dB, 4:1) → `outGain`
   → limiter (-1.5 dB, 20:1) → loa.** Ba điểm đã trả giá mới rút ra:
   núm âm lượng phải nằm SAU compressor (để trước thì kéo to bao nhiêu cũng bị nén lại

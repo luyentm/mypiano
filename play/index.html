@@ -221,6 +221,7 @@
     <label class="ctl">Tốc độ <input type="range" id="rate" min="25" max="200" step="5" value="100"><b id="rateV">100%</b></label>
     <label class="ctl">Nhìn trước <input type="range" id="look" min="1" max="6" step="0.5" value="3.5"><b id="lookV">3.5s</b></label>
     <label class="ctl">Âm lượng <input type="range" id="vol" min="0" max="150" step="5" value="90"><b id="volV">90%</b></label>
+    <label class="ctl">Vang <input type="range" id="rev" min="0" max="100" step="5" value="35"><b id="revV">35%</b></label>
     <label class="ctl">Tiếng đàn
       <select id="tone" class="btn tone">
         <option value="digital">Digital piano</option>
@@ -407,7 +408,8 @@ const HAND_LABEL = { on:'phát', silent:'chỉ hiện', off:'ẩn' };
 /* ==========================================================================
    3) AUDIO — Web Audio thuần, oscillator + ADSR
    ========================================================================== */
-let actx = null, master = null, outGain = null, limiter = null;
+let actx = null, master = null, outGain = null, limiter = null, wetGain = null;
+let reverb = 0.35;                             /* nhớ cả khi AudioContext chưa được tạo */
 let volume = 0.9;                              /* nhớ cả khi AudioContext chưa được tạo */
 
 /* Hai bộ tiếng:
@@ -428,6 +430,25 @@ let voices = [], voiceCount = 0;
    được vài chục BufferSource thoải mái. */
 const MAX_VOICES = 48;
 
+/* Đuôi vang tự dựng, không tải file IR nào: nhiễu trắng tắt dần theo hàm mũ, lọc
+   thông thấp mạnh dần về cuối cho đuôi tối lại giống tiếng phòng thật. Hai kênh
+   sinh riêng nên có bề ngang stereo. */
+function makeReverbIR(sec, decay){
+  const rate = actx.sampleRate, len = Math.max(1, Math.round(rate * sec));
+  const ir = actx.createBuffer(2, len, rate);
+  for (let ch = 0; ch < 2; ch++){
+    const d = ir.getChannelData(ch);
+    let lp = 0;
+    for (let i = 0; i < len; i++){
+      const t = i / len;
+      const n = (Math.random() * 2 - 1) * Math.pow(1 - t, decay);
+      lp += (n - lp) * (0.38 - 0.28 * t);
+      d[i] = lp * 3.2;                         /* bù lại phần lọc thông thấp ăn mất */
+    }
+  }
+  return ir;
+}
+
 function initAudio(){
   if (actx) return;
   actx = new (window.AudioContext || window.webkitAudioContext)();
@@ -439,7 +460,14 @@ function initAudio(){
   comp.attack.value = 0.004; comp.release.value = 0.15;
   /* Núm âm lượng phải nằm SAU compressor. Để trước thì kéo to bao nhiêu cũng bị
      compressor ăn lại gần hết — đó là lý do trước đây nghe mãi vẫn nhỏ. */
+  /* Đường vang chạy song song, tách khỏi compressor để đuôi vang không bị nén bóp */
+  const conv = actx.createConvolver();
+  conv.buffer = makeReverbIR(2.4, 2.2);
+  wetGain = actx.createGain(); wetGain.gain.value = reverb;
+  master.connect(conv).connect(wetGain);
+
   outGain = actx.createGain(); outGain.gain.value = volume;
+  wetGain.connect(outGain);
   /* Chốt chặn cuối: kéo 150% với hợp âm dày là vượt 1.0 và méo tiếng ngay (đã đo 1.18).
      Limiter đứng sau núm âm lượng để dù kéo hết cỡ cũng không bao giờ clip. */
   limiter = actx.createDynamicsCompressor();
@@ -1008,6 +1036,11 @@ function setVolume(pct){
   $('volV').textContent = pct + '%';
   if (outGain) outGain.gain.setTargetAtTime(volume, actx.currentTime, 0.02);
 }
+function setReverb(pct){
+  reverb = pct / 100;
+  $('revV').textContent = pct + '%';
+  if (wetGain) wetGain.gain.setTargetAtTime(reverb, actx.currentTime, 0.05);
+}
 function setRate(pct){
   const t = songTime();
   rate = pct / 100;
@@ -1028,7 +1061,7 @@ function panelSummary(){
   if (handState[0] !== 'on') hands.push('tay phải ' + label[handState[0]]);
   if (handState[1] !== 'on') hands.push('tay trái ' + label[handState[1]]);
   return $('rateV').textContent + ' · nhìn ' + $('lookV').textContent +
-         ' · vol ' + $('volV').textContent +
+         ' · vol ' + $('volV').textContent + ' · vang ' + $('revV').textContent +
          ' · ' + $('tone').selectedOptions[0].text.replace(' (2 MB)', '') +
          (hands.length ? ' · ' + hands.join(', ') : '');
 }
@@ -1047,13 +1080,14 @@ $('seek').oninput  = e => { dragging = true; const t = e.target.value/1000*durat
 $('seek').onchange = e => { dragging = false; seekTo(e.target.value/1000*duration); };
 
 const refreshSum = () => { if ($('panel').classList.contains('collapsed')) $('panelSum').textContent = panelSummary(); savePrefs(); };
-for (const id of ['rate','look','vol','tone','hint','h0','h1'])
+for (const id of ['rate','look','vol','rev','tone','hint','h0','h1'])
   document.getElementById(id).addEventListener(id === 'tone' || id === 'hint' ? 'change' : 'input', refreshSum);
 $('h0').addEventListener('click', refreshSum);
 $('h1').addEventListener('click', refreshSum);
 
 $('rate').oninput = e => setRate(+e.target.value);
 $('vol').oninput  = e => setVolume(+e.target.value);
+$('rev').oninput  = e => setReverb(+e.target.value);
 
 $('tone').onchange = e => {
   tone = e.target.value;
@@ -1141,7 +1175,7 @@ function savePrefs(extra){
   try {
     localStorage.setItem(STORE, JSON.stringify(Object.assign(loadPrefs(), {
       v: 1,
-      rate: +$('rate').value, look: +$('look').value, vol: +$('vol').value,
+      rate: +$('rate').value, look: +$('look').value, vol: +$('vol').value, rev: +$('rev').value,
       tone, fit: $('fit').checked, hint: showHint, hands: handState.slice(),
       panel: !$('panel').classList.contains('collapsed'),
       song: currentSong
@@ -1239,6 +1273,7 @@ if ('hint' in prefs){ showHint = !!prefs.hint; $('hint').checked = showHint; }
 if (prefs.rate) setRate(prefs.rate);
 if (prefs.look){ lookahead = prefs.look; $('look').value = prefs.look; $('lookV').textContent = prefs.look + 's'; }
 if (typeof prefs.vol === 'number'){ $('vol').value = prefs.vol; setVolume(prefs.vol); }
+if (typeof prefs.rev === 'number'){ $('rev').value = prefs.rev; setReverb(prefs.rev); }
 if (Array.isArray(prefs.hands)) prefs.hands.forEach((st, i) => { if (st) setHand(i, st); });
 if (prefs.panel === false) setPanel(false);
 if (q.get('tone') === 'grand' || prefs.tone === 'grand'){
