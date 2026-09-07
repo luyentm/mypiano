@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "mypiano",
-      "runtimeExecutable": "python3",
+      "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "1234"],
       "port": 1234
     }
