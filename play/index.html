@@ -242,6 +242,8 @@
   </div>
   <div class="row">
     <label class="ctl"><input type="checkbox" id="hint" checked> Gợi ý phím</label>
+    <label class="ctl"><input type="checkbox" id="cin" checked> Đếm vào</label>
+    <label class="ctl"><input type="checkbox" id="met" checked> Gõ nhịp</label>
     <label class="ctl"><input type="checkbox" id="fx" checked> Hiệu ứng</label>
     <label class="ctl">Tên nốt
       <select id="lang" class="btn tone">
@@ -353,10 +355,13 @@ function parseMidi(buf){
   if (tempos.length > 1 && tempos[1].tick > 0){
     tempos.sort((a,b) => a.tick - b.tick);
     tempos[0].us = tempos[1].us;               /* tempos[0] là mốc mặc định ở tick 0 */
+    tempos.splice(1, 1);
   }
   if (sigs.length > 1 && sigs[1].tick > 0){
     sigs.sort((a,b) => a.tick - b.tick);
     sigs[0].num = sigs[1].num; sigs[0].den = sigs[1].den;
+    sigs.splice(1, 1);                         /* bỏ mốc trùng: để lại thì lúc chạy qua
+                                                  nó reset `beat` và sinh vạch ô nhịp giả */
   }
 
   /* tempo map: tick -> giây (tích luỹ theo từng đoạn tempo) */
@@ -484,7 +489,10 @@ const HAND_LABEL = { on:'phát', silent:'chỉ hiện', off:'ẩn' };
 /* ==========================================================================
    3) AUDIO — Web Audio thuần, oscillator + ADSR
    ========================================================================== */
-let actx = null, master = null, outGain = null, limiter = null, wetGain = null;
+let actx = null, master = null, outGain = null, limiter = null, wetGain = null, clickGain = null;
+/* Đếm vào + gõ nhịp: người mới không có mốc nào trong tai để canh lúc bấm.
+   Mốc phách lấy từ `grid` (đã dựng từ time signature) nên không phải tính lại gì. */
+let countIn = true, metro = true, clickIdx = 0;
 let reverb = 0.35;                             /* nhớ cả khi AudioContext chưa được tạo */
 let volume = 0.9;                              /* nhớ cả khi AudioContext chưa được tạo */
 
@@ -547,6 +555,11 @@ function initAudio(){
 
   outGain = actx.createGain(); outGain.gain.value = volume;
   wetGain.connect(outGain);
+
+  /* Tiếng gõ đi thẳng vào outGain: không qua compressor (nó ngắn, bị nén thì mất
+     tính dứt khoát) và không qua đường vang (gõ nhịp mà vang thì nhoè mất mốc). */
+  clickGain = actx.createGain(); clickGain.gain.value = 0.55;
+  clickGain.connect(outGain);
   /* Chốt chặn cuối: kéo 150% với hợp âm dày là vượt 1.0 và méo tiếng ngay (đã đo 1.18).
      Limiter đứng sau núm âm lượng để dù kéo hết cỡ cũng không bao giờ clip. */
   limiter = actx.createDynamicsCompressor();
@@ -1025,6 +1038,18 @@ function drawFalling(now, dt){
     fctx.restore();
   }
 
+  /* Đang đếm vào (songTime âm): in số phách còn lại thật to, bé nhìn là biết
+     "còn mấy nhịp nữa tới lượt mình". */
+  if (now < 0){
+    const b = beatAt(0), left = Math.max(1, Math.ceil(-now / b));
+    fctx.textAlign = 'center'; fctx.textBaseline = 'middle';
+    fctx.font = '700 ' + Math.round(Math.min(HF * 0.42, W * 0.18)) + 'px system-ui,-apple-system,sans-serif';
+    fctx.globalAlpha = 0.13 + 0.5 * (1 - (-now % b) / b);
+    fctx.fillStyle = css('--rh');
+    fctx.fillText(left, W / 2, HF * 0.45);
+    fctx.globalAlpha = 1;
+  }
+
   fctx.fillStyle = 'rgba(211,218,230,.22)'; fctx.fillRect(0, HF - 2, W, 2);   /* vạch chạm */
 
   /* nốt nào vừa chạm phím trong frame này thì bắn hạt — so với frame trước */
@@ -1149,6 +1174,14 @@ setInterval(() => {
     if (n.end < now || handState[n.hand] !== 'on') continue;
     voice(n, Math.max(songToAudio(n.start), actx.currentTime), ((n.hold || n.end) - n.start) / rate);
   }
+  if (metro){
+    while (clickIdx < grid.length && grid[clickIdx].sec < until){
+      const bt = grid[clickIdx++];
+      if (bt.sec < now - 0.08) continue;       /* phách đã qua thì bỏ, đừng gõ dồn */
+      click(Math.max(songToAudio(bt.sec), actx.currentTime), bt.bar);
+    }
+  }
+
   if (now >= duration){ stop(); savePrefs({ pos: 0 }); showDone(); }   /* hết bài: lần sau mở lại từ đầu */
 }, 25);
 
@@ -1194,22 +1227,37 @@ function play(){
   initAudio();
   actx.resume();                              /* phải nằm trong user gesture — iOS Safari */
   if (seekOffset >= duration - 0.05) seekOffset = 0;
-  startedAt = actx.currentTime;
+
+  /* Đếm vào: đẩy mốc neo ra tương lai, songTime() sẽ âm trong lúc đếm — nốt vẫn rơi
+     sẵn trên màn, chỉ chưa tới vạch. Số phách cắt bớt nếu tempo chậm, đừng để bé
+     ngồi chờ 10 giây (Endless Love có đoạn 25 nhịp/phút). */
+  let lead = 0;
+  if (countIn && notes.length){
+    const b = beatAt(seekOffset) / rate;
+    let n = barBeats();
+    while (n > 2 && n * b > 4) n--;
+    for (let k = 0; k < n; k++) click(actx.currentTime + 0.06 + k * b, k === 0);
+    lead = 0.06 + n * b;
+  }
+  startedAt = actx.currentTime + lead;
   schedIdx = lowerBound(seekOffset);
+  clickIdx = gridLB(seekOffset);
   playing = true;
   setPanel(false);                            /* nhường chiều cao cho nốt rơi */
   syncPlayBtn();
 }
 function pause(){
   if (!playing) return;
-  const t = Math.max(0, songTime());
-  playing = false; seekOffset = t; killVoices();
+  const t = songTime();
+  playing = false;
+  if (t > seekOffset) seekOffset = t;          /* âm = đang đếm vào, giữ nguyên chỗ đứng */
+  killVoices();
   savePos();
   syncPlayBtn();                              /* panel KHÔNG tự bung ra: chỉ mở khi bấm tay cầm */
 }
 function stop(){
   hideDone();
-  pause(); seekOffset = 0; schedIdx = 0; lastKeySig = null;
+  pause(); seekOffset = 0; schedIdx = 0; clickIdx = 0; lastKeySig = null;
   syncPlayBtn();
 }
 function seekTo(t){
@@ -1218,6 +1266,7 @@ function seekTo(t){
   const was = playing; pause();
   seekOffset = Math.max(0, Math.min(t, duration));
   schedIdx = lowerBound(seekOffset);
+  clickIdx = gridLB(seekOffset);
   lastKeySig = null;
   if (was) play();
 }
@@ -1228,6 +1277,41 @@ function setVolume(pct){
   $('volV').textContent = pct + '%';
   if (outGain) outGain.gain.setTargetAtTime(volume, actx.currentTime, 0.02);
 }
+/* Độ dài một phách quanh thời điểm t — phải tra theo `grid` chứ không dùng hằng số,
+   vì có bài đổi tempo tới 19 lần và có đoạn chậm dần còn 25 (Endless Love). */
+function beatAt(t){
+  if (grid.length < 2) return 0.5;
+  const i = Math.min(Math.max(gridLB(t) - 1, 0), grid.length - 2);
+  return Math.max(grid[i + 1].sec - grid[i].sec, 0.08);
+}
+/* Số phách trong một ô nhịp = khoảng cách PHỔ BIẾN NHẤT giữa các vạch ô nhịp.
+   Không lấy hai vạch đầu: bài hay mở bằng ô lấy đà. Happy Birthday khai đúng
+   1/4 rồi mới 3/4 (ô lấy đà một phách), lấy hai vạch đầu sẽ ra 1 phách/ô. */
+function barBeats(){
+  const at = [];
+  for (let i = 0; i < grid.length; i++) if (grid[i].bar) at.push(i);
+  if (at.length < 3) return 4;
+  const tally = new Map();
+  for (let i = 1; i < at.length; i++){
+    const d = at[i] - at[i - 1];
+    tally.set(d, (tally.get(d) || 0) + 1);
+  }
+  let best = 4, n = 0;
+  for (const [d, c] of tally) if (c > n){ n = c; best = d; }
+  return best;
+}
+function click(when, accent){
+  if (!clickGain) return;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = 'square';
+  o.frequency.value = accent ? 1600 : 1050;
+  g.gain.setValueAtTime(0.0001, when);
+  g.gain.linearRampToValueAtTime(accent ? 0.42 : 0.26, when + 0.002);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + 0.05);
+  o.connect(g).connect(clickGain);
+  o.start(when); o.stop(when + 0.08);
+}
+
 function setReverb(pct){
   reverb = pct / 100;
   $('revV').textContent = pct + '%';
@@ -1272,8 +1356,8 @@ $('seek').oninput  = e => { dragging = true; const t = e.target.value/1000*durat
 $('seek').onchange = e => { dragging = false; seekTo(e.target.value/1000*duration); };
 
 const refreshSum = () => { if ($('panel').classList.contains('collapsed')) $('panelSum').textContent = panelSummary(); savePrefs(); };
-for (const id of ['rate','look','vol','rev','tone','hint','fx','lang','h0','h1'])
-  document.getElementById(id).addEventListener(['tone','hint','fx','lang'].includes(id) ? 'change' : 'input', refreshSum);
+for (const id of ['rate','look','vol','rev','tone','hint','fx','lang','cin','met','h0','h1'])
+  document.getElementById(id).addEventListener(['tone','hint','fx','lang','cin','met'].includes(id) ? 'change' : 'input', refreshSum);
 $('h0').addEventListener('click', refreshSum);
 $('h1').addEventListener('click', refreshSum);
 
@@ -1295,6 +1379,8 @@ $('tone').onchange = e => {
 };
 $('look').oninput = e => { lookahead = +e.target.value; $('lookV').textContent = lookahead + 's'; };
 $('hint').onchange = e => { showHint = e.target.checked; lastKeySig = null; savePrefs(); };
+$('cin').onchange  = e => { countIn = e.target.checked; savePrefs(); };
+$('met').onchange  = e => { metro = e.target.checked; savePrefs(); };
 $('fx').onchange   = e => { showFx = e.target.checked; savePrefs(); };
 $('lang').onchange = e => { noteLang = e.target.value; lastKeySig = null; savePrefs(); };
 $('fit').onchange = () => { computeRange(); savePrefs(); };
@@ -1308,7 +1394,7 @@ function setHand(h, st){
   b.querySelector('b').textContent = HAND_LABEL[st];
   b.setAttribute('aria-pressed', st !== 'off');
   lastKeySig = null;
-  if (playing){ const t = songTime(); killVoices(); anchorAt(t); schedIdx = lowerBound(t); }
+  if (playing){ const t = songTime(); killVoices(); anchorAt(t); schedIdx = lowerBound(t); clickIdx = gridLB(t); }
 }
 $('h0').onclick = () => setHand(0, HAND_NEXT[handState[0]]);
 $('h1').onclick = () => setHand(1, HAND_NEXT[handState[1]]);
@@ -1374,6 +1460,7 @@ function savePrefs(extra){
       v: 1,
       rate: +$('rate').value, look: +$('look').value, vol: +$('vol').value, rev: +$('rev').value,
       tone, fit: $('fit').checked, hint: showHint, fx: showFx, lang: noteLang,
+      cin: countIn, met: metro,
       hands: handState.slice(),
       panel: !$('panel').classList.contains('collapsed'),
       song: currentSong
@@ -1474,6 +1561,8 @@ $('fit').checked = 'fit' in prefs ? !!prefs.fit : true;
 if ('hint' in prefs){ showHint = !!prefs.hint; $('hint').checked = showHint; }
 if ('fx' in prefs){ showFx = !!prefs.fx; $('fx').checked = showFx; }
 if (prefs.lang){ noteLang = prefs.lang; $('lang').value = prefs.lang; }
+if ('cin' in prefs){ countIn = !!prefs.cin; $('cin').checked = countIn; }
+if ('met' in prefs){ metro = !!prefs.met; $('met').checked = metro; }
 if (prefs.rate) setRate(prefs.rate);
 if (prefs.look){ lookahead = prefs.look; $('look').value = prefs.look; $('lookV').textContent = prefs.look + 's'; }
 if (typeof prefs.vol === 'number'){ $('vol').value = prefs.vol; setVolume(prefs.vol); }

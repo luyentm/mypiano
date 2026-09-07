@@ -148,6 +148,22 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
     không đổi màu khi phím được bấm. Phím C chỉ in `C4`, không in đè thêm chữ `C`.
     Chữ tự co theo `measureText` cho vừa bề ngang phím, dưới 6.5px thì bỏ không vẽ.
     In cho cả phím đang kêu lẫn phím sắp bấm, để nhãn không nháy mất đúng lúc chạm phím.
+- **Đếm vào + gõ nhịp** (`countIn`, `metro`, mặc định BẬT cả hai) — người mới không có
+  mốc nào trong tai để canh lúc bấm. Mốc phách lấy từ `grid` sẵn có, không tính lại.
+  - Đếm vào = **neo `startedAt` ra tương lai**, nên `songTime()` ÂM trong lúc đếm: nốt
+    vẫn rơi sẵn trên màn, chỉ chưa tới vạch. Vì vậy `pause()` phải dùng
+    `if (t > seekOffset) seekOffset = t` — dùng `Math.max(0, songTime())` như trước sẽ
+    làm bấm tạm dừng lúc đang đếm là nhảy về đầu bài.
+  - Số phách đếm vào tự cắt bớt nếu tempo chậm (`n * beat > 4s` thì giảm) — Endless Love
+    có đoạn 25 nhịp/phút, đếm đủ ô nhịp là ngồi chờ 10 giây.
+  - `beatAt(t)` tra độ dài phách **theo `grid` tại chỗ đó**, không dùng hằng số: có bài
+    đổi tempo 19 lần.
+  - `barBeats()` lấy khoảng cách **phổ biến nhất** giữa các vạch ô nhịp, KHÔNG lấy hai
+    vạch đầu — Happy Birthday khai 1/4 rồi mới 3/4 (ô lấy đà một phách) nên lấy hai vạch
+    đầu ra 1 phách/ô, đếm vào chỉ còn một tiếng.
+  - Tiếng gõ đi thẳng vào `outGain`: không qua compressor (ngắn, bị nén thì mất dứt
+    khoát) và không qua đường vang (gõ nhịp mà vang thì nhoè mất mốc).
+  - `clickIdx` phải reset ở đúng mọi chỗ reset `schedIdx` (play/stop/seek/rate/hand).
 - **Hiệu ứng nốt chạm phím** (`showFx`, mặc định BẬT) — kiểu Synthesia: cột sáng vọt lên
   từ phím + loé trắng ở vạch chạm + tia hạt bay lên rồi rơi xuống theo trọng lực.
   Vài điểm phải giữ:
