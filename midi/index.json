@@ -1,5 +1,5 @@
 {
-  "count": 13,
+  "count": 14,
   "songs": [
     {
       "file": "happy-birthday.mid",
@@ -56,6 +56,14 @@
       "note": "Bản phối piano của An Coong. Nhịp co giãn nhiều (10 lần đổi tempo, cuối bài chậm dần còn 25) và dài gần 5 phút",
       "difficulty": 330,
       "bytes": 9914
+    },
+    {
+      "file": "love-story.mid",
+      "title": "Love Story",
+      "composer": "Francis Lai",
+      "note": "Giọng La thứ, chỉ 10% phím đen nên dễ tìm phím; bù lại quãng rộng 6 quãng tám và nhịp co giãn 15 lần. Dùng pedal ngân gần suốt bài",
+      "difficulty": 370,
+      "bytes": 9915
     },
     {
       "file": "hungarian-sonata.mid",

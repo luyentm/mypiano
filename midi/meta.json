@@ -76,5 +76,11 @@
     "composer": "Paul de Senneville",
     "note": "Giọng Rê giáng trưởng (5 dấu giáng, 47% phím đen), quãng 6.6 quãng tám — rộng nhất thư viện; nhịp co giãn 19 lần, có cả ô nhịp 6/4",
     "difficulty": 440
+  },
+  "love-story.mid": {
+    "title": "Love Story",
+    "composer": "Francis Lai",
+    "note": "Giọng La thứ, chỉ 10% phím đen nên dễ tìm phím; bù lại quãng rộng 6 quãng tám và nhịp co giãn 15 lần. Dùng pedal ngân gần suốt bài",
+    "difficulty": 370
   }
 }
