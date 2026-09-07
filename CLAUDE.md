@@ -277,11 +277,27 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
   không bị nén bóp. Đo được: đuôi nghe rõ 0.6s khi tắt → 1.1s ở mức 35%, mà đỉnh gần như
   không đổi (0.228 → 0.235) — tức dài hơi hơn chứ không to hơn.
 - **Chuỗi audio: voice → `master` (cố định 1.0) → compressor (-10 dB, 4:1) → `outGain`
-  → limiter (-1.5 dB, 20:1) → loa.** Ba điểm đã trả giá mới rút ra:
+  → limiter (-3 dB, 20:1) → soft-clip (WaveShaper) → loa.** Bốn điểm đã trả giá mới rút ra:
   núm âm lượng phải nằm SAU compressor (để trước thì kéo to bao nhiêu cũng bị nén lại
   gần hết — nghe mãi vẫn nhỏ); compressor để -18/6:1 là nén gần hết tín hiệu, nghe bẹt;
-  và vì slider lên tới 150% nên phải có limiter chốt cuối, không thì hợp âm dày vọt lên
-  đỉnh 1.18 và méo. Giá trị giữ trong biến `volume` để áp được cả khi `AudioContext` chưa tạo.
+  phải có limiter chốt cuối, không thì hợp âm dày vọt lên đỉnh 1.18 và méo;
+  và **limiter một mình KHÔNG đủ** — xem mục dưới.
+  Giá trị giữ trong biến `volume` để áp được cả khi `AudioContext` chưa tạo.
+- **Trần âm lượng 200%, và tầng soft-clip là bắt buộc.** `DynamicsCompressor` không
+  phải brick-wall: attack 1ms nên đúng cái transient đầu của tiếng búa gõ dây lọt qua
+  nguyên. Đo bằng `OfflineAudioContext` chạy CHÍNH `initAudio()` + `voice()` của app
+  (đánh lừa `window.AudioContext` trong lúc dựng chain): bộ grand 20 nốt cùng lúc vượt
+  1.0 ngay từ mức **150%** (đỉnh 1.014), lên 200% là 1.066 — tức clip thật, không phải
+  lo hờ. Nên cuối chuỗi có `WaveShaper` uốn mềm: dưới ngưỡng `KNEE = 0.85` đi thẳng
+  không đổi gì, trên ngưỡng mới uốn tiệm cận 1.0 nên không bao giờ quá 1.0.
+  Sau khi thêm: 24 phép đo (2 bộ tiếng × 1/6/12/20 nốt × 100/150/200%) đỉnh cao nhất
+  **0.964**, **0 mẫu vượt 1.0**; kéo 150% → 200% vẫn to thêm thật **+1.3…+2.5 dB**
+  (trần lý thuyết +2.5), chứ không phải bị bóp lại.
+  **`oversample` phải để `'none'`.** Đã thử `'2x'` cho bớt aliasing: nó trễ hơn 8 mẫu
+  và lọc cả tín hiệu — sóng sin biên độ 0.30 (cỡ đỉnh lúc chơi thường) lệch 0.348 kể cả
+  sau khi bù trễ. Với `'none'` thì lệch **đúng 0** dưới ngưỡng.
+  Lưu ý khi đo lại: IR vang dựng bằng nhiễu ngẫu nhiên nên mỗi `initAudio()` ra một IR
+  khác, sai số phép đo RMS **±1.4%** — đừng tin con số lẻ tới 0.1 dB.
 - **Nút toàn màn hình tự ẩn** khi trình duyệt không hỗ trợ (`requestFullscreen` — iPhone
   Safari không cho fullscreen phần tử thường). Vào/ra fullscreen thì gọi `resize()`.
 - **`play()` phải thoát sớm khi `notes` rỗng** — không có bài mà bấm Chơi thì scheduler

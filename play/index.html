@@ -250,7 +250,7 @@
   <div class="row">
     <label class="ctl">Tốc độ <input type="range" id="rate" min="25" max="200" step="5" value="100"><b id="rateV">100%</b></label>
     <label class="ctl">Nhìn trước <input type="range" id="look" min="1" max="6" step="0.5" value="3.5"><b id="lookV">3.5s</b></label>
-    <label class="ctl">Âm lượng <input type="range" id="vol" min="0" max="150" step="5" value="90"><b id="volV">90%</b></label>
+    <label class="ctl">Âm lượng <input type="range" id="vol" min="0" max="200" step="5" value="90"><b id="volV">90%</b></label>
     <label class="ctl">Vang <input type="range" id="rev" min="0" max="100" step="5" value="35"><b id="revV">35%</b></label>
     <label class="ctl">Tiếng đàn
       <select id="tone" class="btn tone">
@@ -601,12 +601,31 @@ function initAudio(){
      tính dứt khoát) và không qua đường vang (gõ nhịp mà vang thì nhoè mất mốc). */
   clickGain = actx.createGain(); clickGain.gain.value = 0.55;
   clickGain.connect(outGain);
-  /* Chốt chặn cuối: kéo 150% với hợp âm dày là vượt 1.0 và méo tiếng ngay (đã đo 1.18).
+  /* Chốt chặn cuối: kéo to với hợp âm dày là vượt 1.0 và méo tiếng ngay (đã đo 1.18).
      Limiter đứng sau núm âm lượng để dù kéo hết cỡ cũng không bao giờ clip. */
   limiter = actx.createDynamicsCompressor();
   limiter.threshold.value = -3; limiter.knee.value = 0; limiter.ratio.value = 20;
   limiter.attack.value = 0.001; limiter.release.value = 0.08;
-  master.connect(comp).connect(outGain).connect(limiter).connect(actx.destination);
+  /* Nhưng DynamicsCompressor KHÔNG phải brick-wall: attack 1ms nên đúng cái transient
+     đầu của tiếng búa gõ dây lọt qua nguyên. Đo được ở bộ grand: 20 nốt cùng lúc
+     vượt 1.0 ngay từ mức 150% (1.014), lên 200% là 1.066 — tức clip thật.
+     Nên phải có tầng soft-clip cuối: dưới ngưỡng KNEE thì đi thẳng không đổi gì
+     (nên không màu mè tiếng ở mức chơi bình thường), trên ngưỡng mới uốn mềm về 1.0
+     và không bao giờ quá 1.0. Uốn mềm nghe khác hẳn clip vuông của hệ điều hành. */
+  const KNEE = 0.85, N = 2049, curve = new Float32Array(N);
+  for (let i = 0; i < N; i++){
+    const x = i / (N - 1) * 2 - 1, a = Math.abs(x);
+    curve[i] = a <= KNEE ? x
+      : Math.sign(x) * (KNEE + (1 - KNEE) * Math.tanh((a - KNEE) / (1 - KNEE)));
+  }
+  const clip = actx.createWaveShaper();
+  /* oversample phải để 'none'. Đã thử '2x' cho bớt aliasing: nó trễ hơn 8 mẫu và
+     lọc cả tín hiệu — đo sóng sin biên độ 0.30 (cỡ đỉnh lúc chơi thường) thì lệch
+     0.348 kể cả sau khi bù trễ. Với 'none' thì lệch ĐÚNG 0 dưới ngưỡng, tức khâu
+     này không can thiệp gì ở mức chơi bình thường; aliasing thì không đáng lo vì
+     đường uốn trơn và chỉ chạm tới ở mấy đỉnh transient ngắn. */
+  clip.curve = curve; clip.oversample = 'none';
+  master.connect(comp).connect(outGain).connect(limiter).connect(clip).connect(actx.destination);
 }
 
 function toneStatus(t){ $('toneV').textContent = t; }
