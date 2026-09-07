@@ -77,8 +77,20 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
   KHÔNG `ctx.shadowBlur` — giết perf; muốn glow thì vẽ thêm lớp rect mờ phía sau.
   `drawKeys()` chỉ vẽ lại khi tập phím đang sáng đổi (so `lastKeySig`).
 - **DPI**: `canvas.width = clientWidth * devicePixelRatio` rồi `ctx.scale(dpr, dpr)`, hook `ResizeObserver`.
-- **Mobile**: bắt buộc có chế độ "thu gọn" (quét min/max MIDI của bài, chỉ render khoảng đó).
-  Mặc định BẬT khi viewport < 600px.
+- **Chế độ "thu gọn" phím BẬT MẶC ĐỊNH** (quét min/max MIDI của bài, chỉ render khoảng đó).
+  Trước đây chỉ bật khi viewport < 600px — sai đúng vào thiết bị đích: iPad ngang là
+  1024px nên rơi vào nhánh 88 phím, phím trắng chỉ **19.7px**, hẹp hơn ngón tay trẻ con,
+  trong khi Happy Birthday chỉ dùng 23/88 phím. Thu gọn cho **42.7px**, rộng 2.2 lần.
+- **Bốn thứ dành riêng cho người chưa biết nốt** (đo trên iPad ngang 1024px):
+  - Chú thích tay (`header .leg`) phải nằm NGOÀI panel, vì panel tự thu khi bấm Chơi —
+    mà lúc đang chơi mới là lúc cần biết cam = tay phải nhất.
+  - **Đô giữa (MIDI 60) in nhãn trong viên thuốc đậm** (`keyBadge()`), các Đô khác để
+    chữ thường. Đây là mốc neo mọi giáo trình vỡ lòng dạy tìm trước tiên. Cố ý KHÔNG
+    thêm ký hiệu mới — chỉ làm nổi cái nhãn đã có, đỡ một thứ phải học.
+  - Tên nốt mặc định **Đô Rê Mi** (`noteLang = 'solfa'`), có tuỳ chọn đổi sang C D E.
+    Trẻ Việt học solfège; chữ cái là thứ phải học thêm chứ không giúp học nhanh hơn.
+  - Nhãn chỉ in trên phím đang kêu / sắp bấm và trên các phím Đô — in hết 88 phím
+    thì thành rừng chữ.
 - **Audio**: `MAX_VOICES = 96`, chạm trần thì **CƯỚP voice cũ nhất** (`stealOldest()`),
   tuyệt đối không bỏ nốt mới. Trần cũ 16 + bỏ nốt mới đã làm He's a Pirate (16 nốt/giây)
   rơi 15% số nốt, nghe y như đánh sai giai điệu — bug này rất khó thấy vì phần nhìn

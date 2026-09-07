@@ -37,9 +37,16 @@
   header .side{display:flex; align-items:center; gap:9px; min-width:0}
   header .side.right{justify-content:flex-end}
   header h1{font-size:14px; font-weight:600; margin:0; white-space:nowrap}
+  /* Chú thích tay phải nằm NGOÀI panel: panel tự thu khi bấm Chơi, mà lúc đang chơi
+     mới là lúc cần biết màu nào là tay nào nhất. */
+  header .leg{display:flex; align-items:center; gap:4px; font-size:11px;
+    color:var(--dim); white-space:nowrap; flex:none}
+  header .leg i{width:8px; height:8px; border-radius:50%; flex:none; margin-left:7px}
+  header .leg i:first-child{margin-left:0}
   header .sub{color:var(--dim); font-size:12px;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:46%}
-  @media (max-width:900px){ header h1{display:none} }
+  @media (max-width:1100px){ header h1{display:none} }
+  @media (max-width:560px){ header .leg{display:none} }
   @media (max-width:600px){ header .sub{display:none} }
 
   /* Nút chính của cả màn hình: cam, to, dễ trúng ngón tay */
@@ -157,6 +164,9 @@
     <a class="home" href="../" title="Trang chủ">♪</a>
     <h1>Piano falling notes</h1>
     <span class="time" id="time">0:00 / 0:00</span>
+    <span class="leg" title="Màu nốt theo tay">
+      <i style="background:var(--rh)"></i>phải<i style="background:var(--lh)"></i>trái
+    </span>
     <span id="hits"></span>
   </div>
 
@@ -233,6 +243,12 @@
   <div class="row">
     <label class="ctl"><input type="checkbox" id="hint" checked> Gợi ý phím</label>
     <label class="ctl"><input type="checkbox" id="fx" checked> Hiệu ứng</label>
+    <label class="ctl">Tên nốt
+      <select id="lang" class="btn tone">
+        <option value="solfa">Đô Rê Mi</option>
+        <option value="letter">C D E</option>
+      </select>
+    </label>
     <label class="ctl"><input type="checkbox" id="fit"> Thu gọn phím</label>
     <span class="hands">
       <button class="hand" id="h0" data-s="on" aria-pressed="true"><i style="background:var(--rh)"></i>Tay phải <b>phát</b></button>
@@ -421,7 +437,31 @@ const HINT_LEAD = 1.2;                         /* giây: bắt đầu nhen sáng
 /* Tên nốt in ở ĐÁY phím đang được gợi ý. Màu chữ CỐ ĐỊNH — đen trên phím trắng,
    trắng trên phím đen — không đổi theo độ sáng highlight, để lúc nào cũng đọc được.
    Phím C đã có sẵn nhãn quãng tám (C4…) nên không in đè thêm. */
-const KEY_NAME = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const NAME_LETTER = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const NAME_SOLFA  = ['Đô','Đô#','Rê','Rê#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];
+let noteLang = 'solfa';                        /* trẻ Việt học solfège, không học chữ cái */
+const keyName = m => (noteLang === 'solfa' ? NAME_SOLFA : NAME_LETTER)[m % 12];
+const octName = m => keyName(m) + (Math.floor(m / 12) - 1);
+/* Đô giữa (C4) là mốc neo mọi giáo trình vỡ lòng dạy tìm trước tiên. In nhãn của
+   nó trong một viên thuốc đậm để phân biệt với các Đô khác — không thêm ký hiệu mới
+   nào, chỉ làm nổi cái nhãn đã có. */
+function keyBadge(txt, cx, y, room){
+  let fs = Math.min(Math.max(room * 0.46, 7), 11);
+  kctx.font = '700 ' + fs + 'px system-ui,-apple-system,sans-serif';
+  let w = kctx.measureText(txt).width;
+  if (w > room - 6){
+    fs = fs * (room - 6) / w;
+    if (fs < 6.5) return;
+    kctx.font = '700 ' + fs + 'px system-ui,-apple-system,sans-serif';
+    w = kctx.measureText(txt).width;
+  }
+  const pw = w + 7, ph = fs + 5;
+  kctx.fillStyle = '#1b202b';
+  rrect(kctx, cx - pw / 2, y - ph + 3, pw, ph, ph / 2); kctx.fill();
+  kctx.fillStyle = '#e6e2d8';
+  kctx.fillText(txt, cx, y);
+}
+
 function keyLabel(txt, cx, y, room, max, color){
   let fs = Math.min(Math.max(room * 0.5, 7), max);
   kctx.font = '700 ' + fs + 'px system-ui,-apple-system,sans-serif';
@@ -1047,10 +1087,12 @@ function drawKeys(state){
       }
     }
     const cx = g.x + (g.w - 1) / 2, by = HK - Math.max(HK * 0.07, 5);
-    if (m % 12 === 0 && g.w >= 10)
-      keyLabel('C' + (m/12 - 1), cx, by, g.w - 3, 11, '#1b202b');
+    if (m === 60 && g.w >= 10)
+      keyBadge(octName(m), cx, by, g.w - 3);   /* Đô giữa */
+    else if (m % 12 === 0 && g.w >= 10)
+      keyLabel(octName(m), cx, by, g.w - 3, 11, '#1b202b');
     else if (lit.has(m) && g.w >= 11)
-      keyLabel(KEY_NAME[m % 12], cx, by, g.w - 3, 12, '#1b202b');
+      keyLabel(keyName(m), cx, by, g.w - 3, 12, '#1b202b');
   }
   const bh = HK * 0.62;
   for (let m = loMidi; m <= hiMidi; m++){
@@ -1068,7 +1110,7 @@ function drawKeys(state){
       }
     }
     if (lit.has(m))
-      keyLabel(KEY_NAME[m % 12], g.x + g.w / 2, bh - Math.max(bh * 0.08, 3), g.w - 2, 10, '#fff');
+      keyLabel(keyName(m), g.x + g.w / 2, bh - Math.max(bh * 0.08, 3), g.w - 2, 10, '#fff');
   }
   /* Nối tiếp đường nét đứt xuống giữa thân phím, để nốt rơi và phím thành một
      đường thẳng liền mạch trong mắt. */
@@ -1230,8 +1272,8 @@ $('seek').oninput  = e => { dragging = true; const t = e.target.value/1000*durat
 $('seek').onchange = e => { dragging = false; seekTo(e.target.value/1000*duration); };
 
 const refreshSum = () => { if ($('panel').classList.contains('collapsed')) $('panelSum').textContent = panelSummary(); savePrefs(); };
-for (const id of ['rate','look','vol','rev','tone','hint','fx','h0','h1'])
-  document.getElementById(id).addEventListener(['tone','hint','fx'].includes(id) ? 'change' : 'input', refreshSum);
+for (const id of ['rate','look','vol','rev','tone','hint','fx','lang','h0','h1'])
+  document.getElementById(id).addEventListener(['tone','hint','fx','lang'].includes(id) ? 'change' : 'input', refreshSum);
 $('h0').addEventListener('click', refreshSum);
 $('h1').addEventListener('click', refreshSum);
 
@@ -1254,6 +1296,7 @@ $('tone').onchange = e => {
 $('look').oninput = e => { lookahead = +e.target.value; $('lookV').textContent = lookahead + 's'; };
 $('hint').onchange = e => { showHint = e.target.checked; lastKeySig = null; savePrefs(); };
 $('fx').onchange   = e => { showFx = e.target.checked; savePrefs(); };
+$('lang').onchange = e => { noteLang = e.target.value; lastKeySig = null; savePrefs(); };
 $('fit').onchange = () => { computeRange(); savePrefs(); };
 
 /* Đổi trạng thái tay: nốt đã lên lịch trước ~100ms nên phải neo lại đồng hồ
@@ -1330,7 +1373,8 @@ function savePrefs(extra){
     localStorage.setItem(STORE, JSON.stringify(Object.assign(loadPrefs(), {
       v: 1,
       rate: +$('rate').value, look: +$('look').value, vol: +$('vol').value, rev: +$('rev').value,
-      tone, fit: $('fit').checked, hint: showHint, fx: showFx, hands: handState.slice(),
+      tone, fit: $('fit').checked, hint: showHint, fx: showFx, lang: noteLang,
+      hands: handState.slice(),
       panel: !$('panel').classList.contains('collapsed'),
       song: currentSong
     }, extra || {})));
@@ -1422,9 +1466,14 @@ document.addEventListener('keydown', e => {
 const prefs = loadPrefs();
 const q = new URLSearchParams(location.search);
 
-$('fit').checked = 'fit' in prefs ? !!prefs.fit : window.innerWidth < 600;
+/* Thu gọn phím BẬT mặc định, không còn phụ thuộc bề ngang màn. Lý do: iPad ngang
+   là 1024px nên trước đây rơi vào nhánh 88 phím — phím trắng chỉ 19.7px, hẹp hơn
+   ngón tay trẻ con, mà bài dễ như Happy Birthday chỉ dùng 23 phím. Thu gọn cho
+   42.7px, rộng 2.2 lần. */
+$('fit').checked = 'fit' in prefs ? !!prefs.fit : true;
 if ('hint' in prefs){ showHint = !!prefs.hint; $('hint').checked = showHint; }
 if ('fx' in prefs){ showFx = !!prefs.fx; $('fx').checked = showFx; }
+if (prefs.lang){ noteLang = prefs.lang; $('lang').value = prefs.lang; }
 if (prefs.rate) setRate(prefs.rate);
 if (prefs.look){ lookahead = prefs.look; $('look').value = prefs.look; $('lookV').textContent = prefs.look + 's'; }
 if (typeof prefs.vol === 'number'){ $('vol').value = prefs.vol; setVolume(prefs.vol); }
