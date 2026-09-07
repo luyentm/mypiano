@@ -273,6 +273,7 @@ function parseMidi(buf){
   const tempos = [{ tick:0, us:500000 }];   /* mặc định 120bpm */
   const sigs   = [{ tick:0, num:4, den:4 }];
   const trackNames = [];
+  const pedalRaw = [];                          /* CC64: sustain pedal */
   const raw = [];
   let trackIdx = 0, maxTick = 0;
 
@@ -314,7 +315,10 @@ function parseMidi(buf){
         const n = u8(), v = u8();
         if (v > 0){ closeNote(n); active.set(n, { tick, vel:v }); } else closeNote(n);
       } else if (type === 0x80){ const n = u8(); u8(); closeNote(n);
-      } else if (type === 0xa0 || type === 0xb0 || type === 0xe0){ p += 2;
+      } else if (type === 0xb0){
+        const cc = u8(), v = u8();
+        if (cc === 64) pedalRaw.push({ tick, down: v >= 64 });
+      } else if (type === 0xa0 || type === 0xe0){ p += 2;
       } else if (type === 0xc0 || type === 0xd0){ p += 1;
       } else p++;
     }
@@ -354,7 +358,16 @@ function parseMidi(buf){
     tick += ticksPerBeat; beat++;
     if (beat >= s.num){ beat = 0; bar++; }
   }
-  return { notes, grid, trackNames };
+  /* Mốc đạp/nhả pedal, đã bỏ các event lặp lại cùng trạng thái (file có track
+     nhân bản thì mỗi bản đều mang pedal y hệt nhau). */
+  pedalRaw.sort((a, b) => a.tick - b.tick);
+  const pedal = [];
+  for (const e of pedalRaw){
+    if (pedal.length && pedal[pedal.length - 1].down === e.down) continue;
+    pedal.push({ sec: tickToSec(e.tick), down: e.down });
+  }
+
+  return { notes, grid, trackNames, pedal };
 }
 
 /* ==========================================================================
@@ -427,8 +440,10 @@ let currentSong = null;                        /* tên file trong thư viện, n
 let voices = [], voiceCount = 0;
 /* 16 là quá ít: bài dày như He's a Pirate (16 nốt/giây) giữ tới 16 voice cùng lúc
    suốt bài, làm rơi 15% số nốt — nghe như đánh sai giai điệu. Trình duyệt gánh
-   được vài chục BufferSource thoải mái. */
-const MAX_VOICES = 48;
+   được vài chục BufferSource thoải mái.
+   Từ lúc áp pedal ngân thì đỉnh còn cao hơn: Für Elise 39, He's a Pirate 32 —
+   nên để 64 cho có biên, đừng hạ xuống. */
+const MAX_VOICES = 64;
 
 /* Đuôi vang tự dựng, không tải file IR nào: nhiễu trắng tắt dần theo hàm mũ, lọc
    thông thấp mạnh dần về cuối cho đuôi tối lại giống tiếng phòng thật. Hai kênh
@@ -628,6 +643,11 @@ function anchorAt(t){ seekOffset = t; if (actx) startedAt = actx.currentTime; }
 /* ==========================================================================
    5) LOAD
    ========================================================================== */
+/* Trần thời gian một nốt được ngân: mẫu grand chỉ dài 6s (đã cắt), và tai người
+   cũng không còn nghe thấy gì sau đó. Không có trần thì bài đạp pedal suốt như
+   Endless Love sẽ giữ nốt tới vô hạn, ăn hết voice. */
+const HOLD_MAX = 5;
+
 /* File đời thật hay có 2 bộ track y hệt nhau (bắn ra 2 channel/2 thiết bị).
    Nạp cả hai thì nốt kêu đôi và hình bị chồng — nên so dấu vân tay từng track
    (cao độ + mốc bắt đầu làm tròn 1/8 giây) rồi bỏ track trùng.
@@ -682,7 +702,22 @@ function normalize(data){
     }
     out.push(n);
   }
-  return { notes: out, grid: data.grid, dropped: data.notes.length - out.length };
+  /* Pedal ngân: nhả phím mà pedal còn đạp thì dây vẫn rung tới lúc nhả pedal.
+     KHÔNG kéo dài `end` — `end` là lúc nhấc ngón, thân nốt rơi phải vẽ đúng thế,
+     nếu kéo dài thì hoá ra dạy người ta giữ phím sai. Thời điểm tiếng tắt để
+     riêng ở `hold`, chỉ engine audio dùng. */
+  const pedal = data.pedal || [];
+  const holdOf = end => {
+    if (!pedal.length) return end;
+    let down = false, i = 0;
+    for (; i < pedal.length && pedal[i].sec <= end; i++) down = pedal[i].down;
+    if (!down) return end;
+    for (; i < pedal.length; i++) if (!pedal[i].down) return Math.max(end, pedal[i].sec);
+    return end;                                /* pedal đạp tới hết bài */
+  };
+  for (const n of out) n.hold = Math.min(holdOf(n.end), n.start + HOLD_MAX);
+
+  return { notes: out, grid: data.grid, pedal, dropped: data.notes.length - out.length };
 }
 
 function load(data, name){
@@ -959,7 +994,7 @@ setInterval(() => {
   while (schedIdx < notes.length && notes[schedIdx].start < until){
     const n = notes[schedIdx++];
     if (n.end < now || handState[n.hand] !== 'on') continue;
-    voice(n, Math.max(songToAudio(n.start), actx.currentTime), (n.end - n.start) / rate);
+    voice(n, Math.max(songToAudio(n.start), actx.currentTime), ((n.hold || n.end) - n.start) / rate);
   }
   if (now >= duration){ stop(); savePrefs({ pos: 0 }); showDone(); }   /* hết bài: lần sau mở lại từ đầu */
 }, 25);

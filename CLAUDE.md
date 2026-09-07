@@ -138,6 +138,16 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
   đừng "tối ưu" bằng cách bỏ luôn khỏi `active`. Khi đổi trạng thái lúc đang chơi phải
   `killVoices()` + `anchorAt(songTime())` + tính lại `schedIdx`, vì nốt đã được lên lịch
   trước ~100ms sẽ vẫn kêu nếu không dọn.
+- **Pedal ngân (CC64)** — parser đọc controller 64, `normalize()` dựng mốc đạp/nhả rồi
+  tính `n.hold` = lúc tiếng thật sự tắt. **Không được kéo dài `n.end`**: `end` là lúc
+  nhấc ngón, thân nốt rơi phải vẽ đúng thế, kéo dài thành ra dạy người ta giữ phím sai.
+  Chỉ engine audio đọc `hold`. Trần `HOLD_MAX = 5s` vì mẫu grand chỉ dài 6s và bài đạp
+  pedal gần như suốt (Endless Love 96% thời lượng) sẽ giữ nốt tới vô hạn.
+  Đo được: Für Elise nốt kêu trung bình 0.24s → 0.86s (847/1051 nốt dài ra),
+  He's a Pirate 0.20s → 0.58s, Endless Love 0.53s → 1.39s; 6 bài còn lại không dùng
+  pedal nên không đổi gì. Voice đỉnh vọt lên 39 (Für Elise) nên trần voice mới phải 64.
+  Envelope synth cũng phải sửa theo: ngân dài mà giữ gain phẳng thì nghe thành organ,
+  nên thêm nhánh `exponentialRampToValueAtTime(peak*0.06, rel)` khi `rel` xa hơn 0.5s.
 - **Đuôi vang (`makeReverbIR`)**: IR **tự dựng bằng code**, không tải file — nhiễu trắng
   tắt theo hàm mũ + lọc thông thấp mạnh dần cho đuôi tối lại. Đường vang chạy SONG SONG
   và **tách khỏi compressor** (`master → convolver → wetGain → outGain`) để đuôi vang
