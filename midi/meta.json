@@ -94,5 +94,11 @@
     "composer": "Sơn Tùng M-TP · phối: Jason Srey",
     "note": "Giọng Đô trưởng — chỉ 4 nốt đen trong 1961 nốt, gần như toàn phím trắng; bù lại bài dày và dài 4:13, tay trái đệm gần như không nghỉ",
     "difficulty": 360
+  },
+  "vet-mua.mid": {
+    "title": "Vết Mưa",
+    "composer": "Quốc Thống",
+    "note": "Giọng Sol thứ, giai điệu rất thưa — tay trái rải hợp âm gánh gần hai phần ba số nốt; không có đoạn nào nhanh, hai nốt gần nhau nhất cách 308ms",
+    "difficulty": 280
   }
 }

@@ -1,5 +1,5 @@
 {
-  "count": 16,
+  "count": 17,
   "songs": [
     {
       "file": "happy-birthday.mid",
@@ -16,6 +16,14 @@
       "note": "Bản đơn giản: toàn phím trắng, tối đa 2 nốt cùng lúc, nhịp chậm — bài dễ nhất thư viện, hợp để bắt đầu",
       "difficulty": 170,
       "bytes": 2396
+    },
+    {
+      "file": "vet-mua.mid",
+      "title": "Vết Mưa",
+      "composer": "Quốc Thống",
+      "note": "Giọng Sol thứ, giai điệu rất thưa — tay trái rải hợp âm gánh gần hai phần ba số nốt; không có đoạn nào nhanh, hai nốt gần nhau nhất cách 308ms",
+      "difficulty": 280,
+      "bytes": 5833
     },
     {
       "file": "river-flows-in-you.mid",
