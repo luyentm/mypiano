@@ -187,6 +187,28 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
     chứ không bỏ qua, không thì người đang dùng mất tuỳ chọn của họ.
   - Đổi checkbox thành `<select>` làm mất phím Space trên chính ô đó (guard `keydown`
     chỉ chặn `INPUT`), nên guard phải chặn cả `SELECT`.
+- **Dải quãng tám trong vùng nốt rơi** (`buildOct()`, `octBands`) — nền đan xen
+  chẵn/lẻ + **số quãng tám in chìm** ở giữa mỗi dải. Sinh ra vì chế độ `deg`: nhãn trên
+  nốt cho biết BẬC (mọi C đều là "1"), còn dải này mới cho biết bậc đó ở CAO ĐỘ nào.
+  Bật cho cả bốn chế độ gợi ý — nó là mốc định hướng, không phải phụ kiện của chế độ số.
+  - Mốc dải lấy theo phím **TRẮNG**: mép phải phím Si chính là mép trái phím Đô kế tiếp,
+    nên dải khít nhau và tự bị kẹp đúng ở hai đầu khi đang thu gọn phím. Phím đen chìa
+    ra nửa bề ngang qua mốc, lấy theo nó là dải bị lệch.
+  - Dựng trong `buildGeom()`, nên MỌI đường rebuild đều có dải mới: `computeRange()`
+    (đổi thu gọn phím, nạp bài) và `resize()` (đổi khung, toàn màn hình).
+  - Đo độ sáng: nền dải lệch **6.3 lum** (15.9 → 22.2), chữ in chìm cao hơn nền dải của
+    nó **~13 lum** ở CẢ hai phía chẵn/lẻ. Mốc để so: vạch quãng tám dọc sẵn có là
+    30.6 lum, vạch ô nhịp 59 — tức chữ nặng đúng cỡ một vạch lưới, nhạt hơn hẳn vạch
+    ô nhịp, và nốt rơi vẫn là thứ nổi nhất màn.
+  - Cỡ chữ co theo cả bề ngang dải LẪN chiều cao vùng rơi, dưới 15px thì bỏ: ở chế độ
+    88 phím dải cụt C8 chỉ 15px, in ra chỉ thành vệt bẩn. Dải A0–B0 thì vẫn in "0" —
+    đó là số quãng tám đúng theo chuẩn, khớp với nhãn `A0`/`B0` mà chế độ `note` in ra.
+  - Giá: **+0.009 ms/frame** (0.140 so với 0.131) cho 9 dải + 8 chữ, đo ở He's a Pirate
+    chế độ 88 phím tức trường hợp xấu nhất — nằm trong nhiễu đo, nên KHÔNG cần cache
+    ra canvas ngoài rồi blit; vẽ thẳng đơn giản hơn mà không tốn gì.
+  - **Bẫy khi đo lại**: canvas nốt rơi trong suốt (`clearRect`), nên `getImageData` trả
+    màu **chưa nhân alpha**. Phải đọc kênh alpha rồi tự trộn lên `--bg`; đọc thẳng 3 kênh
+    đầu thì một lớp phủ 3% hiện ra thành (223,223,255), sai hoàn toàn.
 - **Đoạn lặp** (`loopA`/`loopB`, `setLoop()`, `schedule()`) — kéo hai tay cầm ở hai
   đầu thanh tua để chọn đoạn, hệ thống chơi lặp trong đoạn đó thay vì hết bài là xong.
   - `<input type=range>` chỉ có MỘT nút, nên hai tay cầm là hai `div` riêng đặt

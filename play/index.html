@@ -452,6 +452,7 @@ let seekOffset = 0, startedAt = 0, schedIdx = 0;
 const fall = document.getElementById('fall'), fctx = fall.getContext('2d');
 const keys = document.getElementById('keys'), kctx = keys.getContext('2d');
 let W = 0, HF = 0, HK = 0, dpr = 1, geom = {}, lastKeySig = null;
+let octBands = [];                             /* dải quãng tám, dựng cùng bảng phím */
 
 const $   = id => document.getElementById(id);
 const css = v  => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
@@ -1046,6 +1047,24 @@ function buildGeom(){
     else { g[m] = { x: wi*ww, w: ww, black:false }; wi++; }
   }
   geom = g;
+  buildOct();
+}
+
+/* Dải quãng tám — mốc để mắt biết đang ở CAO ĐỘ nào. Chỉ phụ thuộc geometry nên
+   dựng một lần cùng bảng phím, không tính lại mỗi frame.
+   Mốc lấy theo phím TRẮNG: mép phải phím Si chính là mép trái phím Đô kế tiếp, nên
+   dải khít nhau và tự bị kẹp lại ở hai đầu khi đang thu gọn phím. Phím đen thì chìa
+   ra nửa bề ngang qua mốc, lấy theo nó là dải bị lệch. */
+function buildOct(){
+  const b = new Map();
+  for (let m = loMidi; m <= hiMidi; m++){
+    if (isBlack(m)) continue;
+    const o = Math.floor(m / 12) - 1, g = geom[m];
+    const cur = b.get(o) || { oct:o, x0:Infinity, x1:-Infinity };
+    cur.x0 = Math.min(cur.x0, g.x); cur.x1 = Math.max(cur.x1, g.x + g.w);
+    b.set(o, cur);
+  }
+  octBands = [...b.values()];
 }
 
 function resize(){
@@ -1190,6 +1209,26 @@ function drawFalling(now, dt){
   const PPS = HF / lookahead;                 /* pixel mỗi giây */
   const y = t => HF - (t - now) * PPS;        /* t == now  ->  chạm bàn phím */
   const winEnd = now + lookahead;
+
+  /* Dải quãng tám đan xen chẵn/lẻ, kèm số quãng tám in chìm giữa dải. Cần vì ở chế
+     độ số theo C thì mọi C đều là "1" — nhãn trên nốt cho biết BẬC, còn dải này mới
+     cho biết bậc đó nằm ở CAO ĐỘ nào. Sắc chênh cố ý rất nhẹ: chỉ để phân biệt hai
+     dải cạnh nhau, không phải để trang trí, nốt rơi vẫn phải là thứ nổi nhất màn. */
+  for (const b of octBands)
+    if (b.oct % 2 === 0){
+      fctx.fillStyle = 'rgba(214,228,255,.030)';
+      fctx.fillRect(b.x0, 0, b.x1 - b.x0, HF);
+    }
+  fctx.textAlign = 'center'; fctx.textBaseline = 'middle';
+  for (const b of octBands){
+    /* cỡ chữ co theo cả bề ngang dải LẪN chiều cao vùng rơi; dải cụt ở hai đầu bàn
+       phím (A0–B0, C8) hẹp quá thì bỏ, in ra chỉ thành vệt bẩn */
+    const fs = Math.min((b.x1 - b.x0) * 0.62, HF * 0.55);
+    if (fs < 15) continue;
+    fctx.font = '800 ' + Math.round(fs) + 'px system-ui,-apple-system,sans-serif';
+    fctx.fillStyle = 'rgba(196,212,238,.072)';
+    fctx.fillText(b.oct, (b.x0 + b.x1) / 2, HF / 2);
+  }
 
   /* lưới quãng tám (dọc) */
   fctx.strokeStyle = 'rgba(120,132,154,.13)'; fctx.lineWidth = 1;
