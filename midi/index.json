@@ -1,5 +1,5 @@
 {
-  "count": 18,
+  "count": 20,
   "songs": [
     {
       "file": "happy-birthday.mid",
@@ -16,6 +16,22 @@
       "note": "Bản đơn giản: toàn phím trắng, tối đa 2 nốt cùng lúc, nhịp chậm — bài dễ nhất thư viện, hợp để bắt đầu",
       "difficulty": 170,
       "bytes": 2396
+    },
+    {
+      "file": "chan-tinh.mid",
+      "title": "Chân Tình",
+      "composer": "Quốc Thống",
+      "note": "Ngắn (1:49) và chậm, giọng Đô trưởng chỉ 7% phím đen — nhưng chơi bằng hợp âm khối nên phải với 3-4 nốt một lúc. File không tách rõ hai tay nên màu tay chỉ là phỏng đoán",
+      "difficulty": 230,
+      "bytes": 3769
+    },
+    {
+      "file": "tinh-thoi-xot-xa.mid",
+      "title": "Tình thôi xót xa",
+      "composer": "Bảo Chấn · phối: Hoàng Lê Nhật Thanh",
+      "note": "Bài thưa nhất thư viện — chỉ 3.3 nốt/giây, mỗi tay tối đa 3 nốt; giọng Rê trưởng, tách bè hai tay rõ ràng",
+      "difficulty": 260,
+      "bytes": 4124
     },
     {
       "file": "vet-mua.mid",

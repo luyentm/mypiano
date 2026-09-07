@@ -106,5 +106,17 @@
     "composer": "Paul de Senneville",
     "note": "Giọng Đô trưởng, chỉ 1% phím đen nên rất dễ tìm phím; có vài đoạn chạy nốt nhanh nhưng bài ngắn (2:18)",
     "difficulty": 340
+  },
+  "chan-tinh.mid": {
+    "title": "Chân Tình",
+    "composer": "Quốc Thống",
+    "note": "Ngắn (1:49) và chậm, giọng Đô trưởng chỉ 7% phím đen — nhưng chơi bằng hợp âm khối nên phải với 3-4 nốt một lúc. File không tách rõ hai tay nên màu tay chỉ là phỏng đoán",
+    "difficulty": 230
+  },
+  "tinh-thoi-xot-xa.mid": {
+    "title": "Tình thôi xót xa",
+    "composer": "Bảo Chấn · phối: Hoàng Lê Nhật Thanh",
+    "note": "Bài thưa nhất thư viện — chỉ 3.3 nốt/giây, mỗi tay tối đa 3 nốt; giọng Rê trưởng, tách bè hai tay rõ ràng",
+    "difficulty": 260
   }
 }
