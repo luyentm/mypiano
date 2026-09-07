@@ -34,14 +34,6 @@
       "bytes": 5625
     },
     {
-      "file": "marriage-damour.mid",
-      "title": "Marriage d'amour",
-      "composer": "Paul de Senneville",
-      "note": "Giọng Son thứ, tay trái rải hợp âm gần như suốt bài",
-      "difficulty": 300,
-      "bytes": 21759
-    },
-    {
       "file": "kiss-the-rain.mid",
       "title": "Kiss the Rain",
       "composer": "Yiruma",
@@ -80,6 +72,14 @@
       "note": "Giọng La thứ, chỉ 10% phím đen nên dễ tìm phím; bù lại quãng rộng 6 quãng tám và nhịp co giãn 15 lần. Dùng pedal ngân gần suốt bài",
       "difficulty": 370,
       "bytes": 9915
+    },
+    {
+      "file": "marriage-damour.mid",
+      "title": "Marriage d'amour",
+      "composer": "Paul de Senneville",
+      "note": "Bản phối đầy đủ: 1630 nốt, có hợp âm thật (đa âm tới 6) và quãng 7 quãng tám — rộng nhất thư viện",
+      "difficulty": 390,
+      "bytes": 10731
     },
     {
       "file": "hungarian-sonata.mid",
