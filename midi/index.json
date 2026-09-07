@@ -1,5 +1,5 @@
 {
-  "count": 12,
+  "count": 13,
   "songs": [
     {
       "file": "happy-birthday.mid",
@@ -72,6 +72,14 @@
       "note": "Trọn bài (WoO 59) — có cả đoạn F trưởng và đoạn chạy ngón cuối",
       "difficulty": 420,
       "bytes": 20648
+    },
+    {
+      "file": "a-comme-amour.mid",
+      "title": "A Comme Amour",
+      "composer": "Paul de Senneville",
+      "note": "Giọng Rê giáng trưởng (5 dấu giáng, 47% phím đen), quãng 6.6 quãng tám — rộng nhất thư viện; nhịp co giãn 19 lần, có cả ô nhịp 6/4",
+      "difficulty": 440,
+      "bytes": 6919
     },
     {
       "file": "canon-in-d.mid",

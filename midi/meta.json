@@ -70,5 +70,11 @@
     "composer": "Paul de Senneville",
     "note": "Mở đầu bằng chuỗi nốt đổ từ E7 xuống hết 5 quãng tám; 42% phím đen và nhiều nốt ngoài giọng, nhịp đổi 4/4 ↔ 2/4 sáu lần",
     "difficulty": 400
+  },
+  "a-comme-amour.mid": {
+    "title": "A Comme Amour",
+    "composer": "Paul de Senneville",
+    "note": "Giọng Rê giáng trưởng (5 dấu giáng, 47% phím đen), quãng 6.6 quãng tám — rộng nhất thư viện; nhịp co giãn 19 lần, có cả ô nhịp 6/4",
+    "difficulty": 440
   }
 }
