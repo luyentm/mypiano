@@ -100,5 +100,11 @@
     "composer": "Quốc Thống",
     "note": "Giọng Sol thứ, giai điệu rất thưa — tay trái rải hợp âm gánh gần hai phần ba số nốt; không có đoạn nào nhanh, hai nốt gần nhau nhất cách 308ms",
     "difficulty": 280
+  },
+  "ballade-pour-adeline.mid": {
+    "title": "Ballade pour Adeline",
+    "composer": "Paul de Senneville",
+    "note": "Giọng Đô trưởng, chỉ 1% phím đen nên rất dễ tìm phím; có vài đoạn chạy nốt nhanh nhưng bài ngắn (2:18)",
+    "difficulty": 340
   }
 }

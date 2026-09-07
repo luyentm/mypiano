@@ -1,5 +1,5 @@
 {
-  "count": 17,
+  "count": 18,
   "songs": [
     {
       "file": "happy-birthday.mid",
@@ -56,6 +56,14 @@
       "note": "Bản phối piano của An Coong. Nhịp co giãn nhiều (10 lần đổi tempo, cuối bài chậm dần còn 25) và dài gần 5 phút",
       "difficulty": 330,
       "bytes": 9914
+    },
+    {
+      "file": "ballade-pour-adeline.mid",
+      "title": "Ballade pour Adeline",
+      "composer": "Paul de Senneville",
+      "note": "Giọng Đô trưởng, chỉ 1% phím đen nên rất dễ tìm phím; có vài đoạn chạy nốt nhanh nhưng bài ngắn (2:18)",
+      "difficulty": 340,
+      "bytes": 5910
     },
     {
       "file": "noi-nay-co-anh.mid",
