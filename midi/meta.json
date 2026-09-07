@@ -40,5 +40,11 @@
     "composer": "Mozart",
     "note": "Sonata K.331 chương cuối — 2101 nốt, nhanh (140 bpm) và dày đặc, có bát độ liên tục ở đoạn cuối. File một track nên màu hai tay chỉ là phỏng đoán",
     "difficulty": 560
+  },
+  "hoa-vang-tren-co-xanh.mid": {
+    "title": "Tôi thấy hoa vàng trên cỏ xanh",
+    "composer": "Christopher Wong",
+    "note": "Bản đơn giản: toàn phím trắng, tối đa 2 nốt cùng lúc, nhịp chậm — bài dễ nhất thư viện, hợp để bắt đầu",
+    "difficulty": 170
   }
 }

@@ -1,6 +1,14 @@
 {
-  "count": 7,
+  "count": 8,
   "songs": [
+    {
+      "file": "hoa-vang-tren-co-xanh.mid",
+      "title": "Tôi thấy hoa vàng trên cỏ xanh",
+      "composer": "Christopher Wong",
+      "note": "Bản đơn giản: toàn phím trắng, tối đa 2 nốt cùng lúc, nhịp chậm — bài dễ nhất thư viện, hợp để bắt đầu",
+      "difficulty": 170,
+      "bytes": 2396
+    },
     {
       "file": "river-flows-in-you.mid",
       "title": "River Flows in You",
