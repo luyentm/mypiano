@@ -242,6 +242,7 @@
   </div>
   <div class="row">
     <label class="ctl"><input type="checkbox" id="hint" checked> Gợi ý phím</label>
+    <label class="ctl" title="Phủ xám những phím không dùng trong ô nhịp đang chơi, để tay chuẩn bị trước."><input type="checkbox" id="scope" checked> Khoanh ô nhịp</label>
     <label class="ctl" title="Số ngón 1–5 in trên thân nốt. Chỉ hiện ở chỗ chắc chắn, chỗ khó thì để trống."><input type="checkbox" id="fing" checked> Số ngón</label>
     <label class="ctl"><input type="checkbox" id="cin" checked> Đếm vào</label>
     <label class="ctl"><input type="checkbox" id="met" checked> Gõ nhịp</label>
@@ -439,7 +440,8 @@ let parts = [], flashes = [], prevOn = new Set(), fxSkip = false;
 const MAX_PARTS = 420;
 
 let showHint = true;
-let showFing = true;                           /* số ngón 1–5, chỉ hiện ở chỗ chắc */
+let showFing = true;
+let showScope = true;                          /* phủ xám phím ngoài ô nhịp đang chơi */                           /* số ngón 1–5, chỉ hiện ở chỗ chắc */
 const FING_SIZES = [15, 12, 10, 8];             /* nấc cỡ chữ số ngón, to → nhỏ */
 const fingSize = (w, h) => {                   /* nấc lớn nhất vừa cả bề ngang lẫn chiều cao */
   const cap = Math.min(w * 0.62, h * 0.78);
@@ -936,6 +938,8 @@ function load(data, name){
   notes = data.notes.slice().sort((a,b) => a.start - b.start);
   grid  = (data.grid || []).slice().sort((a,b) => a.sec - b.sec);
   for (const h of [0, 1]) fingering(notes.filter(n => n.hand === h), h);
+  bars = grid.filter(g => g.bar).map(g => g.sec);
+  barIdx = -2; barKeys = null;
 
   duration = notes.reduce((m,n) => Math.max(m, n.end), 0) + 1;
   maxDur   = notes.reduce((m,n) => Math.max(m, n.end - n.start), 0);
@@ -987,6 +991,38 @@ new ResizeObserver(resize).observe($('stage'));
 /* ==========================================================================
    7) VẼ
    ========================================================================== */
+/* --------------------------------------------------------------------------
+   Tập phím cần bấm trong Ô NHỊP đang chơi. Phím ngoài tập này bị phủ xám, để
+   mắt chỉ còn phải quét một vùng hẹp và tay chuẩn bị được trước cả ô nhịp.
+   Nốt đang vang và nốt trong tầm gợi ý (1.2s) KHÔNG bị phủ — nếu phủ thì sẽ
+   đá nhau với phím đang sáng, và cũng chính nhờ vậy mà phím của ô nhịp kế
+   tiếp mở ra sớm ~1.2s, đúng lúc cần chuẩn bị.
+   -------------------------------------------------------------------------- */
+let bars = [], barIdx = -2, barKeys = null;
+
+function barAt(t){                             /* chỉ số vạch ô nhịp cuối cùng <= t */
+  let lo = 0, hi = bars.length;
+  while (lo < hi){ const m = (lo + hi) >> 1; if (bars[m] <= t) lo = m + 1; else hi = m; }
+  return lo - 1;
+}
+
+function barScope(now){
+  if (!bars.length || !notes.length) return null;
+  const i = barAt(now);
+  if (i === barIdx) return barKeys;            /* chỉ tính lại khi sang ô nhịp mới */
+  const s = i < 0 ? 0 : bars[i];
+  const e = i + 1 < bars.length ? bars[i + 1] : Infinity;
+  const set = new Set();
+  for (let j = lowerBound(s); j < notes.length; j++){
+    const n = notes[j];
+    if (n.start >= e) break;
+    if (handState[n.hand] === 'off') continue;
+    set.add(n.midi);
+  }
+  barIdx = i; barKeys = set;
+  return set;
+}
+
 function lowerBound(t){                       /* binary search theo start */
   let lo = 0, hi = notes.length;
   while (lo < hi){ const m = (lo+hi) >> 1; if (notes[m].start < t) lo = m+1; else hi = m; }
@@ -1230,11 +1266,12 @@ function drawFalling(now, dt){
   } else if (parts.length || flashes.length){
     parts = []; flashes = [];
   }
-  return { active, hints };
+  return { active, hints, now };
 }
 
 function drawKeys(state){
-  const { active, hints } = state;
+  const { active, hints, now } = state;
+  const scope = showScope ? barScope(now) : null;
   const on = new Map();
   for (const n of active) on.set(n.midi, handCol(n.hand));
 
@@ -1246,6 +1283,7 @@ function drawKeys(state){
     for (const [m, v] of hints) h.push(m + ':' + Math.round(v.p * 8) + ':' + v.hand);
     sig += '|' + h.sort().join(',');
   }
+  if (scope) sig += '|b' + barIdx;             /* sang ô nhịp mới thì phải vẽ lại */
   if (sig === lastKeySig) return;
   lastKeySig = sig;
 
@@ -1262,6 +1300,11 @@ function drawKeys(state){
      phím đang kêu để không lẫn "sắp bấm" với "đang kêu". */
   const hintAlpha = p => 0.10 + 0.42 * p * p;
 
+  /* Phím trắng thì phủ tối đi, phím đen thì nhấc sáng lên một chút — cùng dồn về
+     phía xám nhưng vẫn giữ trắng sáng hơn đen, nếu không thì mất luôn hình dạng
+     bàn phím và người ta không dóng được phím nào ra phím nào. */
+  const dim = m => scope && !scope.has(m) && !on.has(m) && !hints.has(m);
+
   for (let m = loMidi; m <= hiMidi; m++){
     const g = geom[m]; if (!g || g.black) continue;
     kctx.fillStyle = on.has(m) ? on.get(m) : ivory;
@@ -1276,6 +1319,7 @@ function drawKeys(state){
         kctx.globalAlpha = 1;
       }
     }
+    if (dim(m)){ kctx.fillStyle = 'rgba(74,84,102,.62)'; kctx.fillRect(g.x, 0, g.w - 1, HK); }
     const cx = g.x + (g.w - 1) / 2, by = HK - Math.max(HK * 0.07, 5);
     if (m === 60 && g.w >= 10)
       keyBadge(octName(m), cx, by, g.w - 3);   /* Đô giữa */
@@ -1299,6 +1343,7 @@ function drawKeys(state){
         kctx.globalAlpha = 1;
       }
     }
+    if (dim(m)){ kctx.fillStyle = 'rgba(150,163,186,.30)'; kctx.fillRect(g.x, 0, g.w, bh); }
     if (lit.has(m))
       keyLabel(keyName(m), g.x + g.w / 2, bh - Math.max(bh * 0.08, 3), g.w - 2, 10, '#fff');
   }
@@ -1548,6 +1593,7 @@ $('cin').onchange  = e => { countIn = e.target.checked; savePrefs(); };
 $('met').onchange  = e => { metro = e.target.checked; savePrefs(); };
 $('fx').onchange   = e => { showFx = e.target.checked; savePrefs(); };
 $('fing').onchange = e => { showFing = e.target.checked; savePrefs(); };
+$('scope').onchange = e => { showScope = e.target.checked; lastKeySig = null; savePrefs(); };
 $('lang').onchange = e => { noteLang = e.target.value; lastKeySig = null; savePrefs(); };
 $('fit').onchange = () => { computeRange(); savePrefs(); };
 
@@ -1560,6 +1606,7 @@ function setHand(h, st){
   b.querySelector('b').textContent = HAND_LABEL[st];
   b.setAttribute('aria-pressed', st !== 'off');
   lastKeySig = null;
+  barIdx = -2;                                 /* tắt một tay là tập phím của ô nhịp đổi */
   if (playing){ const t = songTime(); killVoices(); anchorAt(t); schedIdx = lowerBound(t); clickIdx = gridLB(t); }
 }
 $('h0').onclick = () => setHand(0, HAND_NEXT[handState[0]]);
@@ -1625,7 +1672,7 @@ function savePrefs(extra){
     localStorage.setItem(STORE, JSON.stringify(Object.assign(loadPrefs(), {
       v: 1,
       rate: +$('rate').value, look: +$('look').value, vol: +$('vol').value, rev: +$('rev').value,
-      tone, fit: $('fit').checked, hint: showHint, fx: showFx, lang: noteLang, fing: showFing,
+      tone, fit: $('fit').checked, hint: showHint, fx: showFx, lang: noteLang, fing: showFing, scope: showScope,
       cin: countIn, met: metro,
       hands: handState.slice(),
       panel: !$('panel').classList.contains('collapsed'),
@@ -1727,6 +1774,7 @@ $('fit').checked = 'fit' in prefs ? !!prefs.fit : true;
 if ('hint' in prefs){ showHint = !!prefs.hint; $('hint').checked = showHint; }
 if ('fx' in prefs){ showFx = !!prefs.fx; $('fx').checked = showFx; }
 if ('fing' in prefs){ showFing = !!prefs.fing; $('fing').checked = showFing; }
+if ('scope' in prefs){ showScope = !!prefs.scope; $('scope').checked = showScope; }
 if (prefs.lang){ noteLang = prefs.lang; $('lang').value = prefs.lang; }
 if ('cin' in prefs){ countIn = !!prefs.cin; $('cin').checked = countIn; }
 if ('met' in prefs){ metro = !!prefs.met; $('met').checked = metro; }

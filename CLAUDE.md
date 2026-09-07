@@ -148,6 +148,20 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
     không đổi màu khi phím được bấm. Phím C chỉ in `C4`, không in đè thêm chữ `C`.
     Chữ tự co theo `measureText` cho vừa bề ngang phím, dưới 6.5px thì bỏ không vẽ.
     In cho cả phím đang kêu lẫn phím sắp bấm, để nhãn không nháy mất đúng lúc chạm phím.
+- **Khoanh ô nhịp** (`barScope()`, `showScope`, mặc định BẬT) — phủ xám mọi phím
+  KHÔNG dùng trong ô nhịp đang chơi. Đo ở Happy Birthday: mỗi ô nhịp chỉ 5–6 phím
+  trên tổng 40 phím đang hiện, tức mắt bớt phải quét ~85% bàn phím.
+  - Phím **đang vang** và phím **trong tầm gợi ý** (1.2s) không bị phủ. Nhờ vậy
+    phím của ô nhịp kế tiếp mở ra sớm ~1.2s, đúng lúc cần chuẩn bị ngón — và
+    quan trọng hơn là không đá nhau với phím đang sáng.
+  - Phím trắng phủ tối đi (`rgba(74,84,102,.62)`), phím đen **nhấc sáng lên**
+    (`rgba(150,163,186,.30)`) — cùng dồn về xám nhưng phải giữ trắng sáng hơn đen,
+    nếu không thì mất hình dạng bàn phím và không dóng được phím nào ra phím nào.
+    Đo pixel: trắng 204 → 139, đen 30 → 74.
+  - `lastKeySig` phải gồm cả chỉ số ô nhịp, không thì sang ô nhịp mới mà tập phím
+    đổi thì vẫn đứng hình. Đo lại: 28/120 frame vẽ lại, y như khi tắt.
+  - Tắt một tay thì phải `barIdx = -2` để tính lại tập phím.
+
 - **Số ngón 1–5** (`fingering()`, `showFing`, mặc định BẬT) — chỉ gán ở chỗ CHẮC,
   chỗ không chắc để TRỐNG. Số ngón sai tệ hơn không có số: nó dạy sai thế tay và
   rất khó sửa. Mô hình là "thế 5 ngón" của sách vỡ lòng, ba luật:
