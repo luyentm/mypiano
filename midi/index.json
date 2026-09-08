@@ -7,6 +7,8 @@
       "composer": "Mildred & Patty Hill · phối: Manjuprasad",
       "note": "Ngắn nhất thư viện (28 giây), giọng Đô trưởng gần như không có phím đen — nhưng tay trái bấm hợp âm khối chứ không phải nốt đơn",
       "difficulty": 140,
+      "rights": "pd",
+      "rightsNote": "Giai điệu \"Good Morning to All\" có từ 1893; yêu sách bản quyền của Warner/Chappell bị toà Hoa Kỳ tuyên vô hiệu năm 2016.",
       "bytes": 1084
     },
     {
@@ -15,6 +17,8 @@
       "composer": "Christopher Wong",
       "note": "Bản đơn giản: toàn phím trắng, tối đa 2 nốt cùng lúc, nhịp chậm — bài dễ nhất thư viện, hợp để bắt đầu",
       "difficulty": 170,
+      "rights": "cop",
+      "rightsNote": "",
       "bytes": 2396
     },
     {
@@ -23,6 +27,8 @@
       "composer": "Quốc Thống · phối: Nam Đoàn",
       "note": "Bài dài nhất thư viện (5:14) nhưng chậm và thưa, mỗi tay tối đa 3-4 nốt, giọng chỉ 13% phím đen — hợp để tập sức bền",
       "difficulty": 250,
+      "rights": "cop",
+      "rightsNote": "",
       "bytes": 9158
     },
     {
@@ -31,6 +37,8 @@
       "composer": "Bảo Chấn · phối: Hoàng Lê Nhật Thanh",
       "note": "Bài thưa nhất thư viện — chỉ 3.3 nốt/giây, mỗi tay tối đa 3 nốt; giọng Rê trưởng, tách bè hai tay rõ ràng",
       "difficulty": 260,
+      "rights": "cop",
+      "rightsNote": "",
       "bytes": 4124
     },
     {
@@ -39,6 +47,8 @@
       "composer": "Quốc Thống",
       "note": "Giọng Sol thứ, giai điệu rất thưa — tay trái rải hợp âm gánh gần hai phần ba số nốt; không có đoạn nào nhanh, hai nốt gần nhau nhất cách 308ms",
       "difficulty": 280,
+      "rights": "cop",
+      "rightsNote": "",
       "bytes": 5833
     },
     {
@@ -47,6 +57,8 @@
       "composer": "Yiruma",
       "note": "Giọng Fa# thứ (3 dấu thăng, nhiều phím đen), mẫu tay phải lặp đều suốt bài; có một ô nhịp 5/4 ở giữa",
       "difficulty": 290,
+      "rights": "cop",
+      "rightsNote": "",
       "bytes": 5625
     },
     {
@@ -55,6 +67,8 @@
       "composer": "Yiruma",
       "note": "Giọng Fa thứ (4 dấu giáng) — 57% nốt rơi vào phím đen, cao nhất thư viện; nhịp chậm nhưng dài 4:30. File một track nên màu hai tay chỉ là phỏng đoán",
       "difficulty": 310,
+      "rights": "cop",
+      "rightsNote": "",
       "bytes": 8976
     },
     {
@@ -63,6 +77,8 @@
       "composer": "Yiruma",
       "note": "Giọng Đô thứ (3 dấu giáng), dài 4:39 — quãng rộng 5.1 quãng tám nên tay trái phải nhảy nhiều",
       "difficulty": 320,
+      "rights": "cop",
+      "rightsNote": "",
       "bytes": 10332
     },
     {
@@ -71,6 +87,8 @@
       "composer": "Nathan Wang · phối: An Coong",
       "note": "Bản phối piano của An Coong. Nhịp co giãn nhiều (10 lần đổi tempo, cuối bài chậm dần còn 25) và dài gần 5 phút",
       "difficulty": 330,
+      "rights": "cop",
+      "rightsNote": "",
       "bytes": 9914
     },
     {
@@ -79,6 +97,8 @@
       "composer": "Paul de Senneville",
       "note": "Giọng Đô trưởng, chỉ 1% phím đen nên rất dễ tìm phím; có vài đoạn chạy nốt nhanh nhưng bài ngắn (2:18)",
       "difficulty": 340,
+      "rights": "cop",
+      "rightsNote": "",
       "bytes": 5910
     },
     {
@@ -87,6 +107,8 @@
       "composer": "Sơn Tùng M-TP · phối: Jason Srey",
       "note": "Giọng Đô trưởng — chỉ 4 nốt đen trong 1961 nốt, gần như toàn phím trắng; bù lại bài dày và dài 4:13, tay trái đệm gần như không nghỉ",
       "difficulty": 360,
+      "rights": "cop",
+      "rightsNote": "",
       "bytes": 12695
     },
     {
@@ -95,6 +117,8 @@
       "composer": "Francis Lai",
       "note": "Giọng La thứ, chỉ 10% phím đen nên dễ tìm phím; bù lại quãng rộng 6 quãng tám và nhịp co giãn 15 lần. Dùng pedal ngân gần suốt bài",
       "difficulty": 370,
+      "rights": "cop",
+      "rightsNote": "",
       "bytes": 9915
     },
     {
@@ -103,6 +127,8 @@
       "composer": "Paul de Senneville",
       "note": "Bản phối đầy đủ: 1630 nốt, có hợp âm thật (đa âm tới 6) và quãng 7 quãng tám — rộng nhất thư viện",
       "difficulty": 390,
+      "rights": "cop",
+      "rightsNote": "",
       "bytes": 10731
     },
     {
@@ -111,6 +137,8 @@
       "composer": "Paul de Senneville",
       "note": "Mở đầu bằng chuỗi nốt đổ từ E7 xuống hết 5 quãng tám; 42% phím đen và nhiều nốt ngoài giọng, nhịp đổi 4/4 ↔ 2/4 sáu lần",
       "difficulty": 400,
+      "rights": "cop",
+      "rightsNote": "",
       "bytes": 7818
     },
     {
@@ -119,6 +147,8 @@
       "composer": "Beethoven",
       "note": "Trọn bài (WoO 59) — có cả đoạn F trưởng và đoạn chạy ngón cuối",
       "difficulty": 420,
+      "rights": "pd",
+      "rightsNote": "Beethoven mất năm 1827 — quá 70 năm, bản nhạc thuộc phạm vi công cộng.",
       "bytes": 20648
     },
     {
@@ -127,6 +157,8 @@
       "composer": "Paul de Senneville",
       "note": "Giọng Rê giáng trưởng (5 dấu giáng, 47% phím đen), quãng 6.6 quãng tám — rộng nhất thư viện; nhịp co giãn 19 lần, có cả ô nhịp 6/4",
       "difficulty": 440,
+      "rights": "cop",
+      "rightsNote": "",
       "bytes": 6919
     },
     {
@@ -135,6 +167,8 @@
       "composer": "Pachelbel",
       "note": "Giọng Rê trưởng, có biến tấu chạy nốt và hợp âm dày — file một track nên màu hai tay chỉ là phỏng đoán",
       "difficulty": 450,
+      "rights": "pd",
+      "rightsNote": "Pachelbel mất năm 1706 — bản nhạc thuộc phạm vi công cộng.",
       "bytes": 8509
     },
     {
@@ -143,6 +177,8 @@
       "composer": "Klaus Badelt",
       "note": "Pirates of the Caribbean — tay trái đệm dồn dập không nghỉ, cần với được quãng 8",
       "difficulty": 480,
+      "rights": "cop",
+      "rightsNote": "",
       "bytes": 11918
     },
     {
@@ -151,6 +187,8 @@
       "composer": "JVKE · phối: Shawn",
       "note": "Giọng Đô# thứ (4 dấu thăng, 55% phím đen), 2024 nốt và rải nhanh gần như không nghỉ; dùng pedal ngân suốt bài",
       "difficulty": 500,
+      "rights": "cop",
+      "rightsNote": "",
       "bytes": 13465
     },
     {
@@ -159,6 +197,8 @@
       "composer": "Mozart",
       "note": "Sonata K.331 chương cuối — 2101 nốt, nhanh (140 bpm) và dày đặc, có bát độ liên tục ở đoạn cuối. File một track nên màu hai tay chỉ là phỏng đoán",
       "difficulty": 560,
+      "rights": "pd",
+      "rightsNote": "Mozart mất năm 1791 — bản nhạc thuộc phạm vi công cộng.",
       "bytes": 16953
     }
   ]

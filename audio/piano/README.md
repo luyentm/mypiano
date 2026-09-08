@@ -12,7 +12,11 @@
 
 CC BY 3.0 cho phép dùng cả cho mục đích thương mại, **miễn là ghi công tác giả**.
 Đây là giấy phép của riêng phần âm thanh, độc lập với giấy phép PolyForm Noncommercial
-của mã nguồn — xem [../../LICENSE](../../LICENSE). Ghi công đang hiển thị ở footer trang chủ.
+của mã nguồn — xem [../../LICENSE](../../LICENSE).
+
+Ghi công đầy đủ hiển thị ở trang [/giay-phep/](../../giay-phep/) (sinh tự động), rút gọn ở
+footer trang chủ và ở cuối hàng panel của màn chơi. Trang đó cũng khai báo hai sửa đổi so
+với bản gốc mà CC BY 3.0 bắt buộc phải nói rõ: cắt còn 6 giây và trộn stereo xuống mono.
 
 ## Vì sao lấy đúng 30 file này
 

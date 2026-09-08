@@ -11,10 +11,11 @@ Live: <https://luyentm.github.io/mypiano/>
 | `/play/` | [play/index.html](play/index.html) | App thật: nốt rơi, bàn phím, transport. Nhận `?song=<file>.mid` để nạp bài từ thư viện |
 | `/library/` | [library/index.html](library/index.html) | Thư viện: đọc `midi/index.json`, bấm một bài là sang `/play/?song=…` |
 | `/bai/<slug>/` | sinh tự động | Trang giới thiệu từng bài (SEO + link chia sẻ), CTA sang `/play/?song=…` |
+| `/giay-phep/` | sinh tự động | Giấy phép & ghi công: mã nguồn, mẫu tiếng đàn, bảng bản quyền từng file MIDI |
 | — | `midi/` | File `.mid` + `meta.json` (tên/tác giả tuỳ chọn) + `index.json` (sinh tự động) |
 | — | `audio/piano/` | 30 mẫu Salamander Grand Piano (CC BY 3.0) cho bộ tiếng "grand" |
 | — | `tools/` | Script bảo trì chạy bằng node, không phải phần của site |
-| — | `sitemap.xml`, `robots.txt` | Sinh tự động cùng `bai/` (xem mục "Trang riêng từng bài") |
+| — | `sitemap.xml`, `robots.txt` | Sinh tự động cùng `bai/` và `giay-phep/` |
 
 ## Ràng buộc cứng — không được phá
 
@@ -373,23 +374,25 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
 
 ## Thêm bài vào thư viện
 
-**Luật: mỗi bài BẮT BUỘC được chấm `difficulty` từ 1 tới 1000 trước khi vào thư viện.**
-Thư viện xếp danh sách theo đúng con số này (dễ → khó) để người tập đi tuần tự từ trên xuống.
-`tools/build-midi-index.js` fail nếu thiếu, nên CI sẽ đỏ và không deploy.
+**Luật: mỗi bài BẮT BUỘC có `difficulty` (1–1000) và `rights` trước khi vào thư viện.**
+Thư viện xếp danh sách theo `difficulty` (dễ → khó) để người tập đi tuần tự từ trên xuống;
+`rights` là `"pd"` (bản nhạc gốc thuộc phạm vi công cộng) hoặc `"cop"` (còn bản quyền), và
+trang `/giay-phep/` in thẳng con số đó ra bảng — khai bừa là trang ghi công nói dối.
+`tools/build-midi-index.js` fail nếu thiếu bất kỳ cái nào, nên CI sẽ đỏ và không deploy.
 
 ```bash
 cp "bai-cua-toi.mid" midi/
 node tools/analyze-midi.js midi/bai-cua-toi.mid   # lấy số liệu
-# chấm difficulty theo bảng dưới, ghi vào midi/meta.json
+# chấm difficulty + tra bản quyền bản nhạc gốc, ghi cả hai vào midi/meta.json
 node tools/build-midi-index.js                    # kiểm tra tại chỗ
-node tools/build-pages.js                         # sinh trang riêng + sitemap
-git add midi/ bai/ sitemap.xml && git commit -m "them bai" && git push
+node tools/build-pages.js                         # sinh trang riêng + giấy phép + sitemap
+git add midi/ bai/ giay-phep/ sitemap.xml && git commit -m "them bai" && git push
 ```
 
 ```json
 { "bai-cua-toi.mid": {
     "title": "Tên đầy đủ", "composer": "Tác giả",
-    "note": "ghi chú ngắn", "difficulty": 420 } }
+    "note": "ghi chú ngắn", "difficulty": 420, "rights": "pd" } }
 ```
 
 ### Cách chấm độ khó (thang 1–1000)
@@ -424,7 +427,8 @@ mức trung cấp, tương đương ABRSM grade 5 / Henle 3–4.
 ## Trang riêng từng bài (`bai/`) + sitemap
 
 `tools/build-pages.js` đọc `midi/index.json` rồi sinh `bai/<slug>/index.html` cho mỗi bài,
-cộng `sitemap.xml` và `robots.txt`. Chạy SAU `build-midi-index.js`:
+trang `/giay-phep/` (xem mục "Giấy phép"), cộng `sitemap.xml` và `robots.txt`.
+Chạy SAU `build-midi-index.js`:
 
 ```bash
 node tools/build-midi-index.js && node tools/build-pages.js
@@ -450,6 +454,8 @@ Những chỗ đã phải trả giá, đừng phá:
 - **`<link rel="canonical">` là ngoại lệ được CI tha** — nó là `<link href="https://…">`
   nên vướng đúng cái rule chặn CDN. Rule đã lọc `grep -v 'rel="canonical"'`; đừng gỡ.
 - **Không có `bai/index.html`** — thư viện đã là trang hub rồi, thêm nữa là trùng nội dung.
+- **CSS của trang sinh ra gom vào hằng `CSS` trong tool**, không lặp lại cho từng loại trang.
+  File xuất ra vẫn tự chứa đúng ràng buộc; gom là để trang bài và trang giấy phép không lệch nhau.
 - **`sitemap.xml` cố tình KHÔNG ghi `<lastmod>`**: CI checkout nông nên mọi file mang đúng
   một ngày, ghi vào chỉ là số liệu bịa. Thiếu lastmod không sao.
 - **`robots.txt` ở đây KHÔNG có tác dụng** với GitHub Pages dạng project: crawler chỉ đọc
@@ -515,7 +521,8 @@ URL `?tone=grand` (để link chia sẻ mang theo được). Màn chơi ghi vào
 `history.replaceState`, link sang thư viện mang theo `?tone=grand`, thư viện gắn tiếp vào
 link từng bài. Sửa một chỗ thì nhớ sửa cả ba.
 
-Ghi công CC BY 3.0 cho Alexander Holm đang nằm ở footer trang chủ + `audio/piano/README.md`;
+Ghi công CC BY 3.0 cho Alexander Holm nằm ở trang `/giay-phep/` (đầy đủ, có cả phần khai
+báo đã sửa file), footer trang chủ và `audio/piano/README.md`;
 CI kiểm tra file README đó còn nguyên. Đừng xoá.
 
 ## Ghi nhớ tuỳ chọn (localStorage)
@@ -583,13 +590,37 @@ Rule CI về ảnh ngoài đã kiểm cả `src` lẫn `data-hit`, đừng gỡ.
 - Cho phép dùng/sửa/phân phối **phi thương mại**; thương mại phải xin giấy phép riêng.
 - Mọi bản sao phải kèm giấy phép và **giữ nguyên dòng `Required Notice:`** — đây chính là
   cơ chế bắt buộc giữ tên tác giả gốc khi clone. Dòng đó nằm trong `LICENSE` và lặp lại
-  ở đầu cả 3 file HTML; đừng xoá khi sửa file.
+  ở đầu cả 3 file HTML lẫn mọi trang sinh tự động; đừng xoá khi sửa file.
 - Vì có điều khoản phi thương mại nên đây là **source-available**, không phải open source
   theo định nghĩa OSI (OSI cấm hạn chế lĩnh vực sử dụng). Cần chuẩn OSI thật thì phải đổi
   sang MIT/Apache-2.0 và bỏ điều kiện phi thương mại.
 - File `.mid` trong `midi/` **không** thuộc phạm vi giấy phép này: bản nhạc có thể thuộc
   phạm vi công cộng nhưng bản soạn MIDI cụ thể có thể có bản quyền riêng. Chỉ thêm file
   mà bạn có quyền phân phối.
+
+### Trang `/giay-phep/`
+
+Sinh tự động bởi `tools/build-pages.js` (7 mục: mã nguồn · mẫu tiếng đàn · tiếng synth ·
+thư viện lập trình · bảng bản quyền từng file MIDI · dịch vụ ngoài · dữ liệu người dùng).
+
+- **Bảng MIDI sinh từ `midi/index.json`, không viết tay.** Viết tay thì thêm một bài là
+  bảng nói dối ngay, mà đây là trang không được phép sai. Cột trạng thái lấy từ trường
+  `rights` bắt buộc trong `meta.json`.
+- **Cột đó nói về BẢN NHẠC GỐC, không phải bản soạn MIDI.** Hai thứ tách rời: bản soạn có
+  bản quyền riêng của người soạn kể cả khi bản nhạc đã hết hạn. Trang có nói rõ chuyện này
+  cùng địa chỉ yêu cầu gỡ file (issue trên GitHub) — đừng bỏ đoạn đó đi.
+- **Phải nói rõ mẫu tiếng đàn ĐÃ BỊ SỬA.** CC BY 3.0 buộc phải chỉ ra nếu có sửa đổi, mà
+  `trimMono()` cắt còn 6 giây và trộn stereo xuống mono là sửa đổi thật. Footer cũ chỉ ghi
+  tên tác giả nên còn thiếu điều kiện này.
+- **CI kiểm tra trang này như một nghĩa vụ giấy phép**, không phải trang trang trí: phải có
+  đủ chuỗi `Alexander Holm`, `CC BY 3.0`, `PolyForm`, `Required Notice`, và **mọi file
+  `.mid` trong `midi/` phải xuất hiện trong bảng**. Thiếu là CI đỏ.
+- Link tới trang: footer trang chủ (2 link, một trỏ thẳng `#audio`), footer thư viện, footer
+  mọi trang `bai/`, và **cuối hàng panel của `/play/`** — đo được link đó tốn **0 px** chiều
+  cao vì lọt vào hàng flex sẵn có, nên không phạm luật "chiều cao là thứ khan hiếm nhất".
+  Màn chơi mới là chỗ mẫu tiếng đàn thật sự được phát, nên ghi công phải với tới được từ đó.
+- Bảng cuộn ngang trong khung riêng (`.tw{overflow-x:auto}`, bảng `min-width:520px`) — đo ở
+  375px: khung cuộn 333→520, còn cả trang **không** tràn ngang.
 
 ## Deploy
 

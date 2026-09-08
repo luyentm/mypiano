@@ -75,8 +75,8 @@ jobs:
         run: node tools/build-midi-index.js
 
       # Mỗi bài một URL riêng là điều kiện để Google index được từng bài;
-      # sitemap.xml + robots.txt sinh cùng lúc từ chính danh mục đó.
-      - name: Sinh được trang từng bài + sitemap
+      # trang giấy phép + sitemap.xml + robots.txt sinh cùng lúc từ chính danh mục đó.
+      - name: Sinh được trang từng bài, trang giấy phép + sitemap
         run: |
           node tools/build-pages.js
           test -s sitemap.xml || { echo "không sinh được sitemap.xml"; exit 1; }
@@ -85,7 +85,17 @@ jobs:
           m=$(ls midi/*.mid | wc -l)
           test "$n" -eq "$m" || { echo "bai/ có $n trang nhưng midi/ có $m bài"; exit 1; }
           for d in bai/*/; do grep -q '<link rel="canonical"' "$d/index.html" || { echo "$d thiếu canonical"; exit 1; }; done
-          echo "ok $n trang bài"
+          # Trang ghi công là nghĩa vụ giấy phép, không phải trang trang trí:
+          # thiếu tên tác giả mẫu tiếng đàn hoặc thiếu CC BY là vi phạm CC BY 3.0.
+          test -s giay-phep/index.html || { echo "thiếu trang giấy phép"; exit 1; }
+          for s in "Alexander Holm" "CC BY 3.0" "PolyForm" "Required Notice"; do
+            grep -q "$s" giay-phep/index.html || { echo "trang giấy phép thiếu \"$s\""; exit 1; }
+          done
+          # Mỗi file .mid phải có mặt trong bảng bản quyền, không sót bài nào.
+          for f in midi/*.mid; do
+            grep -q "$(basename "$f")" giay-phep/index.html || { echo "trang giấy phép sót $f"; exit 1; }
+          done
+          echo "ok $n trang bài + trang giấy phép"
 
   deploy:
     name: Deploy
@@ -102,8 +112,8 @@ jobs:
       - name: Sinh midi/index.json
         run: node tools/build-midi-index.js
 
-      # Trang riêng từng bài + sitemap.xml + robots.txt, sinh từ midi/index.json
-      - name: Sinh bai/, sitemap.xml, robots.txt
+      # Trang riêng từng bài + trang giấy phép + sitemap.xml + robots.txt, sinh từ midi/index.json
+      - name: Sinh bai/, giay-phep/, sitemap.xml, robots.txt
         run: node tools/build-pages.js
 
       - uses: actions/configure-pages@v6

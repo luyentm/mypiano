@@ -77,7 +77,7 @@
   /* Link sang trang riêng từng bài. Card ở trên cố ý vẫn trỏ thẳng vào /play/ để
      bấm một cái là chơi được; khối này là đường cho Google bò tới các trang bai/,
      và là chỗ copy link đi chia sẻ. */
-  section.pages{border-top:1px solid var(--line); margin:6px 0 0; padding:24px 0 44px}
+  section.pages{border-top:1px solid var(--line); margin:6px 0 0; padding:24px 0 30px}
   section.pages h2{font-size:15px; margin:0 0 5px; font-weight:600}
   section.pages p{color:var(--dim); font-size:13px; margin:0 0 13px}
   section.pages .pl{display:flex; flex-wrap:wrap; gap:8px}
@@ -85,6 +85,10 @@
     padding:6px 11px; font-size:13px; text-decoration:none; color:var(--dim)}
   section.pages .pl a:hover{border-color:#313c52; color:var(--text)}
 
+  footer{border-top:1px solid var(--line); padding:18px 0 34px; color:var(--dim); font-size:12.5px}
+  footer .wrap{display:flex; flex-wrap:wrap; gap:14px; align-items:center}
+  footer a{color:var(--dim); text-decoration:none}
+  footer a:hover{color:var(--text)}
   .hit{position:absolute; left:-9999px; width:1px; height:1px; opacity:0; pointer-events:none}
 </style>
 </head>
@@ -119,6 +123,15 @@
     <div class="pl" id="plist"></div>
   </section>
 </div>
+
+
+<footer>
+  <div class="wrap">
+    <span>mypiano — falling notes cho người tập piano</span>
+    <a href="../giay-phep/">Giấy phép &amp; ghi công</a>
+    <a href="https://github.com/luyentm/mypiano">Mã nguồn</a>
+  </div>
+</footer>
 
 <!-- Chỉ đếm vào counter TỔNG của site. Tuyệt đối không nhúng badge theo từng bài ở đây:
      hits.sh tăng đếm mỗi lần ảnh được tải, xem danh sách sẽ bị tính thành lượt tập. -->
