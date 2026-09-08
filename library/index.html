@@ -11,6 +11,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Thư viện MIDI — mypiano</title>
 <meta name="description" content="Danh sách bài MIDI có sẵn trong mypiano. Chọn một bài để mở màn chơi nốt rơi.">
+<link rel="canonical" href="https://luyentm.github.io/mypiano/library/">
 <style>
   :root{
     --bg:#0d1017; --panel:#151a24; --card:#131822; --line:#232a38;
@@ -73,6 +74,17 @@
     padding:2px 6px; font-size:12.5px; color:var(--text)}
   .msg pre{background:#0b0e14; border:1px solid var(--line); border-radius:8px; padding:11px 13px;
     overflow-x:auto; margin:11px 0 0; font-size:12.5px; color:var(--text); line-height:1.5}
+  /* Link sang trang riêng từng bài. Card ở trên cố ý vẫn trỏ thẳng vào /play/ để
+     bấm một cái là chơi được; khối này là đường cho Google bò tới các trang bai/,
+     và là chỗ copy link đi chia sẻ. */
+  section.pages{border-top:1px solid var(--line); margin:6px 0 0; padding:24px 0 44px}
+  section.pages h2{font-size:15px; margin:0 0 5px; font-weight:600}
+  section.pages p{color:var(--dim); font-size:13px; margin:0 0 13px}
+  section.pages .pl{display:flex; flex-wrap:wrap; gap:8px}
+  section.pages .pl a{background:var(--card); border:1px solid var(--line); border-radius:8px;
+    padding:6px 11px; font-size:13px; text-decoration:none; color:var(--dim)}
+  section.pages .pl a:hover{border-color:#313c52; color:var(--text)}
+
   .hit{position:absolute; left:-9999px; width:1px; height:1px; opacity:0; pointer-events:none}
 </style>
 </head>
@@ -100,11 +112,17 @@
   </div>
 
   <div class="grid" id="list"></div>
+
+  <section class="pages" id="pages" hidden>
+    <h2>Trang riêng từng bài</h2>
+    <p>Mỗi bài có một trang giới thiệu riêng, tiện để gửi link cho người khác.</p>
+    <div class="pl" id="plist"></div>
+  </section>
 </div>
 
 <!-- Chỉ đếm vào counter TỔNG của site. Tuyệt đối không nhúng badge theo từng bài ở đây:
      hits.sh tăng đếm mỗi lần ảnh được tải, xem danh sách sẽ bị tính thành lượt tập. -->
-<img class="hit" src="https://hits.sh/luyentm.github.io/mypiano.svg" alt="" aria-hidden="true">
+<img class="hit" data-hit="https://hits.sh/luyentm.github.io/mypiano.svg" alt="" aria-hidden="true">
 
 <script>
 "use strict";
@@ -170,6 +188,17 @@ function render(){
   $('list').innerHTML = hit.map(s => card(s, songs.indexOf(s) + 1)).join('');
 }
 
+/* Slug phải khớp Y HỆT tools/build-pages.js, lệch một chữ là link 404. */
+const slugOf = f => f.replace(/\.midi?$/i, '').toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+function renderPages(){
+  if (!songs.length) return;
+  $('plist').innerHTML = songs
+    .map(s => '<a href="../bai/' + slugOf(s.file) + '/">' + esc(s.title) + '</a>').join('');
+  $('pages').hidden = false;
+}
+
 function failed(err){
   $('list').innerHTML = '<div class="msg"><b>Không đọc được danh sách bài</b>' +
     esc(err) + '<br>Nếu bạn đang mở file bằng <code>file://</code> thì trình duyệt chặn fetch — ' +
@@ -181,10 +210,17 @@ if (TONE) for (const a of document.querySelectorAll('a[href="../play/"]')) a.hre
 
 fetch('../midi/index.json', { cache: 'no-cache' })
   .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-  .then(data => { songs = data.songs || []; render(); })
+  .then(data => { songs = data.songs || []; render(); renderPages(); })
   .catch(e => failed(e.message));
 
 $('q').oninput = render;
+
+/* hits.sh cộng 1 mỗi lần ảnh .svg được tải, mà URL badge hardcode tên miền thật —
+   mở localhost lúc dev cũng bị tính, số liệu thành vô nghĩa. Chỉ gắn src trên site thật. */
+for (const el of document.querySelectorAll('img[data-hit]')){
+  if (location.hostname === 'luyentm.github.io') el.src = el.dataset.hit;
+  else (el.closest('a') || el).remove();
+}
 </script>
 </body>
 </html>

@@ -41,7 +41,8 @@ jobs:
 
       - name: Không được có dependency ngoài (CDN / import / npm)
         run: |
-          if grep -rnEi '<(script|link)[^>]+(src|href)=["'"'"']https?://' --include='*.html' .; then
+          # canonical trỏ về URL thật của trang là <link href="https://…> hợp lệ, tha ra.
+          if grep -rnEi '<(script|link)[^>]+(src|href)=["'"'"']https?://' --include='*.html' . | grep -v 'rel="canonical"'; then
             echo "Site phải tự chứa: không nhúng script/style từ CDN"; exit 1
           fi
           if grep -rnE '\bfrom[[:space:]]+["'"'"']https?://|\bimport\(["'"'"']https?://' --include='*.html' .; then
@@ -50,8 +51,9 @@ jobs:
           if [ -f package.json ]; then
             echo "Dự án này không dùng npm/bundler — package.json không được tồn tại"; exit 1
           fi
-          # Ngoại lệ duy nhất được nhúng từ mạng: badge đếm lượt của hits.sh
-          if grep -rnoE '<img[^>]+src="https?://[^"]+"' --include='*.html' . | grep -v 'https://hits.sh/'; then
+          # Ngoại lệ duy nhất được nhúng từ mạng: badge đếm lượt của hits.sh.
+          # data-hit là badge chưa nạp — JS chỉ gắn src khi chạy trên tên miền thật.
+          if grep -rnoE '<img[^>]+(src|data-hit)="https?://[^"]+"' --include='*.html' . | grep -v 'https://hits.sh/'; then
             echo "Ảnh ngoài chỉ được phép từ hits.sh (counter)"; exit 1
           fi
 
@@ -72,6 +74,19 @@ jobs:
       - name: Mọi bài phải có difficulty 1–1000
         run: node tools/build-midi-index.js
 
+      # Mỗi bài một URL riêng là điều kiện để Google index được từng bài;
+      # sitemap.xml + robots.txt sinh cùng lúc từ chính danh mục đó.
+      - name: Sinh được trang từng bài + sitemap
+        run: |
+          node tools/build-pages.js
+          test -s sitemap.xml || { echo "không sinh được sitemap.xml"; exit 1; }
+          test -s robots.txt  || { echo "không sinh được robots.txt"; exit 1; }
+          n=$(ls -d bai/*/ | wc -l)
+          m=$(ls midi/*.mid | wc -l)
+          test "$n" -eq "$m" || { echo "bai/ có $n trang nhưng midi/ có $m bài"; exit 1; }
+          for d in bai/*/; do grep -q '<link rel="canonical"' "$d/index.html" || { echo "$d thiếu canonical"; exit 1; }; done
+          echo "ok $n trang bài"
+
   deploy:
     name: Deploy
     needs: check
@@ -86,6 +101,10 @@ jobs:
       # nên chỉ cần `git add midi/bai-moi.mid` là bài lên site.
       - name: Sinh midi/index.json
         run: node tools/build-midi-index.js
+
+      # Trang riêng từng bài + sitemap.xml + robots.txt, sinh từ midi/index.json
+      - name: Sinh bai/, sitemap.xml, robots.txt
+        run: node tools/build-pages.js
 
       - uses: actions/configure-pages@v6
 

@@ -11,6 +11,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>mypiano — piano falling notes</title>
 <meta name="description" content="Học piano bằng nốt rơi: mở file MIDI trong browser, nốt rơi xuống chạm bàn phím 88 phím đúng lúc nốt kêu. Không cài đặt, không backend.">
+<link rel="canonical" href="https://luyentm.github.io/mypiano/">
 <style>
   :root{
     --bg:#0d1017; --panel:#151a24; --card:#131822; --line:#232a38;
@@ -212,7 +213,7 @@
     <span>mypiano — falling notes cho người tập piano</span>
     <!-- Đếm TOÀN BỘ lượt truy cập site: mọi trang đều nạp đúng badge này -->
     <a href="https://hits.sh/luyentm.github.io/mypiano/" target="_blank" rel="noopener" title="Thống kê lượt truy cập">
-      <img src="https://hits.sh/luyentm.github.io/mypiano.svg?style=flat-square&label=l%C6%B0%E1%BB%A3t%20truy%20c%E1%BA%ADp&color=57a8d4&labelColor=232a38"
+      <img data-hit="https://hits.sh/luyentm.github.io/mypiano.svg?style=flat-square&label=l%C6%B0%E1%BB%A3t%20truy%20c%E1%BA%ADp&color=57a8d4&labelColor=232a38"
            alt="Lượt truy cập" height="20"></a>
     <span class="spacer"></span>
     <a class="lic" href="https://github.com/luyentm/mypiano/blob/main/LICENSE">© 2026 luyentm · PolyForm NC 1.0.0</a>
@@ -305,6 +306,13 @@
   }
   requestAnimationFrame(draw);
 })();
+
+/* hits.sh cộng 1 mỗi lần ảnh .svg được tải, mà URL badge hardcode tên miền thật —
+   mở localhost lúc dev cũng bị tính, số liệu thành vô nghĩa. Chỉ gắn src trên site thật. */
+for (const el of document.querySelectorAll('img[data-hit]')){
+  if (location.hostname === 'luyentm.github.io') el.src = el.dataset.hit;
+  else (el.closest('a') || el).remove();
+}
 </script>
 </body>
 </html>

@@ -6,6 +6,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "1234"],
       "port": 1234
+    },
+    {
+      "name": "mypiano-mac",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "1234"],
+      "port": 1234
     }
   ]
 }

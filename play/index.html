@@ -9,7 +9,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Piano falling notes</title>
+<title>Chơi nốt rơi piano — mypiano</title>
+<meta name="description" content="Màn chơi nốt rơi: mở file MIDI bất kỳ, nốt rơi xuống chạm bàn phím 88 phím đúng lúc nốt kêu. Chậm lại, tập từng tay, khoanh đoạn lặp — miễn phí, chạy thẳng trong trình duyệt.">
+<link rel="canonical" href="https://luyentm.github.io/mypiano/play/">
 <style>
   :root{
     --bg:#0d1017; --panel:#151a24; --line:#232a38;
@@ -291,7 +293,7 @@
 </footer>
 
 <!-- Counter TỔNG của site, giống hệt trang chủ và thư viện -->
-<img class="hit" src="https://hits.sh/luyentm.github.io/mypiano.svg" alt="" aria-hidden="true">
+<img class="hit" data-hit="https://hits.sh/luyentm.github.io/mypiano.svg" alt="" aria-hidden="true">
 
 <script>
 "use strict";
@@ -1960,7 +1962,14 @@ addEventListener('visibilitychange', () => {
    Nên badge theo bài chỉ nhúng ở đây — lúc bài thật sự được mở ra để tập.
    Xem thống kê: đổi đuôi .svg thành / trong URL. */
 const HITS = 'https://hits.sh/luyentm.github.io/mypiano';
+/* URL badge hardcode tên miền thật, nên mở localhost lúc dev cũng +1 và số liệu
+   thành vô nghĩa. Chỉ đếm khi đang chạy trên site thật. */
+const HITS_LIVE = location.hostname === 'luyentm.github.io';
+for (const el of document.querySelectorAll('img[data-hit]')){
+  if (HITS_LIVE) el.src = el.dataset.hit; else el.remove();
+}
 function countSong(file){
+  if (!HITS_LIVE){ $('hits').replaceChildren(); return; }
   const a = document.createElement('a');
   a.href = HITS + '/play/' + file + '/';
   a.target = '_blank'; a.rel = 'noopener'; a.title = 'Thống kê lượt tập bài này';

@@ -10,9 +10,11 @@ Live: <https://luyentm.github.io/mypiano/>
 | `/` | [index.html](index.html) | Trang giới thiệu app + hero canvas mô phỏng màn chơi (không có tiếng) |
 | `/play/` | [play/index.html](play/index.html) | App thật: nốt rơi, bàn phím, transport. Nhận `?song=<file>.mid` để nạp bài từ thư viện |
 | `/library/` | [library/index.html](library/index.html) | Thư viện: đọc `midi/index.json`, bấm một bài là sang `/play/?song=…` |
+| `/bai/<slug>/` | sinh tự động | Trang giới thiệu từng bài (SEO + link chia sẻ), CTA sang `/play/?song=…` |
 | — | `midi/` | File `.mid` + `meta.json` (tên/tác giả tuỳ chọn) + `index.json` (sinh tự động) |
 | — | `audio/piano/` | 30 mẫu Salamander Grand Piano (CC BY 3.0) cho bộ tiếng "grand" |
 | — | `tools/` | Script bảo trì chạy bằng node, không phải phần của site |
+| — | `sitemap.xml`, `robots.txt` | Sinh tự động cùng `bai/` (xem mục "Trang riêng từng bài") |
 
 ## Ràng buộc cứng — không được phá
 
@@ -380,7 +382,8 @@ cp "bai-cua-toi.mid" midi/
 node tools/analyze-midi.js midi/bai-cua-toi.mid   # lấy số liệu
 # chấm difficulty theo bảng dưới, ghi vào midi/meta.json
 node tools/build-midi-index.js                    # kiểm tra tại chỗ
-git add midi/ && git commit -m "them bai" && git push
+node tools/build-pages.js                         # sinh trang riêng + sitemap
+git add midi/ bai/ sitemap.xml && git commit -m "them bai" && git push
 ```
 
 ```json
@@ -418,18 +421,66 @@ Ví dụ đã chấm — Für Elise trọn bài (`difficulty: 420`): 155s, 1051 
 mức trung cấp, tương đương ABRSM grade 5 / Henle 3–4.
 
 `midi/index.json` có commit trong repo cho tiện dev, nhưng bản trên site luôn là bản CI sinh lại.
+## Trang riêng từng bài (`bai/`) + sitemap
+
+`tools/build-pages.js` đọc `midi/index.json` rồi sinh `bai/<slug>/index.html` cho mỗi bài,
+cộng `sitemap.xml` và `robots.txt`. Chạy SAU `build-midi-index.js`:
+
+```bash
+node tools/build-midi-index.js && node tools/build-pages.js
+```
+
+**Vì sao phải có**: `/play/?song=fur-elise.mid` chỉ là query param trên đúng MỘT trang,
+nên Google gộp cả thư viện thành một kết quả duy nhất. Mà traffic của loại site này gần
+như toàn bộ là long-tail theo TÊN BÀI ("river flows in you piano nốt"), không ai search
+"web tập piano nốt rơi". Mỗi bài phải có URL riêng, `<title>` riêng, mô tả riêng.
+
+Những chỗ đã phải trả giá, đừng phá:
+
+- **File trong `bai/` sinh tự động, sửa tay là mất** — giống `midi/index.json`. Có commit
+  vào repo cho tiện dev, nhưng bản trên site luôn là bản CI sinh lại.
+- **Slug phải khớp Y HỆT ở hai nơi**: `slugOf()` trong `tools/build-pages.js` và
+  `slugOf()` trong `library/index.html`. Lệch một chữ là toàn bộ link ở thư viện 404.
+- **Card ở thư viện vẫn trỏ THẲNG vào `/play/?song=…`** — bấm một cái là chơi được, đừng
+  chèn thêm một bước trung gian. Đường cho Google bò tới `bai/` là khối "Trang riêng từng
+  bài" ở cuối thư viện, cộng với link chéo prev/next giữa các trang bài.
+- **Trang bài phải có nội dung khác nhau thật.** Đoạn `ADVICE` chia theo 6 mức độ + câu
+  "bài dễ thứ N" + `note` riêng của bài. 20 bản sao của cùng một khuôn là thin content,
+  Google bỏ qua sạch.
+- **`<link rel="canonical">` là ngoại lệ được CI tha** — nó là `<link href="https://…">`
+  nên vướng đúng cái rule chặn CDN. Rule đã lọc `grep -v 'rel="canonical"'`; đừng gỡ.
+- **Không có `bai/index.html`** — thư viện đã là trang hub rồi, thêm nữa là trùng nội dung.
+- **`sitemap.xml` cố tình KHÔNG ghi `<lastmod>`**: CI checkout nông nên mọi file mang đúng
+  một ngày, ghi vào chỉ là số liệu bịa. Thiếu lastmod không sao.
+- **`robots.txt` ở đây KHÔNG có tác dụng** với GitHub Pages dạng project: crawler chỉ đọc
+  `luyentm.github.io/robots.txt` thuộc repo gốc của user, không đọc `/mypiano/robots.txt`.
+  Vẫn sinh ra vì (a) đúng ngay nếu sau này gắn tên miền riêng, (b) sitemap thì nộp thẳng
+  trong Google Search Console là được, không cần qua robots.txt.
+- **Chưa có `og:image`** — repo không có file ảnh nào, mà `og:image` phải là PNG/JPG thật
+  (Facebook không nhận SVG). Share lên Facebook hiện ra thẻ không ảnh. Muốn có thì phải
+  thêm ảnh thật vào repo, không có cách nào né.
+
 ## Chạy & kiểm tra
 
-**Dev server luôn chạy ở cổng 1234** để chủ repo mở <http://localhost:1234> xem thay đổi
-bất cứ lúc nào — cấu hình sẵn trong [.claude/launch.json](.claude/launch.json).
-Sau khi sửa file, khởi động lại nếu server chết; đừng đổi sang cổng khác.
+**Dev server luôn chạy ở cổng 1234** để chủ repo mở <http://localhost:1234> xem thay đổi bất
+cứ lúc nào. Sau khi sửa file, khởi động lại nếu server chết; đừng đổi sang cổng khác.
+
+[.claude/launch.json](.claude/launch.json) có **hai** config cùng cổng 1234, chọn theo máy:
+`mypiano` chạy `python` (Windows — `python3` ở đó là stub của Microsoft Store),
+`mypiano-mac` chạy `python3` (macOS/Linux không có lệnh `python`).
 
 ```bash
 python3 -m http.server 1234
 ```
 
-`/play/` và `/library/` dùng `fetch` nên mở bằng `file://` sẽ bị chặn — bắt buộc qua http.
-(Trang chủ và phần demo hardcode của `/play/` thì mở thẳng file vẫn chạy.)
+`/library/` và `/play/` dùng `fetch` nên mở bằng `file://` sẽ bị chặn — bắt buộc qua http.
+Trang chủ và `bai/<slug>/` là HTML tĩnh hoàn toàn, mở thẳng file vẫn xem được.
+
+Sinh lại danh mục + trang từng bài sau khi đổi `midi/`:
+
+```bash
+node tools/build-midi-index.js && node tools/build-pages.js
+```
 
 Kiểm tra cú pháp JS inline cả 3 trang — CI chạy đúng vòng lặp này:
 
@@ -506,7 +557,7 @@ Sơ đồ khoá đếm của repo này:
 
 | Khoá | Nhúng ở đâu | Đếm cái gì |
 | --- | --- | --- |
-| `luyentm.github.io/mypiano` | cả 3 trang (`/` hiện rõ ở footer, `/play/` và `/library/` là ảnh 1px ẩn) | tổng traffic toàn site |
+| `luyentm.github.io/mypiano` | mọi trang (`/` hiện rõ ở footer; `/play/`, `/library/`, `bai/<slug>/` là ảnh 1px ẩn) | tổng traffic toàn site |
 | `luyentm.github.io/mypiano/play/<file>.mid` | chỉ `/play/`, do `countSong()` chèn sau khi nạp bài thành công | số lượt tập từng bài |
 
 **Tuyệt đối không nhúng badge theo bài vào trang thư viện.** Mỗi lần render danh sách là
@@ -515,6 +566,15 @@ Cũng vì lý do đó, thư viện không hiển thị được số lượt c�
 trang thống kê của hits.sh.
 
 File mở từ máy (`Mở MIDI`, kéo thả) không được đếm: nó không có trong thư viện.
+
+**Badge KHÔNG bao giờ được nạp khi chạy localhost.** URL badge hardcode
+`luyentm.github.io/mypiano`, nên mở `http://localhost:1234` lúc dev cũng +1 vào đúng bộ đếm
+của site thật — đo được 518 lượt trong 2 ngày đầu gắn badge, gần như toàn bộ là chính mình,
+số liệu thành vô nghĩa. Cách xử: ảnh viết `data-hit="…"` chứ không phải `src="…"`, rồi JS
+chỉ gắn `src` khi `location.hostname === 'luyentm.github.io'`, không thì gỡ hẳn thẻ ra
+(`el.closest('a') || el` — ở trang chủ badge nằm trong `<a>`, gỡ mỗi `<img>` là còn lại
+cái link rỗng). `countSong()` cũng thoát sớm theo cờ `HITS_LIVE` đó.
+Rule CI về ảnh ngoài đã kiểm cả `src` lẫn `data-hit`, đừng gỡ.
 
 ## Giấy phép
 
@@ -534,8 +594,9 @@ File mở từ máy (`Mở MIDI`, kéo thả) không được đếm: nó không
 ## Deploy
 
 Push lên `main` → workflow [deploy.yml](.github/workflows/deploy.yml):
-job `check` (đủ 3 trang, `node --check`, chặn CDN/npm, validate `meta.json`)
-→ job `deploy` (sinh `midi/index.json` rồi đẩy nguyên gốc repo lên Pages, không Jekyll — có `.nojekyll`).
+job `check` (đủ 3 trang, `node --check`, chặn CDN/npm, validate `meta.json`, sinh thử `bai/`)
+→ job `deploy` (sinh `midi/index.json`, rồi `bai/` + `sitemap.xml` + `robots.txt`, rồi đẩy
+nguyên gốc repo lên Pages, không Jekyll — có `.nojekyll`).
 
 Pages của repo đã bật sẵn ở chế độ **Source = GitHub Actions** (`build_type=workflow`).
 Nếu clone sang repo mới thì bật lại: Settings → Pages → Source = GitHub Actions, hoặc
