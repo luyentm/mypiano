@@ -45,12 +45,12 @@ const kb = n => n < 1024 ? n + ' B' : (n / 1024).toFixed(1) + ' KB';
 
 /* Giữ y hệt bảng trong library/index.html — hai chỗ lệch nhau là người đọc thấy ngay. */
 const BANDS = [
-  [150, 'Rất dễ',  '#6fc38a'],
-  [300, 'Dễ',      '#8ec36f'],
-  [450, 'Vừa',     '#edb04a'],
-  [600, 'Khá khó', '#e08e4a'],
-  [750, 'Khó',     '#e0704a'],
-  [1001, 'Rất khó', '#d95a6a']
+  [150, 'Rất dễ',  '#0f7d54'],
+  [300, 'Dễ',      '#3f7d16'],
+  [450, 'Vừa',     '#9a6207'],
+  [600, 'Khá khó', '#a8511a'],
+  [750, 'Khó',     '#b93a2f'],
+  [1001, 'Rất khó', '#a72649']
 ];
 const band = d => BANDS.find(b => d < b[0]) || BANDS[BANDS.length - 1];
 
@@ -68,43 +68,66 @@ const ADVICE = {
 /* Bộ CSS dùng chung cho mọi trang sinh ra. Gom ở đây là để KHÔNG lệch nhau giữa các
    trang; file xuất ra vẫn tự chứa đúng như ràng buộc của dự án. */
 const CSS = `
+  /* Bảng màu SÁNG dùng chung với index.html và library/index.html — ba nơi phải
+     khớp từng giá trị. Riêng /play/ giữ nền tối: nốt màu phải nổi trên nền tối
+     mới đọc kịp, và mọi độ tương phản ở đó đã được đo (xem CLAUDE.md). */
   :root{
-    --bg:#0d1017; --card:#131822; --line:#232a38;
-    --text:#d3dae6; --dim:#78849a; --rh:#edb04a; --lh:#57a8d4;
+    --bg:#fff8ee; --card:#ffffff; --line:#f2e2cd; --line2:#e7ddf0;
+    --text:#3b3550; --dim:#6b6485;
+    --rh:#ff9f2e; --lh:#2bb3d9; --mint:#22b378; --grape:#8a5cf0;
+    --link:#0b7392;
+    --sh:0 1px 0 rgba(59,53,80,.03), 0 10px 24px -16px rgba(59,53,80,.35);
+    --sh-hi:0 2px 0 rgba(59,53,80,.04), 0 16px 30px -18px rgba(59,53,80,.42);
   }
   *{box-sizing:border-box}
   body{margin:0; background:var(--bg); color:var(--text); min-height:100vh;
-    font:400 15px/1.65 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; -webkit-text-size-adjust:100%}
+    background-image:radial-gradient(720px 280px at 15% -70px, rgba(255,159,46,.15), transparent 70%),
+      radial-gradient(640px 280px at 85% -50px, rgba(43,179,217,.15), transparent 70%);
+    background-repeat:no-repeat;
+    font:400 15px/1.68 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; -webkit-text-size-adjust:100%}
   .wrap{max-width:760px; margin:0 auto; padding:0 20px}
-  a{color:var(--lh)}
+  a{color:var(--link)}
 
-  nav{position:sticky; top:0; z-index:9; background:rgba(13,16,23,.86);
-    backdrop-filter:blur(8px); border-bottom:1px solid var(--line)}
-  nav .wrap{display:flex; align-items:center; gap:16px; height:56px; max-width:960px}
-  nav .brand{font-weight:600; font-size:15px; color:var(--text); text-decoration:none;
-    display:flex; align-items:center; gap:8px}
-  nav .brand i{color:var(--rh); font-style:normal; font-size:18px}
-  nav a{color:var(--dim); text-decoration:none; font-size:14px}
-  nav a:hover{color:var(--text)}
-  nav .cur{color:var(--text); font-size:14px}
+  nav{position:sticky; top:0; z-index:9; background:rgba(255,248,238,.88);
+    backdrop-filter:blur(10px); border-bottom:1px solid var(--line)}
+  nav .wrap{display:flex; align-items:center; gap:6px; height:60px; max-width:980px}
+  nav .brand{font-weight:800; font-size:16px; color:var(--text); text-decoration:none;
+    display:flex; align-items:center; gap:9px; margin-right:10px}
+  nav .brand i{width:28px; height:28px; border-radius:9px; flex:none; font-style:normal;
+    background:var(--rh); color:#fff; font-size:16px; display:grid; place-items:center;
+    box-shadow:0 3px 8px -3px rgba(255,159,46,.9)}
+  nav a{color:var(--dim); text-decoration:none; font-size:14px; font-weight:500;
+    padding:7px 11px; border-radius:9px; white-space:nowrap}
+  nav a:hover{color:var(--text); background:#fff}
+  /* 375px: nav phải vừa đúng một hàng. Không bóp thì mục cuối bị đẩy ra ngoài mép. */
+  @media (max-width:560px){
+    nav .wrap{gap:2px; height:54px}
+    nav .brand{font-size:15px; gap:7px; margin-right:4px}
+    nav .brand i{width:25px; height:25px; font-size:14px}
+    nav a{font-size:13px; padding:6px 7px}
+    nav .cur{font-size:13px; padding:6px 7px}
+    nav a[href$="#tinh-nang"]{display:none}   /* mục trong trang, bỏ được */
+  }
+  nav .cur{color:var(--text); font-size:14px; font-weight:700; padding:7px 11px}
   nav .spacer{margin-left:auto}
 
-  .crumb{font-size:13px; color:var(--dim); margin:22px 0 0}
+  .crumb{font-size:13px; color:var(--dim); margin:24px 0 0}
   .crumb a{color:var(--dim); text-decoration:none}
   .crumb a:hover{color:var(--text)}
 
-  h1{font-size:27px; line-height:1.25; margin:10px 0 6px; letter-spacing:-.4px}
-  h2{font-size:17px; margin:30px 0 9px; letter-spacing:-.2px}
+  h1{font-size:31px; line-height:1.18; margin:10px 0 6px; letter-spacing:-.7px; font-weight:800}
+  h2{font-size:19px; margin:32px 0 10px; letter-spacing:-.3px; font-weight:800}
   p{margin:0 0 13px}
-  ul{margin:0 0 13px; padding-left:20px}
-  li{margin-bottom:5px}
-  code{background:#0b0e14; border:1px solid var(--line); border-radius:5px;
-    padding:1px 5px; font-size:12.5px}
+  ul{margin:0 0 13px; padding-left:22px}
+  li{margin-bottom:6px}
+  code{background:#fff; border:1px solid var(--line2); border-radius:6px;
+    padding:1px 6px; font-size:12.5px}
 
-  footer{border-top:1px solid var(--line); margin-top:36px; padding:20px 0 40px;
-    color:var(--dim); font-size:12.5px}
-  footer a{color:var(--dim)}
-  footer .wrap{display:flex; flex-wrap:wrap; gap:14px; align-items:center}
+  footer{border-top:1px solid var(--line); margin-top:40px; background:#fffdf9;
+    padding:20px 0 calc(38px + env(safe-area-inset-bottom)); color:var(--dim); font-size:12.5px}
+  footer a{color:var(--link); text-decoration:none}
+  footer a:hover{text-decoration:underline}
+  footer .wrap{display:flex; flex-wrap:wrap; gap:14px; align-items:center; max-width:980px}
   .hit{position:absolute; left:-9999px; width:1px; height:1px; opacity:0; pointer-events:none}`;
 
 /* Chặn badge hits.sh khi chạy localhost — URL badge hardcode tên miền thật nên mở
@@ -181,26 +204,30 @@ ${HIT_TAG}
    TRANG TỪNG BÀI
    ========================================================================== */
 const SONG_CSS = `
-  .by{color:var(--lh); font-size:15px; margin:0 0 16px}
-  .lv{display:flex; align-items:center; gap:10px; margin:0 0 22px; max-width:420px}
-  .lv .bar{flex:1; height:5px; border-radius:3px; background:#232a38; overflow:hidden}
-  .lv .bar i{display:block; height:100%; border-radius:3px}
-  .lv .lvl{font-size:13px; font-weight:600; white-space:nowrap}
+  .by{color:var(--link); font-size:15.5px; font-weight:600; margin:0 0 18px}
+  .lv{display:flex; align-items:center; gap:10px; margin:0 0 24px; max-width:420px}
+  .lv .bar{flex:1; height:7px; border-radius:5px; background:#f0ecf6; overflow:hidden}
+  .lv .bar i{display:block; height:100%; border-radius:5px}
+  .lv .lvl{font-size:13px; font-weight:700; white-space:nowrap}
   .lv .num{font-size:12.5px; color:var(--dim); font-variant-numeric:tabular-nums; white-space:nowrap}
-  .cta{display:inline-flex; align-items:center; gap:9px; background:var(--rh); color:#1a1200;
-    font-weight:700; font-size:16px; text-decoration:none; border-radius:11px;
-    padding:14px 26px; margin-bottom:10px}
-  .cta:hover{background:#f6bd5d}
-  .sub{font-size:13px; color:var(--dim); margin:0 0 26px}
-  .note{background:var(--card); border:1px solid var(--line); border-left:3px solid var(--lh);
-    border-radius:9px; padding:13px 15px; color:var(--text); font-size:14.5px; margin:0 0 13px}
+  .cta{display:inline-flex; align-items:center; gap:9px; background:var(--rh); color:#4a2a00;
+    font-weight:800; font-size:17px; text-decoration:none; border-radius:14px;
+    padding:15px 28px; margin-bottom:12px;
+    box-shadow:0 4px 0 #e07f10, 0 14px 24px -14px rgba(224,127,16,.9)}
+  .cta:hover{filter:brightness(1.04)}
+  .cta:active{transform:translateY(2px); box-shadow:0 2px 0 #e07f10}
+  .sub{font-size:13.5px; color:var(--dim); margin:0 0 28px}
+  .note{background:var(--card); border:1px solid var(--line); border-left:4px solid var(--lh);
+    border-radius:14px; padding:14px 17px; color:var(--text); font-size:14.5px; margin:0 0 14px;
+    box-shadow:var(--sh)}
   .facts{list-style:none; padding:0; font-size:13.5px; color:var(--dim)}
-  .facts b{color:var(--text); font-weight:600}
-  .near{display:flex; flex-wrap:wrap; gap:8px; padding:0; list-style:none; margin:0 0 13px}
+  .facts b{color:var(--text); font-weight:700}
+  .near{display:flex; flex-wrap:wrap; gap:8px; padding:0; list-style:none; margin:0 0 14px}
   .near li{margin:0}
   .near a{display:inline-block; background:var(--card); border:1px solid var(--line);
-    border-radius:8px; padding:7px 12px; font-size:13.5px; text-decoration:none; color:var(--text)}
-  .near a:hover{border-color:#313c52; color:var(--rh)}`;
+    border-radius:11px; padding:8px 13px; font-size:13.5px; text-decoration:none;
+    color:var(--text); box-shadow:var(--sh)}
+  .near a:hover{box-shadow:var(--sh-hi); color:var(--link)}`;
 
 const pageFor = (s, i) => {
   const slug = slugOf(s.file);
@@ -272,27 +299,34 @@ ${near.map(o => '    <li>' + link(o) + '</li>').join('\n')}
    TRANG GIẤY PHÉP & GHI CÔNG
    ========================================================================== */
 const LIC_CSS = `
-  .lead{color:var(--dim); font-size:14.5px; margin:0 0 24px}
-  .box{background:var(--card); border:1px solid var(--line); border-radius:10px;
-    padding:15px 17px; margin:0 0 15px}
-  .box.warn{border-left:3px solid var(--rh)}
-  .box h3{margin:0 0 7px; font-size:15px}
+  .lead{color:var(--dim); font-size:14.5px; margin:0 0 26px}
+  .box{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:16px 18px; margin:0 0 16px; box-shadow:var(--sh)}
+  .box.warn{border-left:4px solid var(--rh)}
+  .box h3{margin:0 0 8px; font-size:15px; font-weight:700}
   .box p:last-child{margin-bottom:0}
-  dl{margin:0 0 14px; font-size:14px}
-  dt{color:var(--dim); font-size:12.5px; margin-top:9px}
+  dl{margin:0 0 15px; font-size:14.5px}
+  dt{color:var(--dim); font-size:12.5px; margin-top:11px; font-weight:600;
+    text-transform:uppercase; letter-spacing:.04em}
   dd{margin:2px 0 0}
-  .tw{overflow-x:auto; margin:0 0 14px; border:1px solid var(--line); border-radius:10px}
+  .tw{overflow-x:auto; margin:0 0 15px; border:1px solid var(--line); border-radius:14px;
+    background:var(--card); box-shadow:var(--sh)}
   table{border-collapse:collapse; width:100%; font-size:13.5px; min-width:520px}
-  th,td{text-align:left; padding:9px 13px; border-bottom:1px solid var(--line); vertical-align:top}
-  th{color:var(--dim); font-weight:600; font-size:12.5px; background:#111621}
+  th,td{text-align:left; padding:11px 14px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{color:var(--dim); font-weight:700; font-size:12px; background:#fffaf2;
+    text-transform:uppercase; letter-spacing:.04em}
   tr:last-child td{border-bottom:0}
-  td .f{display:block; color:#5c6880; font-size:11.5px; font-variant-numeric:tabular-nums}
-  .tag{display:inline-block; border-radius:20px; padding:2px 9px; font-size:11.5px;
-    font-weight:600; white-space:nowrap}
-  .tag.pd{background:#1c3327; color:#6fc38a}
-  .tag.cop{background:#3a2530; color:#e08e9a}
-  .toc{list-style:none; padding:0; margin:0 0 26px; font-size:14px}
-  .toc li{margin-bottom:4px}`;
+  td .f{display:block; color:var(--dim); font-size:11.5px; font-variant-numeric:tabular-nums}
+  .tag{display:inline-block; border-radius:20px; padding:3px 11px; font-size:11.5px;
+    font-weight:700; white-space:nowrap}
+  .tag.pd{background:#e2f6ec; color:#0f7d54}
+  .tag.cop{background:#fdeaee; color:#a72649}
+  .toc{list-style:none; padding:0; margin:0 0 28px; font-size:14px;
+    display:flex; flex-wrap:wrap; gap:8px}
+  .toc li{margin:0}
+  .toc a{display:inline-block; text-decoration:none; padding:5px 11px; border-radius:10px;
+    background:var(--card); border:1px solid var(--line); box-shadow:var(--sh)}
+  .toc a:hover{box-shadow:var(--sh-hi)}`;
 
 const licensePage = () => {
   const pd = songs.filter(s => s.rights === 'pd');

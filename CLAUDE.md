@@ -246,6 +246,22 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
     đổi thì vẫn đứng hình. Đo lại: 28/120 frame vẽ lại, y như khi tắt.
   - Tắt một tay thì phải `barIdx = -2` để tính lại tập phím.
 
+- **Panel chỉnh chia đúng BA hàng theo KIỂU điều khiển**, không phải theo chủ đề:
+  bốn thanh kéo · ba ô chọn · tất cả thứ bật/tắt gom thành viên thuốc (5 công tắc +
+  vạch ngăn + 2 nút chọn tay). Bản cũ là hai hàng `flex-wrap` trộn lẫn nên mỗi bề
+  ngang lại rơi dòng một kiểu. Đo ở 844×390: panel **176px → 138px**, vùng nốt rơi
+  **92px → 130px** (+41%); ở 1024×768 panel 138px, vùng rơi 448px.
+  - Hàng thanh kéo là **grid** `repeat(auto-fit,minmax(176px,1fr))` để bốn thanh dóng
+    thẳng cột. Dưới 700px ép `repeat(2,1fr)`: auto-fit ở đó chỉ nhét được 3 cột nên
+    ra khối 3+1 so le, ép 2 cột thì thành 2×2 cân đối mà không cao thêm.
+  - **Công tắc vẫn là `<input type=checkbox>` THẬT**, chỉ ẩn phần nhìn
+    (`position:absolute; opacity:0`) — giữ nguyên tab, phím Space, aria và mọi handler
+    `onchange`. Chấm màu đổi bằng `input:checked + i` (chạy ở mọi trình duyệt); phần
+    viền sáng lên thêm dùng `:has()` nên máy không có `:has()` chỉ mất phần trang trí,
+    không mất tín hiệu bật/tắt. Phải có `label.chip:focus-within{outline}` vì checkbox
+    thật đã bị ẩn, không còn vòng focus mặc định.
+  - Viên thuốc dùng CHUNG khai báo CSS với `.hand` để cả hàng nhìn thành một nhóm.
+
 - **Số ngón 1–5 — ĐÃ GỠ (2026-09-08), đừng làm lại.** Từng có `fingering()` suy ra
   số ngón bằng heuristic "thế 5 ngón" và chỉ gán ở chỗ tự cho là chắc (47% số nốt).
   Con số nội bộ đẹp (0 ngón trùng, 0 ngón chéo) nhưng **kết quả thực tế sai**, nên đã
@@ -344,6 +360,42 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
   (`play`, `stop`, `seekTo`, `load`) đều phải gọi `hideDone()`, nếu không overlay kẹt lại.
 - **`?song=` chỉ nhận tên file thuần** (`/^[A-Za-z0-9._-]+\.midi?$/`) rồi fetch `../midi/<tên>`.
   Đừng nhận đường dẫn hay URL đầy đủ — mở đường cho traversal và fetch bậy.
+
+## Giao diện & bảng màu
+
+**Hai bảng màu, cố ý.** Bốn trang tĩnh (`/`, `/library/`, `/bai/*/`, `/giay-phep/`) dùng
+nền **kem sáng** cho hợp lứa tuổi thiếu nhi; riêng `/play/` vẫn **nền tối** và không đổi.
+
+Lý do giữ `/play/` tối, đừng "thống nhất" lại: nốt màu phải nổi bật hơn mọi thứ khác trên
+màn, và toàn bộ độ tương phản ở đó đã được đo và ghi trong mục "Quyết định kỹ thuật phải
+giữ" — dải quãng tám lệch 6.3 lum, vạch lưới 30.6, vạch ô nhịp 59, phủ khoanh ô nhịp
+trắng 204→139 / đen 30→74. Đổi nền sáng là phải đo lại từng con số đó.
+
+```
+--bg #fff8ee   --card #ffffff  --line #f2e2cd  --line2 #e7ddf0
+--text #3b3550 --dim #6b6485   --link #0b7392
+--rh #ff9f2e   --lh #2bb3d9    --mint #22b378  --grape #8a5cf0
+```
+
+- **Ba nơi phải khớp từng giá trị**: `<style>` trong [index.html](index.html), trong
+  [library/index.html](library/index.html), và hằng `CSS` trong
+  [tools/build-pages.js](tools/build-pages.js). Lặp lại là cố ý (mỗi trang tự chứa), nhưng
+  lệch màu thì người dùng thấy ngay khi bấm qua lại.
+- **`--rh`/`--lh` chỉ dùng làm khối màu, KHÔNG làm chữ trên nền sáng**: cam #ff9f2e trên
+  trắng chỉ đạt 2.1. Chữ cần màu thì dùng `--link` (#0b7392, đạt 5.4).
+- **Đo lại tương phản sau mỗi lần đổi màu.** Hiện thấp nhất là 4.79 (nhãn mức "Dễ" trên
+  nền kem), đạt WCAG AA. Từng có hai chỗ hụt và đã sửa: chữ phụ #a49dbb chỉ 2.59, và
+  bộ màu mức độ bản cũ (#6fc38a…) vốn chọn cho nền tối.
+- **Màu 6 mức độ phải khớp giữa `library/index.html` và `tools/build-pages.js`** — cùng
+  lý do với bảng `BANDS`. Bộ hiện tại: `#0f7d54 #3f7d16 #9a6207 #a8511a #b93a2f #a72649`,
+  đạt AA trên cả nền trắng lẫn nền kem.
+- **Khung mô phỏng ở trang chủ (`.demo`) giữ nền tối** — nó là ảnh thu nhỏ của `/play/`
+  thật. Để sáng thì trang chủ hứa một đằng, bấm vào một nẻo. Hero canvas cũng đọc
+  `--rh`/`--lh` nên hai màu đó phải luôn nổi được trên nền tối.
+- **`@media (max-width:560px)` bóp nav lại** (ẩn mục `#tinh-nang`, giảm cỡ chữ và đệm).
+  Không có nó thì ở 375px chữ "Tính năng"/"Thư viện" xuống dòng và mục cuối bị đẩy ra
+  ngoài mép. `nav a` bắt buộc `white-space:nowrap`. Đo sau khi sửa: mép phải mục cuối
+  355px trên khung 375px, nav một hàng, không trang nào tràn ngang.
 
 ## Thêm bài vào thư viện
 

@@ -13,95 +13,146 @@
 <meta name="description" content="Học piano bằng nốt rơi: mở file MIDI trong browser, nốt rơi xuống chạm bàn phím 88 phím đúng lúc nốt kêu. Không cài đặt, không backend.">
 <link rel="canonical" href="https://luyentm.github.io/mypiano/">
 <style>
+  /* Bảng màu SÁNG, ấm — nhắm vào trẻ nhỏ: nền kem chứ không phải trắng gắt, chữ
+     tím than mềm hơn đen thuần, bo góc to, bóng đổ nhẹ. Hai màu tay giữ đúng
+     nghĩa cam/xanh như trong màn chơi để trẻ nhìn đâu cũng thấy một quy ước.
+     Riêng khung mô phỏng màn chơi (.stage) vẫn NỀN TỐI: nốt màu phải nổi trên
+     nền tối mới đọc kịp, và /play/ thật cũng nền tối — để sáng ở đây thì trang
+     chủ hứa một đằng, bấm vào một nẻo. */
   :root{
-    --bg:#0d1017; --panel:#151a24; --card:#131822; --line:#232a38;
-    --text:#d3dae6; --dim:#78849a;
-    --rh:#edb04a; --lh:#57a8d4;
+    --bg:#fff8ee; --card:#ffffff; --line:#f2e2cd; --line2:#e7ddf0;
+    --text:#3b3550; --dim:#6b6485;
+    --rh:#ff9f2e; --lh:#2bb3d9; --mint:#22b378; --grape:#8a5cf0;
+    --link:#0b7392;
+    --sh:0 1px 0 rgba(59,53,80,.03), 0 10px 24px -16px rgba(59,53,80,.35);
+    --sh-hi:0 2px 0 rgba(59,53,80,.04), 0 16px 30px -18px rgba(59,53,80,.42);
   }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
   body{
-    margin:0; background:var(--bg); color:var(--text);
-    font:400 15px/1.6 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    margin:0; color:var(--text);
+    background:var(--bg);
+    /* hai vệt màu rất nhạt ở đầu trang cho đỡ phẳng, không ăn vào chữ */
+    background-image:
+      radial-gradient(760px 300px at 12% -60px, rgba(255,159,46,.16), transparent 70%),
+      radial-gradient(680px 300px at 88% -40px, rgba(43,179,217,.16), transparent 70%);
+    background-repeat:no-repeat;
+    font:400 15px/1.65 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
     -webkit-text-size-adjust:100%;
   }
-  .wrap{max-width:960px; margin:0 auto; padding:0 20px}
+  .wrap{max-width:980px; margin:0 auto; padding:0 20px}
 
-  nav{position:sticky; top:0; z-index:9; background:rgba(13,16,23,.86);
-    backdrop-filter:blur(8px); border-bottom:1px solid var(--line)}
-  nav .wrap{display:flex; align-items:center; gap:16px; height:56px}
-  nav .brand{font-weight:600; font-size:15px; color:var(--text); text-decoration:none;
-    display:flex; align-items:center; gap:8px}
-  nav .brand i{color:var(--rh); font-style:normal; font-size:18px}
-  nav a{color:var(--dim); text-decoration:none; font-size:14px}
-  nav a:hover{color:var(--text)}
+  nav{position:sticky; top:0; z-index:9; background:rgba(255,248,238,.88);
+    backdrop-filter:blur(10px); border-bottom:1px solid var(--line)}
+  nav .wrap{display:flex; align-items:center; gap:6px; height:60px}
+  nav .brand{font-weight:800; font-size:16px; color:var(--text); text-decoration:none;
+    display:flex; align-items:center; gap:9px; margin-right:10px}
+  nav .brand i{width:28px; height:28px; border-radius:9px; flex:none; font-style:normal;
+    background:var(--rh); color:#fff; font-size:16px; display:grid; place-items:center;
+    box-shadow:0 3px 8px -3px rgba(255,159,46,.9)}
+  nav a{color:var(--dim); text-decoration:none; font-size:14px; font-weight:500;
+    padding:7px 11px; border-radius:9px; white-space:nowrap}
+  nav a:hover{color:var(--text); background:#fff}
+  /* 375px: nav phải vừa đúng một hàng. Không bóp thì mục cuối bị đẩy ra ngoài mép. */
+  @media (max-width:560px){
+    nav .wrap{gap:2px; height:54px}
+    nav .brand{font-size:15px; gap:7px; margin-right:4px}
+    nav .brand i{width:25px; height:25px; font-size:14px}
+    nav a{font-size:13px; padding:6px 7px}
+    nav .cur{font-size:13px; padding:6px 7px}
+    nav a[href$="#tinh-nang"]{display:none}   /* mục trong trang, bỏ được */
+  }
   nav .spacer{margin-left:auto}
 
-  .btn{display:inline-block; border-radius:8px; padding:11px 20px; font-size:14px;
-    text-decoration:none; border:1px solid var(--line); background:#202737; color:var(--text)}
-  .btn:hover{background:#283147}
-  .btn.primary{background:var(--lh); border-color:var(--lh); color:#08111a; font-weight:600}
-  .btn.primary:hover{filter:brightness(1.08)}
+  .btn{display:inline-block; border-radius:12px; padding:12px 20px; font-size:14.5px;
+    font-weight:600; text-decoration:none; border:1px solid var(--line);
+    background:var(--card); color:var(--text); box-shadow:var(--sh)}
+  .btn:hover{box-shadow:var(--sh-hi); transform:translateY(-1px)}
+  .btn.primary{background:var(--rh); border-color:var(--rh); color:#4a2a00; font-weight:700;
+    box-shadow:0 4px 0 #e07f10, 0 12px 22px -14px rgba(224,127,16,.9)}
+  .btn.primary:hover{filter:brightness(1.04)}
+  .btn.primary:active{transform:translateY(2px); box-shadow:0 2px 0 #e07f10}
 
-  .banner{overflow:hidden; white-space:nowrap; margin:18px 0 -6px;
-    background:linear-gradient(90deg,#1b2230,#232c3e,#1b2230);
-    border:1px solid var(--line); border-radius:10px; padding:9px 0}
-  .banner span{display:inline-block; padding-left:100%; font-size:28px; font-weight:600;
-    color:var(--rh); animation:run 14s linear infinite}
-  .banner span b{color:var(--lh)}
+  .banner{overflow:hidden; white-space:nowrap; margin:18px 0 -4px; border-radius:14px;
+    background:linear-gradient(90deg,#fff2dc,#ffe9f2,#e6f7fd);
+    border:1px solid var(--line); padding:10px 0}
+  .banner span{display:inline-block; padding-left:100%; font-size:26px; font-weight:800;
+    color:#e07f10; animation:run 14s linear infinite}
+  .banner span b{color:#0b7392}
   @keyframes run{ from{transform:translateX(0)} to{transform:translateX(-100%)} }
   .banner:hover span{animation-play-state:paused}
   @media (prefers-reduced-motion:reduce){
-    .banner{text-align:center; padding:9px 12px; text-overflow:ellipsis}
+    .banner{text-align:center; padding:10px 14px; text-overflow:ellipsis}
     .banner span{padding-left:0; animation:none; white-space:normal}
+    .btn:hover{transform:none}
   }
-  header.hero{padding:52px 0 8px}
-  header.hero h1{font-size:34px; line-height:1.2; margin:0 0 14px; letter-spacing:-.4px}
-  header.hero h1 span{color:var(--rh)}
-  header.hero p.lead{font-size:17px; color:var(--dim); margin:0 0 24px; max-width:620px}
-  .cta{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
-  .cta .hint{font-size:13px; color:var(--dim)}
-  @media (max-width:600px){ header.hero{padding:32px 0 4px} header.hero h1{font-size:26px} }
 
-  .demo{margin:30px 0 8px; border:1px solid var(--line); border-radius:12px; overflow:hidden;
-    background:linear-gradient(180deg,#0b0e14,#111620)}
+  header.hero{padding:46px 0 8px}
+  header.hero h1{font-size:40px; line-height:1.14; margin:0 0 14px; letter-spacing:-1px;
+    font-weight:800; max-width:15ch}
+  header.hero h1 span{color:#e07f10}
+  header.hero p.lead{font-size:17px; color:var(--dim); margin:0 0 24px; max-width:620px}
+  .cta{display:flex; gap:12px; flex-wrap:wrap; align-items:center}
+  .cta .hint{font-size:13.5px; color:var(--dim)}
+  @media (max-width:600px){ header.hero{padding:28px 0 4px} header.hero h1{font-size:29px} }
+
+  /* Khung mô phỏng màn chơi — cố tình tối, xem mục ghi chú ở đầu bảng màu */
+  .demo{margin:30px 0 8px; border-radius:18px; overflow:hidden;
+    background:linear-gradient(180deg,#131a26,#0d1017);
+    box-shadow:0 3px 0 rgba(59,53,80,.05), 0 26px 44px -26px rgba(59,53,80,.55)}
   .demo canvas{display:block; width:100%; height:250px}
-  .demo .cap{border-top:1px solid var(--line); padding:8px 12px; font-size:12px; color:var(--dim);
-    background:var(--panel)}
+  .demo .cap{border-top:1px solid rgba(255,255,255,.08); padding:10px 14px;
+    font-size:12.5px; color:#9aa4bb}
   @media (max-width:600px){ .demo canvas{height:180px} }
 
-  section{padding:44px 0 4px}
-  h2{font-size:20px; margin:0 0 6px; letter-spacing:-.2px}
-  h2 + p.sub{color:var(--dim); margin:0 0 22px; font-size:14px}
+  section{padding:46px 0 4px}
+  h2{font-size:24px; margin:0 0 6px; letter-spacing:-.4px; font-weight:800}
+  h2 + p.sub{color:var(--dim); margin:0 0 22px; font-size:14.5px}
 
   .grid{display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
-  .card{background:var(--card); border:1px solid var(--line); border-radius:11px; padding:16px 17px}
-  .card h3{margin:0 0 6px; font-size:14.5px; display:flex; align-items:center; gap:8px}
-  .card h3 b{width:7px; height:7px; border-radius:50%; background:var(--rh); flex:none}
-  .card p{margin:0; font-size:13.5px; color:var(--dim); line-height:1.55}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:16px;
+    padding:18px 19px; box-shadow:var(--sh)}
+  .card:hover{box-shadow:var(--sh-hi); transform:translateY(-2px)}
+  .card h3{margin:0 0 7px; font-size:15px; font-weight:700; display:flex;
+    align-items:center; gap:9px}
+  /* Chấm màu xoay vòng 4 màu cho vui mắt, thay vì chỉ cam/xanh */
+  .card h3 b{width:10px; height:10px; border-radius:4px; background:var(--rh); flex:none}
+  .card:nth-child(4n+2) h3 b{background:var(--lh)}
+  .card:nth-child(4n+3) h3 b{background:var(--mint)}
+  .card:nth-child(4n+4) h3 b{background:var(--grape)}
+  .card p{margin:0; font-size:13.5px; color:var(--dim); line-height:1.6}
+  @media (prefers-reduced-motion:reduce){ .card:hover{transform:none} }
 
   ol.steps{counter-reset:s; list-style:none; padding:0; margin:0; display:grid; gap:12px}
-  ol.steps li{counter-increment:s; display:flex; gap:13px; align-items:flex-start;
-    background:var(--card); border:1px solid var(--line); border-radius:11px; padding:14px 16px}
-  ol.steps li::before{content:counter(s); flex:none; width:24px; height:24px; border-radius:50%;
-    background:#202737; color:var(--lh); font-size:12.5px; font-weight:600;
-    display:grid; place-items:center; margin-top:1px}
-  ol.steps li div{font-size:14px}
-  ol.steps li div small{display:block; color:var(--dim); font-size:13px; margin-top:2px}
-  kbd{background:#202737; border:1px solid var(--line); border-bottom-width:2px; border-radius:5px;
-    padding:1px 6px; font:inherit; font-size:12.5px}
+  ol.steps li{counter-increment:s; display:flex; gap:14px; align-items:flex-start;
+    background:var(--card); border:1px solid var(--line); border-radius:16px;
+    padding:16px 18px; box-shadow:var(--sh)}
+  ol.steps li::before{content:counter(s); flex:none; width:30px; height:30px; border-radius:11px;
+    background:var(--rh); color:#fff; font-size:14px; font-weight:800;
+    display:grid; place-items:center; margin-top:-1px}
+  ol.steps li:nth-child(2)::before{background:var(--lh)}
+  ol.steps li:nth-child(3)::before{background:var(--mint)}
+  ol.steps li div{font-size:15px; font-weight:600}
+  ol.steps li div small{display:block; color:var(--dim); font-size:13.5px; margin-top:3px;
+    font-weight:400}
+  a{color:var(--link)}
+  kbd{background:#fff; border:1px solid var(--line2); border-bottom-width:2px; border-radius:6px;
+    padding:1px 7px; font:inherit; font-size:12.5px; color:var(--text)}
+  code{background:#fff; border:1px solid var(--line2); border-radius:6px; padding:1px 6px;
+    font-size:12.5px}
 
-  ul.tech{list-style:none; padding:0; margin:0; display:grid; gap:9px;
+  ul.tech{list-style:none; padding:0; margin:0; display:grid; gap:10px;
     grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
-  ul.tech li{font-size:13.5px; color:var(--dim); padding-left:18px; position:relative}
-  ul.tech li::before{content:'▸'; position:absolute; left:0; color:var(--lh)}
-  ul.tech li b{color:var(--text); font-weight:500}
+  ul.tech li{font-size:13.5px; color:var(--dim); padding-left:20px; position:relative}
+  ul.tech li::before{content:'♪'; position:absolute; left:0; color:var(--lh); font-size:13px}
+  ul.tech li b{color:var(--text); font-weight:600}
 
-  footer{margin-top:52px; border-top:1px solid var(--line); background:var(--panel)}
+  footer{margin-top:54px; border-top:1px solid var(--line); background:#fffdf9}
   footer .wrap{display:flex; gap:14px; flex-wrap:wrap; align-items:center;
-    padding-top:18px; padding-bottom:calc(18px + env(safe-area-inset-bottom));
+    padding-top:20px; padding-bottom:calc(20px + env(safe-area-inset-bottom));
     font-size:13px; color:var(--dim)}
-  footer a{color:var(--lh); text-decoration:none}
+  footer a{color:var(--link); text-decoration:none}
+  footer a:hover{text-decoration:underline}
   footer .spacer{margin-left:auto}
   footer img{display:block; height:20px; width:auto}
   footer .lic{color:var(--dim)}
@@ -154,7 +205,7 @@
         <p>Tỉ lệ phím trắng/đen đúng như đàn thật, từ A0 tới C8. Phím sáng lên đúng lúc nốt kêu.</p>
       </div>
       <div class="card">
-        <h3><b style="background:var(--lh)"></b>Tách hai tay</h3>
+        <h3><b></b>Tách hai tay</h3>
         <p>Tay phải và tay trái khác màu, tách theo track của file MIDI — file một track thì tách theo cao độ.</p>
       </div>
       <div class="card">
@@ -167,7 +218,7 @@
         <p>Kéo chậm lại để đọc kịp nốt, quen rồi thì tăng dần. Đổi tốc độ giữa chừng không làm lệch nhịp.</p>
       </div>
       <div class="card">
-        <h3><b style="background:var(--lh)"></b>Nhìn trước 1–6 giây</h3>
+        <h3><b></b>Nhìn trước 1–6 giây</h3>
         <p>Muốn thấy xa để chuẩn bị, hay thấy gần cho đỡ rối — tuỳ bạn chỉnh.</p>
       </div>
       <div class="card">
@@ -175,7 +226,7 @@
         <p>Bài lưu thẳng trong repo và xếp sẵn từ dễ tới khó — cứ theo thứ tự mà tập. Hoặc kéo thả file từ máy.</p>
       </div>
       <div class="card">
-        <h3><b style="background:var(--lh)"></b>Hợp màn hình nhỏ</h3>
+        <h3><b></b>Hợp màn hình nhỏ</h3>
         <p>Điện thoại thì 88 phím quá bé, nên có chế độ thu gọn: chỉ vẽ đúng khoảng cao độ bài dùng.</p>
       </div>
     </div>
@@ -186,7 +237,7 @@
     <p class="sub">Ba bước, không có bước nào cần cài gì.</p>
     <ol class="steps">
       <li><div>Chọn bài
-        <small>Vào <a href="library/" style="color:var(--lh)">thư viện</a> chọn một bài, hoặc kéo thẳng file <code>.mid</code> từ máy vào màn chơi.</small></div></li>
+        <small>Vào <a href="library/">thư viện</a> chọn một bài, hoặc kéo thẳng file <code>.mid</code> từ máy vào màn chơi.</small></div></li>
       <li><div>Bấm Chơi
         <small>Hoặc gõ phím <kbd>Space</kbd>. Lần bấm đầu tiên cũng là lúc browser cho phép phát tiếng.</small></div></li>
       <li><div>Kéo tốc độ xuống rồi tập theo
