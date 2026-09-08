@@ -50,6 +50,16 @@
   @media (max-width:1100px){ header h1{display:none} }
   @media (max-width:560px){ header .leg{display:none} }
   @media (max-width:600px){ header .sub{display:none} }
+  /* Link giấy phép là thứ ĐẦU TIÊN phải nhường chỗ ở top bar, giống h1/.sub/.leg.
+     Nó nằm ở nhóm TRÁI chứ không phải nhóm phải: nhóm phải có #songname co giãn, thêm
+     57px vào đó là tên bài bị cắt từ 172px xuống 107px. Nhóm trái thì còn chỗ thật.
+     Đo với badge "lượt tập" giả lập 95px (trên site thật #hits có badge, ở localhost
+     thì rỗng — không giả lập là đo thiếu 95px): 844px còn khe 28px tới nút Chơi, 812px
+     còn 12px, 800px còn 6px, 780px thì âm. Ngưỡng để 820 chứ không sát mép vì bề ngang
+     chữ "Giấy phép" đổi theo phông hệ thống từng máy.
+     Ẩn ở đây không mất ghi công: footer trang chủ, footer thư viện, nav mọi trang bai/
+     và trang giay-phep/ đều còn link. */
+  @media (max-width:820px){ header a.lic{display:none} }
 
   /* Nút chính của cả màn hình: cam, to, dễ trúng ngón tay */
   .btn.pp{display:inline-flex; align-items:center; justify-content:center;
@@ -135,7 +145,7 @@
   label.ctl b{color:var(--text); font-weight:500; font-variant-numeric:tabular-nums;
     min-width:40px; display:inline-block}
   /* Ghi công CC BY của mẫu tiếng đàn phải với tới được từ chính màn đang phát tiếng đó.
-     Đặt cuối hàng flex của panel nên không ăn thêm dòng nào. */
+     Là chữ thường chứ không phải .btn — top bar là chỗ chật nhất, không cho thêm nút. */
   a.lic{font-size:12px; color:var(--dim); text-decoration:none; white-space:nowrap}
   a.lic:hover{color:var(--text)}
   input[type=range]{accent-color:var(--lh); height:24px}
@@ -189,6 +199,7 @@
     </span>
     <button class="btn loop" id="loopchip" title="Bấm để bỏ lặp" hidden></button>
     <span id="hits"></span>
+    <a class="lic" href="../giay-phep/" title="Giấy phép mã nguồn và ghi công mẫu tiếng đàn">Giấy phép</a>
   </div>
 
   <button class="btn pp" id="play" title="Chơi (Space)" aria-label="Chơi">
@@ -292,7 +303,6 @@
       <button class="hand" id="h1" data-s="on" aria-pressed="true"><i style="background:var(--lh)"></i>Tay trái <b>phát</b></button>
     </span>
     <span class="err" id="err"></span>
-    <a class="lic" href="../giay-phep/" target="_blank" rel="noopener" title="Giấy phép mã nguồn và ghi công mẫu tiếng đàn">Giấy phép</a>
   </div>
   </div>
 </footer>

@@ -615,10 +615,20 @@ thư viện lập trình · bảng bản quyền từng file MIDI · dịch vụ
 - **CI kiểm tra trang này như một nghĩa vụ giấy phép**, không phải trang trang trí: phải có
   đủ chuỗi `Alexander Holm`, `CC BY 3.0`, `PolyForm`, `Required Notice`, và **mọi file
   `.mid` trong `midi/` phải xuất hiện trong bảng**. Thiếu là CI đỏ.
-- Link tới trang: footer trang chủ (2 link, một trỏ thẳng `#audio`), footer thư viện, footer
-  mọi trang `bai/`, và **cuối hàng panel của `/play/`** — đo được link đó tốn **0 px** chiều
-  cao vì lọt vào hàng flex sẵn có, nên không phạm luật "chiều cao là thứ khan hiếm nhất".
-  Màn chơi mới là chỗ mẫu tiếng đàn thật sự được phát, nên ghi công phải với tới được từ đó.
+- **Link vào trang nằm ở nav/header của mọi trang**: nav trang chủ (`Tính năng · Thư viện ·
+  Chơi · Giấy phép`), nav thư viện, nav mọi trang `bai/`, cộng footer trang chủ (2 link,
+  một trỏ thẳng `#audio`) và footer thư viện. Ở chính `/giay-phep/` thì mục đó in thành
+  `<span class="cur">` chứ không tự link về mình.
+- **Trên `/play/` link nằm ở NHÓM TRÁI của top bar, không phải nhóm phải.** Nhóm phải có
+  `#songname` co giãn: nhét thêm 57px vào đó thì tên bài bị cắt từ 172px xuống 107px.
+  Nhóm trái (`♪` · đồng hồ · chú thích tay · badge lượt tập) mới là chỗ còn chỗ thật.
+  Là chữ thường (`a.lic`) chứ không phải `.btn` — top bar là chỗ chật nhất màn hình.
+- **`@media (max-width:820px)` ẩn link đó đi**, đúng kiểu `h1`/`.sub`/`.leg` đã làm.
+  Đo với badge lượt tập giả lập 95px (ở localhost `#hits` rỗng, không giả lập là đo
+  thiếu 95px): 1024px còn khe 111px tới nút Chơi, 844px còn 28px, 812px 12px, 800px 6px,
+  780px thì âm. Để 820 chứ không sát mép vì bề ngang chữ đổi theo phông hệ thống.
+  **Bản đầu đặt ở nhóm phải và không có ngưỡng nào: ở 568px nhóm phải tràn ngược 15px
+  và ĐÈ LÊN nút Chơi.** Nút Chơi vẫn đúng tâm ở mọi bề ngang đã đo (grid `1fr auto 1fr`).
 - Bảng cuộn ngang trong khung riêng (`.tw{overflow-x:auto}`, bảng `min-width:520px`) — đo ở
   375px: khung cuộn 333→520, còn cả trang **không** tràn ngang.
 

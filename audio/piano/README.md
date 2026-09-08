@@ -15,7 +15,7 @@ CC BY 3.0 cho phép dùng cả cho mục đích thương mại, **miễn là ghi
 của mã nguồn — xem [../../LICENSE](../../LICENSE).
 
 Ghi công đầy đủ hiển thị ở trang [/giay-phep/](../../giay-phep/) (sinh tự động), rút gọn ở
-footer trang chủ và ở cuối hàng panel của màn chơi. Trang đó cũng khai báo hai sửa đổi so
+footer trang chủ, nav thư viện và top bar của màn chơi. Trang đó cũng khai báo hai sửa đổi so
 với bản gốc mà CC BY 3.0 bắt buộc phải nói rõ: cắt còn 6 giây và trộn stereo xuống mono.
 
 ## Vì sao lấy đúng 30 file này

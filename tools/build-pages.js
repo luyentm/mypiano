@@ -86,6 +86,7 @@ const CSS = `
   nav .brand i{color:var(--rh); font-style:normal; font-size:18px}
   nav a{color:var(--dim); text-decoration:none; font-size:14px}
   nav a:hover{color:var(--text)}
+  nav .cur{color:var(--text); font-size:14px}
   nav .spacer{margin-left:auto}
 
   .crumb{font-size:13px; color:var(--dim); margin:22px 0 0}
@@ -149,12 +150,16 @@ ${extraCss}
 <body>
 `;
 
-const nav = up => `<nav>
+/* here === 'giay-phep' thì mục đó in thành chữ thường thay vì tự link về chính nó. */
+const nav = (up, here) => `<nav>
   <div class="wrap">
     <a class="brand" href="${up}"><i>♪</i> mypiano</a>
     <span class="spacer"></span>
     <a href="${up}library/">Thư viện</a>
     <a href="${up}play/">Chơi</a>
+    ${here === 'giay-phep'
+      ? '<span class="cur" aria-current="page">Giấy phép</span>'
+      : `<a href="${up}giay-phep/">Giấy phép</a>`}
   </div>
 </nav>
 `;
@@ -304,7 +309,7 @@ const licensePage = () => {
           s.rightsNote ? '<span class="f">' + esc(s.rightsNote) + '</span>' : ''}</td>
       </tr>`;
 
-  return head(title, desc, BASE + 'giay-phep/', LIC_CSS) + nav('../') + `
+  return head(title, desc, BASE + 'giay-phep/', LIC_CSS) + nav('../', 'giay-phep') + `
 <div class="wrap">
   <p class="crumb"><a href="../">mypiano</a> › Giấy phép &amp; ghi công</p>
   <h1>Giấy phép &amp; ghi công</h1>
