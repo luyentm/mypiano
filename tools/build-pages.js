@@ -61,7 +61,7 @@ const ADVICE = {
   'Dễ': 'Tay trái ở mức này thường chỉ giữ hợp âm hoặc nốt dài, nên cách nhanh nhất là tập riêng tay phải tới khi không phải nhìn màn hình nữa, rồi mới bật lại tay trái.',
   'Vừa': 'Đừng chạy hết bài từ đầu. Kéo hai tay cầm trên thanh tua để khoanh lấy một câu 4–8 ô nhịp, cày ở tốc độ 60–70% cho tới khi trơn rồi mới nới tốc độ lên.',
   'Khá khó': 'Ở mức này chỗ vấp thường nằm ở vài ô nhịp cố định chứ không rải đều cả bài. Tìm đúng chỗ đó, khoanh đoạn lặp, hạ tốc độ xuống 50% và tập từng tay một.',
-  'Khó': 'Bài dài và dày, nên chia thành từng đoạn mà tập chứ đừng đánh liền mạch. Bật số ngón để giữ thế tay cố định — sai thế tay ở tốc độ chậm thì lên tốc độ là tắc.',
+  'Khó': 'Bài dài và dày, nên chia thành từng đoạn mà tập chứ đừng đánh liền mạch. Khoanh ô nhịp giúp mắt chỉ phải quét đúng nhóm phím của ô nhịp đang chơi thay vì cả bàn phím.',
   'Rất khó': 'Bài này cần nền tảng kỹ thuật sẵn. Dùng màn nốt rơi để nhớ mặt bài và soát lại chỗ quên, còn phần khó thật thì vẫn phải tập chậm từng tay trên đàn.'
 };
 
@@ -247,7 +247,7 @@ const pageFor = (s, i) => {
     <li><b>Tập từng tay</b> — tắt tiếng một tay mà nốt vẫn rơi, để tự đánh tay đó.</li>
     <li><b>Đoạn lặp</b> — kéo hai tay cầm trên thanh tua để cày đi cày lại đúng một câu.</li>
     <li><b>Chưa biết nốt cũng tập được</b> — phím ghi Đô Rê Mi, hoặc đổi sang số phím 1–88 / số bậc 1–7.</li>
-    <li><b>Số ngón 1–5</b> in trên nốt ở những chỗ chắc chắn, cùng đếm vào và gõ nhịp trước khi vào bài.</li>
+    <li><b>Đếm vào và gõ nhịp</b> — có mốc phách trong tai trước khi vào bài, đỡ phải tự đoán.</li>
   </ul>
 
   <h2>Thông tin file</h2>

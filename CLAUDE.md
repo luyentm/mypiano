@@ -43,16 +43,16 @@ CI chặn phần lớn các vi phạm này — xem job `check` trong [.github/wo
 
 | Mục | Dòng | Nội dung |
 | --- | --- | --- |
-| 1 | ~231 | `parseMidi()` — SMF format 0/1: VLQ, running status, note on/off, tempo (0x51), time signature (0x58), tên track (0x03), tempo map tick→giây |
-| 2 | ~342 | State toàn cục: `notes`, `grid`, `duration`, `maxDur`, `geom`, canvas context |
-| 3 | ~369 | Audio: `initAudio()`, `voice()` (2 oscillator + ADSR), `killVoices()` |
-| 4 | ~530 | Đồng hồ: `songTime()`, `songToAudio()`, `anchorAt()` |
-| 5 | ~540 | `normalize()` (bỏ track nhân bản + gán tay), `load()`, `computeRange()` |
-| 6 | ~627 | `buildGeom()`, `resize()` — bảng geometry 88 phím + DPI |
-| 7 | ~653 | `drawFalling()`, `drawKeys()` — vòng vẽ |
-| 8 | ~788 | Scheduler 25ms + `frame()` (rAF) |
-| 9 | ~833 | Transport: `play/pause/stop/seekTo/setRate` |
-| 10 | ~881 | UI binding, `setHand()`, `setPanel()`, toàn màn hình, `countSong()`, `loadFromLibrary()`, overlay hết bài / trống, drag-drop, phím tắt, khởi động |
+| 1 | ~316 | `parseMidi()` — SMF format 0/1: VLQ, running status, note on/off, tempo (0x51), time signature (0x58), tên track (0x03), tempo map tick→giây |
+| 2 | ~456 | State toàn cục: `notes`, `grid`, `duration`, `maxDur`, `geom`, canvas context |
+| 3 | ~567 | Audio: `initAudio()`, `voice()` (2 oscillator + ADSR), `killVoices()` |
+| 4 | ~807 | Đồng hồ: `songTime()`, `songToAudio()`, `anchorAt()` |
+| 5 | ~817 | `normalize()` (bỏ track nhân bản + gán tay), `load()`, `computeRange()` |
+| 6 | ~928 | `buildGeom()`, `resize()` — bảng geometry 88 phím + DPI |
+| 7 | ~972 | `drawFalling()`, `drawKeys()` — vòng vẽ |
+| 8 | ~1377 | Scheduler 25ms + `frame()` (rAF) |
+| 9 | ~1530 | Transport: `play/pause/stop/seekTo/setRate` |
+| 10 | ~1637 | UI binding, `setHand()`, `setPanel()`, toàn màn hình, `countSong()`, `loadFromLibrary()`, overlay hết bài / trống, drag-drop, phím tắt, khởi động |
 
 **Không còn bài demo hardcode** (đã gỡ cùng menu chọn bài trong header).
 `/play/` không tham số sẽ nạp **bài dễ nhất** trong `midi/index.json`; thư viện rỗng
@@ -173,13 +173,6 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
     88 phím thì thành rừng chữ, nên chế độ `note` vẫn chỉ in ở phím đang kêu / sắp bấm.
   - **Viên thuốc đậm ở Đô giữa giữ cho cả ba chế độ.** Ở `deg` mọi C đều là "1" nên đó
     là thứ duy nhất còn neo được mắt.
-  - **Xung đột với số ngón đã phải xử tay.** Số ngón 1–5 vốn nằm GIỮA thân nốt, mà số
-    phím cũng muốn chỗ đó — hai con số cùng cỡ trên một thân nốt (ở `deg` lại còn trùng
-    khoảng 1–5 với 1–7) thì đọc ra nghĩa gì cũng được. Cách tách: số phím giữ chỗ giữa
-    (to, mực đậm), số ngón xuống **đáy** thân nốt ở nấc font nhỏ nhất và **mực mờ hơn**
-    (`#46536a`) — khác cả chỗ, cả cỡ, cả độ đậm. Thân nốt dưới 30px thì bỏ số ngón,
-    nhường chỗ cho số phím. Chế độ `note`/`off` thì số ngón vẫn ở giữa như cũ
-    (`if (showFing && !numMode())`).
   - Số hai chữ cần chỗ ngang gấp ~1.75 lần số một chữ, nên chọn nấc font phải chia
     `g.w / 1.75`; không chia thì "88" ăn nấc font quá to rồi chìa ra ngoài thân nốt.
   - Ô "Tên nốt" (Đô Rê Mi / C D E) **tự khoá** ở chế độ số — chế độ số không dùng tên
@@ -253,35 +246,15 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
     đổi thì vẫn đứng hình. Đo lại: 28/120 frame vẽ lại, y như khi tắt.
   - Tắt một tay thì phải `barIdx = -2` để tính lại tập phím.
 
-- **Số ngón 1–5** (`fingering()`, `showFing`, mặc định BẬT) — chỉ gán ở chỗ CHẮC,
-  chỗ không chắc để TRỐNG. Số ngón sai tệ hơn không có số: nó dạy sai thế tay và
-  rất khó sửa. Mô hình là "thế 5 ngón" của sách vỡ lòng, ba luật:
-  1. Cả đoạn nằm trong một khung 5 bậc phím trắng, không có hai nốt tranh cùng bậc
-     (F với F#) → gán theo bậc. **Neo phía NGÓN CÁI**: tay phải ngón 1 ở nốt thấp
-     nhất khung, tay trái ngón 1 ở nốt CAO nhất. Neo từ nốt thấp cho cả hai tay là
-     SAI — hợp âm trái C4+E4 sẽ ra 5+3 thay vì 3+1, vì ngón cái luôn về phía giữa đàn.
-  2. Hợp âm rộng đúng một quãng tám **và lúc đó tay đang rảnh** → hai nốt ngoài là
-     1 và 5 (đúng với mọi bản nhạc), nốt giữa để trống. Không kiểm "rảnh tay" thì
-     A Comme Amour sinh 63 ngón trùng.
-  3. Nốt trầm với ra ngoài khung hợp âm liền kề → ngón 5 (mẫu đệm bass + hợp âm).
-  Cố tình KHÔNG gán ở: **nốt đơn đứng một mình** (không hề cho biết đang bấm ngón
-  nào — nếu gán, tay trái C3 rồi C4+E4 sẽ ra 5 rồi 5+3, bất khả thi), **biên khung
-  mà là chạy ngón liên tục** (cách nhau <0.15s và dịch ≤2 bậc → đó là luồn ngón cái,
-  không phải đặt lại tay; nhờ luật này mà đoạn chạy ngón Für Elise và Rondo để trống
-  đúng chỗ cần để trống), và hợp âm rộng hơn quãng tám.
-  **Lượt dọn cuối là bắt buộc**: hai nốt cùng tay cùng vang mà trùng ngón hoặc ngón
-  chéo ngược chiều cao độ thì bỏ số cả hai. Đo trên 20 bài / 22.412 nốt: 47% số nốt
-  có số, **0 ngón trùng, 0 ngón chéo**. Đối chiếu chỗ biết đáp án: Happy Birthday tay
-  phải ra đúng thế 5 ngón trên G (`G:1 G:1 A:2 G:1 C:4 B:3`), River Flows in You tay
-  phải ra đúng thế D–A, He's a Pirate tay trái ra 5+1 cho mọi quãng tám.
-  Vẽ: **cỡ chữ phải co theo cả bề ngang phím LẪN chiều cao thân nốt** (nấc 15/12/10/8).
-  Bản đầu cố định 15px theo bề ngang nên nốt phải dài 0.26s mới nhét được chữ — đo
-  trên điện thoại ngang: Für Elise 0/9 nốt, He's a Pirate 0/52. Chia nấc thì lên
-  46%, và chỉ set font tối đa 4 lần cho mỗi loại phím thay vì set cho từng nốt
-  (chênh lệch 0.007ms/frame ở bài dày nhất, dưới ngưỡng đo được).
-  Tay **'chỉ hiện' vẫn phải in số** — đó chính là lúc người tập tự đánh tay đó — nhưng
-  phải đổi sang MỰC SÁNG: mực đen trên thân nốt đã mờ gần như không đọc được
-  (đo pixel ô chữ: mực đen trên thân mờ 240 tối/480 sáng, đổi mực rồi mới đọc được).
+- **Số ngón 1–5 — ĐÃ GỠ (2026-09-08), đừng làm lại.** Từng có `fingering()` suy ra
+  số ngón bằng heuristic "thế 5 ngón" và chỉ gán ở chỗ tự cho là chắc (47% số nốt).
+  Con số nội bộ đẹp (0 ngón trùng, 0 ngón chéo) nhưng **kết quả thực tế sai**, nên đã
+  gỡ sạch: hàm, ô chọn trong panel, `showFing`, khoá prefs `fing`, hai lượt vẽ trên
+  thân nốt. Bài học: số ngón đúng phụ thuộc câu nhạc phía trước và phía sau, thế tay
+  đang giữ, và cách người soạn chia bè — không suy ra được từ cao độ với thời điểm
+  onset. Số ngón sai tệ hơn không có số vì nó dạy sai thế tay và rất khó sửa.
+  Muốn có lại thì phải là số ngón **do người soạn khai trong file**, không phải máy đoán.
+  `NUM_SIZES`/`numSize()` ở lại vì chế độ số phím dùng chung nấc cỡ chữ đó.
 
 - **Đếm vào + gõ nhịp** (`countIn`, `metro`, mặc định BẬT cả hai) — người mới không có
   mốc nào trong tai để canh lúc bấm. Mốc phách lấy từ `grid` sẵn có, không tính lại.

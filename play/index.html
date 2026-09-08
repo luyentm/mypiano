@@ -287,7 +287,6 @@
       </select>
     </label>
     <label class="ctl" title="Phủ xám những phím không dùng trong ô nhịp đang chơi, để tay chuẩn bị trước."><input type="checkbox" id="scope" checked> Khoanh ô nhịp</label>
-    <label class="ctl" title="Số ngón 1–5 in trên thân nốt. Chỉ hiện ở chỗ chắc chắn, chỗ khó thì để trống."><input type="checkbox" id="fing" checked> Số ngón</label>
     <label class="ctl"><input type="checkbox" id="cin" checked> Đếm vào</label>
     <label class="ctl"><input type="checkbox" id="met" checked> Gõ nhịp</label>
     <label class="ctl"><input type="checkbox" id="fx" checked> Hiệu ứng</label>
@@ -492,7 +491,6 @@ const MAX_PARTS = 420;
 let hintMode = 'note';
 const hintOn  = () => hintMode !== 'off';
 const numMode = () => hintMode === 'abs' || hintMode === 'deg';
-let showFing = true;                           /* số ngón 1–5, chỉ hiện ở chỗ chắc */
 let showScope = true;                          /* phủ xám phím ngoài ô nhịp đang chơi */
 /* Đoạn lặp — khai ở đây vì ResizeObserver có thể bắn layoutLoop() trước khi
    chạy tới mục transport, mà `let` thì chưa khởi tạo là lỗi TDZ. */
@@ -504,10 +502,10 @@ let loopA = 0, loopB = 0;
 const loopOn = () => loopB - loopA >= LOOP_MIN &&
   (loopA > 0.05 || loopB < duration - 0.05);
 
-const FING_SIZES = [15, 12, 10, 8];             /* nấc cỡ chữ số ngón, to → nhỏ */
-const fingSize = (w, h) => {                   /* nấc lớn nhất vừa cả bề ngang lẫn chiều cao */
+const NUM_SIZES = [15, 12, 10, 8];              /* nấc cỡ chữ số phím, to → nhỏ */
+const numSize = (w, h) => {                    /* nấc lớn nhất vừa cả bề ngang lẫn chiều cao */
   const cap = Math.min(w * 0.62, h * 0.78);
-  for (const s of FING_SIZES) if (cap >= s) return s;
+  for (const s of NUM_SIZES) if (cap >= s) return s;
   return 0;                                    /* thân nốt bé quá, không in */
 };
 
@@ -895,136 +893,11 @@ function normalize(data){
   return { notes: out, grid: data.grid, pedal, dropped: data.notes.length - out.length };
 }
 
-/* --------------------------------------------------------------------------
-   Số ngón 1–5. Chỉ gán ở chỗ CHẮC, chỗ nào không chắc thì để trống — số ngón
-   sai còn tệ hơn không có số, vì nó dạy sai thế tay và rất khó sửa về sau.
-
-   Mô hình là "thế 5 ngón" của sách vỡ lòng: bàn tay đặt vào một khung 5 phím
-   trắng liền nhau, ngón cái nằm về phía giữa đàn (tay phải ngón 1 ở nốt thấp
-   nhất của khung, tay trái ngón 1 ở nốt CAO nhất). Ba luật, theo thứ tự:
-
-   1. Cả đoạn nằm trong một khung 5 bậc, không có hai nốt tranh cùng một bậc
-      (F và F# chẳng hạn) → gán theo bậc. Đây là chỗ đúng chắc nhất.
-   2. Hợp âm rộng đúng một quãng tám và lúc đó tay đang rảnh → hai nốt ngoài
-      cùng là 1 và 5 (đúng với mọi bản nhạc, mọi tay), nốt giữa để trống.
-   3. Nốt trầm vươn ra ngoài khung của hợp âm liền kề → ngón 5 (mẫu đệm
-      bass + hợp âm, chiếm phần lớn tay trái trong thư viện này).
-
-   Cố tình KHÔNG gán ở: nốt đơn đứng một mình (không hề cho biết đang bấm ngón
-   nào), biên khung mà là chạy ngón liên tục (đó là luồn ngón cái, không phải
-   đặt lại tay), hợp âm rộng hơn quãng tám (phải vê hoặc với).
-
-   Đo trên 20 bài: 47% số nốt có số, 0 ngón trùng, 0 ngón chéo.
-   -------------------------------------------------------------------------- */
-const FSTEP = [0,0,1,1,2,3,3,4,4,5,5,6];       /* C#→cùng bậc C, D#→cùng bậc D… */
-const fstep = m => 7 * Math.floor(m / 12) + FSTEP[m % 12];
-
-function fingering(ns, hand){
-  ns = ns.slice().sort((a,b) => a.start - b.start || a.midi - b.midi);
-  for (const n of ns) n.fing = 0;
-
-  const ev = [];                               /* gom hợp âm theo onset */
-  for (const n of ns){
-    const last = ev[ev.length - 1];
-    if (last && n.start - last.t < 0.05) last.ns.push(n); else ev.push({ t: n.start, ns: [n] });
-  }
-
-  const fr = [];                               /* chia khung 5 bậc, tham lam */
-  let i = 0;
-  while (i < ev.length){
-    const st = new Map();                      /* bậc → cao độ, để bắt xung đột F/F# */
-    let j = i, cnt = 0;
-    const fits = e => {
-      const all = new Map(st);
-      for (const n of e.ns){
-        const s = fstep(n.midi);
-        if (all.has(s) && all.get(s) !== n.midi) return null;
-        all.set(s, n.midi);
-      }
-      const k = [...all.keys()];
-      return Math.max(...k) - Math.min(...k) > 4 ? null : all;
-    };
-    while (j < ev.length){
-      const nx = fits(ev[j]); if (!nx) break;
-      for (const [k,v] of nx) st.set(k,v);
-      cnt += ev[j].ns.length; j++;
-    }
-    if (j === i){ j = i + 1; cnt = ev[i].ns.length; st.clear(); }   /* một hợp âm cũng quá rộng */
-    fr.push({ i, j, cnt, st });
-    i = j;
-  }
-
-  /* biên khung mà hai nốt sát nhau về cả thời gian lẫn cao độ = câu nhạc đang
-     chạy liền, tay KHÔNG đặt lại → luồn ngón cái, bỏ số cả hai khung */
-  const bad = new Set();
-  for (let k = 1; k < fr.length; k++){
-    const a = ev[fr[k].i - 1], b = ev[fr[k].i];
-    const dt = b.t - a.t;
-    const ds = Math.abs(fstep(b.ns[0].midi) - fstep(a.ns[a.ns.length - 1].midi));
-    if (dt < 0.15 && ds <= 2){ bad.add(k - 1); bad.add(k); }
-  }
-
-  /* luật 1 */
-  for (let k = 0; k < fr.length; k++){
-    const f = fr[k];
-    if (bad.has(k) || !f.st.size) continue;
-    if (f.cnt < 4 && ev.slice(f.i, f.j).every(e => e.ns.length === 1)) continue;  /* nốt đơn lẻ */
-    const ks = [...f.st.keys()], lo = Math.min(...ks), hi = Math.max(...ks);
-    for (let m = f.i; m < f.j; m++) for (const n of ev[m].ns)
-      n.fing = hand === 0 ? 1 + (fstep(n.midi) - lo) : 1 + (hi - fstep(n.midi));
-  }
-
-  /* luật 2: quãng tám, và phải rảnh tay — còn nốt khác cùng tay đang vang thì
-     ngón 1 hoặc 5 đã bị chiếm, đoán là sai */
-  for (const f of fr){
-    if (f.st.size) continue;
-    const e = ev[f.i]; if (e.ns.length < 2) continue;
-    const ss = e.ns.map(n => fstep(n.midi));
-    const lo = Math.min(...ss), hi = Math.max(...ss);
-    if (hi - lo !== 7) continue;
-    const myEnd = Math.max(...e.ns.map(n => n.end));
-    if (ns.some(x => !e.ns.includes(x) && x.start < myEnd - 0.02 && x.end > e.t + 0.02)) continue;
-    for (const n of e.ns){
-      const s = fstep(n.midi);
-      if (s === lo) n.fing = hand === 0 ? 1 : 5;
-      else if (s === hi) n.fing = hand === 0 ? 5 : 1;
-    }
-  }
-
-  /* luật 3: nốt trầm với ra ngoài khung hợp âm liền kề → ngón 5 */
-  for (let m = 0; m < ev.length; m++){
-    if (ev[m].ns.length !== 1 || ev[m].ns[0].fing) continue;
-    const n = ev[m].ns[0], s = fstep(n.midi);
-    for (const d of [1, -1]){
-      const o = ev[m + d];
-      if (!o || Math.abs(o.t - ev[m].t) > 1 || o.ns.length < 2) continue;
-      const os = o.ns.map(x => fstep(x.midi));
-      if (hand === 1 && s < Math.min(...os) - 4){ n.fing = 5; break; }
-      if (hand === 0 && s > Math.max(...os) + 4){ n.fing = 5; break; }
-    }
-  }
-
-  /* dọn cuối: hai nốt cùng tay CÙNG VANG mà trùng ngón, hoặc ngón chéo ngược
-     chiều cao độ → thế tay bất khả thi, bỏ số cả hai. Thà trống hơn dạy sai. */
-  const drop = new Set();
-  for (let a = 0; a < ns.length; a++)
-    for (let b = a + 1; b < ns.length && ns[b].start < ns[a].end - 0.02; b++){
-      const p = ns[a], q = ns[b];
-      if (!p.fing || !q.fing || p.midi === q.midi) continue;
-      const hiN = p.midi > q.midi ? p : q, loN = p.midi > q.midi ? q : p;
-      if (p.fing === q.fing || (hand === 0 ? hiN.fing < loN.fing : hiN.fing > loN.fing)){
-        drop.add(p); drop.add(q);
-      }
-    }
-  for (const n of drop) n.fing = 0;
-}
-
 function load(data, name){
   hideDone(); $('empty').classList.remove('on');
   data = normalize(data);
   notes = data.notes.slice().sort((a,b) => a.start - b.start);
   grid  = (data.grid || []).slice().sort((a,b) => a.sec - b.sec);
-  for (const h of [0, 1]) fingering(notes.filter(n => n.hand === h), h);
   bars = grid.filter(g => g.bar).map(g => g.sec);
   barIdx = -2; barKeys = null;
 
@@ -1317,13 +1190,13 @@ function drawFalling(now, dt){
     }
 
     /* CHẾ ĐỘ SỐ: in số phím lên GIỮA thân nốt. Đây là thứ chính phải đọc ở chế độ
-       này nên nó được chỗ giữa; số ngón (nếu bật) phải nhường xuống đáy.
+       này nên nó được chỗ giữa.
        Không mâu thuẫn với quyết định cũ "đã thử in TÊN NỐT lên thân nốt rồi bỏ":
        tên nốt dài 2–4 chữ và chỉ cho biết "nốt gì", còn số ở đây 1–2 chữ và ứng
        đúng một phím — tức trả lời được "bấm phím NÀO", chính là câu người tập cần. */
     if (numMode()){
       fctx.textAlign = 'center'; fctx.textBaseline = 'middle';
-      for (const fs of FING_SIZES){
+      for (const fs of NUM_SIZES){
         let set = false;
         for (const [n, g] of visible){
           if (g.black !== black) continue;
@@ -1332,62 +1205,12 @@ function drawFalling(now, dt){
           const txt = numText(n.midi);
           /* số hai chữ cần chỗ ngang gấp ~1.75 lần số một chữ, không chia thì "88"
              chọn nấc font quá to rồi chìa ra ngoài thân nốt */
-          if (fingSize(txt.length > 1 ? g.w / 1.75 : g.w, h) !== fs) continue;
+          if (numSize(txt.length > 1 ? g.w / 1.75 : g.w, h) !== fs) continue;
           const cy = top + h / 2;
           if (cy < fs * 0.6 || cy > HF - 2) continue;
           if (!set){ fctx.font = '800 ' + fs + 'px system-ui,-apple-system,sans-serif'; set = true; }
           fctx.fillStyle = handState[n.hand] === 'silent' ? '#c9d6ea' : '#0d1118';
           fctx.fillText(txt, g.x + g.w / 2, cy);
-        }
-      }
-    }
-
-    /* Số ngón khi ĐANG ở chế độ số: xuống ĐÁY thân nốt, cỡ nhỏ nhất, mực mờ hơn.
-       Phải khác cả chỗ lẫn độ đậm với số phím ở giữa — hai con số cùng cỡ nằm cùng
-       một thân nốt (mà 1–5 với 1–7 lại trùng khoảng) thì đọc ra nghĩa gì cũng được.
-       Thân nốt ngắn hơn 30px thì bỏ số ngón, nhường chỗ cho số phím. */
-    if (showFing && numMode()){
-      const fs = FING_SIZES[FING_SIZES.length - 1];
-      fctx.textAlign = 'center'; fctx.textBaseline = 'middle';
-      fctx.font = '800 ' + fs + 'px system-ui,-apple-system,sans-serif';
-      for (const [n, g] of visible){
-        if (g.black !== black || !n.fing) continue;
-        const top = y(n.end), h = Math.max((n.end - n.start) * PPS, 3);
-        if (top > HF || h < 30) continue;
-        const cy = top + h - fs * 0.9;
-        if (cy < fs * 0.6 || cy > HF - 2) continue;
-        fctx.fillStyle = handState[n.hand] === 'silent' ? '#8fa2bd' : '#46536a';
-        fctx.fillText(n.fing, g.x + g.w / 2, cy);
-      }
-    }
-
-    /* Số ngón, in giữa thân nốt. Vẽ thành lượt riêng cho mỗi loại phím để chỉ
-       phải set font 2 lần một frame — trước đây đặt trong vòng trên là set font
-       cho từng nốt, đắt vô ích vì bề ngang phím là hằng số. */
-    if (showFing && !numMode()){
-      /* Cỡ chữ co theo CẢ bề ngang phím LẪN chiều cao thân nốt. Bản đầu chỉ theo
-         bề ngang (cố định 15px) nên nốt phải dài 0.26s mới nhét được chữ — đo trên
-         điện thoại ngang: Für Elise 0/9 nốt, He's a Pirate 0/52, tức tính năng gần
-         như vô hình đúng trên thiết bị người ta dùng. Chia NẤC để vẫn chỉ phải set
-         font tối đa 4 lần cho mỗi loại phím, chứ không phải set cho từng nốt. */
-      fctx.textAlign = 'center'; fctx.textBaseline = 'middle';
-      let ink = '';
-      for (const fs of FING_SIZES){
-        let set = false;
-        /* tay 'chỉ hiện' VẪN in số: đó chính là lúc người tập tự đánh tay đó.
-           Nhưng thân nốt lúc đó mờ nên phải đổi sang MỰC SÁNG — mực đen trên
-           thân mờ gần như không đọc được (đã thử). */
-        for (const [n, g] of visible){
-          if (g.black !== black || !n.fing) continue;
-          const top = y(n.end), h = Math.max((n.end - n.start) * PPS, 3);
-          if (top > HF) continue;
-          if (fingSize(g.w, h) !== fs) continue;
-          const cy = top + h / 2;
-          if (cy < fs * 0.6 || cy > HF - 2) continue;
-          if (!set){ fctx.font = '800 ' + fs + 'px system-ui,-apple-system,sans-serif'; set = true; }
-          const want = handState[n.hand] === 'silent' ? '#c9d6ea' : '#0d1118';
-          if (want !== ink){ ink = want; fctx.fillStyle = want; }
-          fctx.fillText(n.fing, g.x + g.w / 2, cy);
         }
       }
     }
@@ -1873,7 +1696,6 @@ function syncHintUI(){ $('lang').disabled = numMode(); }
 $('cin').onchange  = e => { countIn = e.target.checked; savePrefs(); };
 $('met').onchange  = e => { metro = e.target.checked; savePrefs(); };
 $('fx').onchange   = e => { showFx = e.target.checked; savePrefs(); };
-$('fing').onchange = e => { showFing = e.target.checked; savePrefs(); };
 $('scope').onchange = e => { showScope = e.target.checked; lastKeySig = null; savePrefs(); };
 $('lang').onchange = e => { noteLang = e.target.value; lastKeySig = null; savePrefs(); };
 $('fit').onchange = () => { computeRange(); savePrefs(); };
@@ -1946,14 +1768,21 @@ const SAFE_NAME = /^[A-Za-z0-9._-]+\.midi?$/i;
    ========================================================================== */
 const STORE = 'mypiano.v1';
 function loadPrefs(){
-  try { return JSON.parse(localStorage.getItem(STORE)) || {}; } catch(e){ return {}; }
+  try {
+    const p = JSON.parse(localStorage.getItem(STORE)) || {};
+    /* Số ngón đã gỡ. savePrefs() ghi kiểu Object.assign lên object cũ nên khoá này
+       sẽ nằm lại vĩnh viễn trong máy người đang dùng nếu không dọn ở đây. Xoá được
+       dòng này khi tin là không còn máy nào giữ prefs bản cũ. */
+    delete p.fing;
+    return p;
+  } catch(e){ return {}; }
 }
 function savePrefs(extra){
   try {
     localStorage.setItem(STORE, JSON.stringify(Object.assign(loadPrefs(), {
       v: 1,
       rate: +$('rate').value, look: +$('look').value, vol: +$('vol').value, rev: +$('rev').value,
-      tone, fit: $('fit').checked, hint: hintMode, fx: showFx, lang: noteLang, fing: showFing, scope: showScope,
+      tone, fit: $('fit').checked, hint: hintMode, fx: showFx, lang: noteLang, scope: showScope,
       cin: countIn, met: metro,
       hands: handState.slice(),
       panel: !$('panel').classList.contains('collapsed'),
@@ -2069,7 +1898,6 @@ if ('hint' in prefs){
 }
 syncHintUI();
 if ('fx' in prefs){ showFx = !!prefs.fx; $('fx').checked = showFx; }
-if ('fing' in prefs){ showFing = !!prefs.fing; $('fing').checked = showFing; }
 if ('scope' in prefs){ showScope = !!prefs.scope; $('scope').checked = showScope; }
 if (prefs.lang){ noteLang = prefs.lang; $('lang').value = prefs.lang; }
 if ('cin' in prefs){ countIn = !!prefs.cin; $('cin').checked = countIn; }
