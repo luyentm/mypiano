@@ -13,46 +13,78 @@
 <meta name="description" content="Học piano bằng nốt rơi: mở file MIDI trong browser, nốt rơi xuống chạm bàn phím 88 phím đúng lúc nốt kêu. Không cài đặt, không backend.">
 <link rel="canonical" href="https://luyentm.github.io/mypiano/">
 <style>
-  /* Bảng màu SÁNG, ấm — nhắm vào trẻ nhỏ: nền kem chứ không phải trắng gắt, chữ
-     tím than mềm hơn đen thuần, bo góc to, bóng đổ nhẹ. Hai màu tay giữ đúng
-     nghĩa cam/xanh như trong màn chơi để trẻ nhìn đâu cũng thấy một quy ước.
-     Riêng khung mô phỏng màn chơi (.stage) vẫn NỀN TỐI: nốt màu phải nổi trên
-     nền tối mới đọc kịp, và /play/ thật cũng nền tối — để sáng ở đây thì trang
-     chủ hứa một đằng, bấm vào một nẻo. */
+  /* ==========================================================================
+     GLASSMORPHISM — gradient xanh → tím → hồng sen, mọi mặt phẳng là kính mờ
+     viền sáng, CHỮ TRẮNG. Bốn thứ làm nên style này, thiếu cái nào cũng hỏng:
+       1) nền gradient BÃO HOÀ, cố định khi cuộn — cái để nhìn xuyên qua;
+       2) mặt kính = một lớp trắng rất mỏng (.14) + backdrop-filter blur;
+       3) VIỀN SÁNG 1px rõ rệt — đây mới là thứ vẽ ra hình tấm kính, nền mỏng
+          như trên gần như không thấy nếu bỏ viền đi;
+       4) vệt loé chéo + bóng đổ tối mềm, để kính nổi khỏi nền.
+
+     Vì sao gradient phải TỐI (L ≈ .058–.078) chứ không tươi sáng như nhiều
+     mẫu trên mạng: kính là lớp TRẮNG đè lên nền, nên nền càng sáng thì mặt
+     kính càng sáng và chữ trắng càng chìm. Đo ở mốc sáng nhất (hồng sen),
+     kính .14 + loé .05 cho chữ trắng 5.4:1; nền sáng thêm một nấc là tụt
+     xuống dưới 4.5. Muốn đổi màu nền thì chạy lại phép đo trước.
+     ========================================================================== */
   :root{
-    --bg:#fff8ee; --card:#ffffff; --line:#f2e2cd; --line2:#e7ddf0;
-    --text:#3b3550; --dim:#6b6485;
-    --rh:#ff9f2e; --lh:#2bb3d9; --mint:#22b378; --grape:#8a5cf0;
-    --link:#0b7392;
-    --sh:0 1px 0 rgba(59,53,80,.03), 0 10px 24px -16px rgba(59,53,80,.35);
-    --sh-hi:0 2px 0 rgba(59,53,80,.04), 0 16px 30px -18px rgba(59,53,80,.42);
+    --g1:#17409c; --g2:#33359f; --g3:#4b2ea6; --g4:#6d2478; --g5:#822369;
+    --text:#ffffff;
+    --dim:rgba(255,255,255,.88);        /* chữ phụ — gần trắng là CỐ Ý, xem đo bên dưới */
+    --rh:#ffb648; --lh:#4fd0f5; --mint:#5ce6a8; --grape:#c89cff;
+
+    --glass:rgba(255,255,255,.14);
+    --glass-hi:rgba(255,255,255,.18);   /* hover chỉ nhích nhẹ; sáng hơn là chữ trắng chìm */
+    --glass-lo:rgba(255,255,255,.09);
+    --line:rgba(255,255,255,.42);       /* viền sáng — chữ ký của style này */
+    --line2:rgba(255,255,255,.16);
+    --blur:saturate(150%) blur(16px);
+    --edge:inset 0 1px 0 rgba(255,255,255,.45);
+    --sheen:linear-gradient(135deg, rgba(255,255,255,.20) 0%,
+      rgba(255,255,255,.03) 40%, rgba(255,255,255,.09) 100%);
+    --sh:var(--edge), 0 10px 30px -12px rgba(6,2,28,.65);
+    --sh-hi:var(--edge), 0 18px 40px -14px rgba(6,2,28,.8);
   }
   *{box-sizing:border-box}
-  html{scroll-behavior:smooth}
-  body{
-    margin:0; color:var(--text);
-    background:var(--bg);
-    /* hai vệt màu rất nhạt ở đầu trang cho đỡ phẳng, không ăn vào chữ */
-    background-image:
-      radial-gradient(760px 300px at 12% -60px, rgba(255,159,46,.16), transparent 70%),
-      radial-gradient(680px 300px at 88% -40px, rgba(43,179,217,.16), transparent 70%);
-    background-repeat:no-repeat;
-    font:400 15px/1.65 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-    -webkit-text-size-adjust:100%;
+  html{background:var(--g3)}
+  /* Nền đứng yên khi cuộn: kính trôi qua vùng màu khác nhau, đó mới ra cảm giác
+     tấm kính thật. Hai vệt tròn chỉ để nền đỡ phẳng, alpha thấp để không kéo độ
+     sáng nền vượt mốc đã đo. */
+  body::before{
+    content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background:
+      radial-gradient(38vmax 32vmax at 14% 10%,  rgba(56,132,255,.30), transparent 68%),
+      radial-gradient(34vmax 30vmax at 88% 88%,  rgba(255,86,170,.24), transparent 68%),
+      linear-gradient(135deg, var(--g1) 0%, var(--g2) 26%, var(--g3) 50%,
+        var(--g4) 78%, var(--g5) 100%);
   }
-  .wrap{max-width:980px; margin:0 auto; padding:0 20px}
+  body{margin:0; color:var(--text); background:transparent;
+    -webkit-text-size-adjust:100%}
+  a{color:var(--text)}
+  /* Link trong thân bài phải xanh nhạt + gạch chân: trên nền tím chữ đã là trắng,
+     không còn màu nào để phân biệt link với chữ thường mà vẫn đủ tương phản.
+     Bọc :where() để luật này có độ ưu tiên bằng 0 phần class — mọi link đã có
+     kiểu riêng (nav, footer, .crumb, .toc, .near, .btn, .cta, card) tự đè lên nó,
+     không phải viết một rừng ngoại lệ. */
+  :where(.wrap) p a, :where(.wrap) li a, dd a{color:#9fe6ff; text-decoration:underline;
+    text-underline-offset:2px}
+  :where(.wrap) p a:hover, :where(.wrap) li a:hover, dd a:hover{color:#fff}
 
-  nav{position:sticky; top:0; z-index:9; background:rgba(255,248,238,.88);
-    backdrop-filter:blur(10px); border-bottom:1px solid var(--line)}
-  nav .wrap{display:flex; align-items:center; gap:6px; height:60px}
+  nav{position:sticky; top:0; z-index:9; background-color:rgba(255,255,255,.10);
+    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+    border-bottom:1px solid var(--line2);
+    box-shadow:var(--edge), 0 12px 34px -26px #000}
   nav .brand{font-weight:800; font-size:16px; color:var(--text); text-decoration:none;
     display:flex; align-items:center; gap:9px; margin-right:10px}
-  nav .brand i{width:28px; height:28px; border-radius:9px; flex:none; font-style:normal;
-    background:var(--rh); color:#fff; font-size:16px; display:grid; place-items:center;
-    box-shadow:0 3px 8px -3px rgba(255,159,46,.9)}
+  nav .brand i{width:28px; height:28px; border-radius:10px; flex:none; font-style:normal;
+    background:linear-gradient(150deg,#ffd08a,#ff9d24); color:#3d2200; font-size:16px;
+    display:grid; place-items:center;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 6px 16px -6px rgba(255,157,36,.9)}
   nav a{color:var(--dim); text-decoration:none; font-size:14px; font-weight:500;
-    padding:7px 11px; border-radius:9px; white-space:nowrap}
-  nav a:hover{color:var(--text); background:#fff}
+    padding:7px 11px; border-radius:11px; white-space:nowrap; border:1px solid transparent}
+  nav a:hover{color:var(--text); background-color:var(--glass); border-color:var(--line);
+    box-shadow:var(--edge)}
   /* 375px: nav phải vừa đúng một hàng. Không bóp thì mục cuối bị đẩy ra ngoài mép. */
   @media (max-width:560px){
     nav .wrap{gap:2px; height:54px}
@@ -64,21 +96,53 @@
   }
   nav .spacer{margin-left:auto}
 
-  .btn{display:inline-block; border-radius:12px; padding:12px 20px; font-size:14.5px;
-    font-weight:600; text-decoration:none; border:1px solid var(--line);
-    background:var(--card); color:var(--text); box-shadow:var(--sh)}
-  .btn:hover{box-shadow:var(--sh-hi); transform:translateY(-1px)}
-  .btn.primary{background:var(--rh); border-color:var(--rh); color:#4a2a00; font-weight:700;
-    box-shadow:0 4px 0 #e07f10, 0 12px 22px -14px rgba(224,127,16,.9)}
-  .btn.primary:hover{filter:brightness(1.04)}
-  .btn.primary:active{transform:translateY(2px); box-shadow:0 2px 0 #e07f10}
+  .btn{display:inline-block; border-radius:16px; padding:12px 22px; font-size:14.5px;
+    font-weight:600; text-decoration:none; color:var(--text);
+    background-color:var(--glass); border:1px solid var(--line);
+    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+    box-shadow:var(--sh); transition:transform .16s, box-shadow .16s, background-color .16s,
+      border-color .16s}
+  .btn:hover{background-color:var(--glass-hi); border-color:rgba(255,255,255,.62);
+    box-shadow:var(--sh-hi); transform:translateY(-1px)}
+  .btn:active{transform:translateY(1px)}
+  /* Nút chính giữ màu cam của app — cam trên nền tím nổi bật hẳn, và đúng quy ước
+     cam = tay phải mà trẻ thấy ở màn chơi. Vẫn là kính, chỉ là kính nhuộm cam đậm. */
+  .btn.primary{color:#3d2200; font-weight:700; border-color:rgba(255,255,255,.55);
+    background-image:linear-gradient(160deg, rgba(255,201,120,.96), rgba(255,157,36,.92));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 14px 32px -12px rgba(255,157,36,.65)}
+  .btn.primary:hover{background-image:linear-gradient(160deg, rgba(255,214,146,1), rgba(255,172,62,.96))}
 
-  .banner{overflow:hidden; white-space:nowrap; margin:18px 0 -4px; border-radius:14px;
-    background:linear-gradient(90deg,#fff2dc,#ffe9f2,#e6f7fd);
-    border:1px solid var(--line); padding:10px 0}
+  code, kbd{background-color:var(--glass); border:1px solid var(--line2); border-radius:8px;
+    padding:1px 6px; font-size:12.5px; color:var(--text)}
+  kbd{border-bottom-width:2px; font:inherit; font-size:12.5px}
+
+  footer a{color:var(--dim); text-decoration:none}
+  footer a:hover{color:var(--text); text-decoration:underline}
+
+  /* Máy không có backdrop-filter thì mặt kính .14 gần như trong veo, chữ chồng
+     thẳng lên gradient — đục hẳn lên cho đọc được. */
+  @supports not ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){
+    :root{--glass:rgba(38,26,86,.72); --glass-hi:rgba(52,38,104,.78);
+      --glass-lo:rgba(30,20,72,.62)}
+    nav{background-color:rgba(30,22,80,.86)}
+  }
+  /* Người bật "giảm trong suốt" của hệ điều hành: bỏ hẳn phần nhìn xuyên. */
+  @media (prefers-reduced-transparency:reduce){
+    :root{--glass:#5a4aa8; --glass-hi:#6a59b8; --glass-lo:#4a3c92; --blur:none}
+    nav{background-color:#4e3f9c}
+  }
+
+  html{scroll-behavior:smooth}
+  body{font:400 15px/1.65 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  .wrap{max-width:980px; margin:0 auto; padding:0 20px}
+  nav .wrap{display:flex; align-items:center; gap:6px; height:60px}
+
+  .banner{overflow:hidden; white-space:nowrap; margin:18px 0 -4px; border-radius:18px;
+    background-color:var(--glass); border:1px solid var(--line); padding:11px 0;
+    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur); box-shadow:var(--sh)}
   .banner span{display:inline-block; padding-left:100%; font-size:26px; font-weight:800;
-    color:#e07f10; animation:run 14s linear infinite}
-  .banner span b{color:#0b7392}
+    color:#ffd08a; animation:run 14s linear infinite}
+  .banner span b{color:#8ee6ff}
   @keyframes run{ from{transform:translateX(0)} to{transform:translateX(-100%)} }
   .banner:hover span{animation-play-state:paused}
   @media (prefers-reduced-motion:reduce){
@@ -90,19 +154,24 @@
   header.hero{padding:46px 0 8px}
   header.hero h1{font-size:40px; line-height:1.14; margin:0 0 14px; letter-spacing:-1px;
     font-weight:800; max-width:15ch}
-  header.hero h1 span{color:#e07f10}
+  header.hero h1 span{color:#ffc978}
   header.hero p.lead{font-size:17px; color:var(--dim); margin:0 0 24px; max-width:620px}
   .cta{display:flex; gap:12px; flex-wrap:wrap; align-items:center}
   .cta .hint{font-size:13.5px; color:var(--dim)}
   @media (max-width:600px){ header.hero{padding:28px 0 4px} header.hero h1{font-size:29px} }
 
-  /* Khung mô phỏng màn chơi — cố tình tối, xem mục ghi chú ở đầu bảng màu */
-  .demo{margin:30px 0 8px; border-radius:18px; overflow:hidden;
-    background:linear-gradient(180deg,#131a26,#0d1017);
-    box-shadow:0 3px 0 rgba(59,53,80,.05), 0 26px 44px -26px rgba(59,53,80,.55)}
+  /* Khung mô phỏng màn chơi — kính TỐI, đúng như /play/ thật: nốt màu phải nổi trên
+     nền gần đen mới đọc kịp, để sáng ở đây thì trang chủ hứa một đằng bấm vào một nẻo.
+     CỐ Ý KHÔNG có backdrop-filter dù mọi mặt kính khác đều có: bên trong là canvas vẽ
+     lại 60 lần/giây, bọc backdrop-filter quanh thứ đang vẽ liên tục thì trình duyệt
+     phải lọc lại nền mỗi frame. */
+  .demo{margin:30px 0 8px; border-radius:24px; overflow:hidden;
+    background:linear-gradient(180deg, rgba(7,10,20,.94), rgba(14,12,34,.90));
+    border:1px solid rgba(255,255,255,.22);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.30), 0 30px 60px -28px rgba(6,2,28,.9)}
   .demo canvas{display:block; width:100%; height:250px}
-  .demo .cap{border-top:1px solid rgba(255,255,255,.08); padding:10px 14px;
-    font-size:12.5px; color:#9aa4bb}
+  .demo .cap{border-top:1px solid rgba(255,255,255,.12); padding:10px 14px;
+    font-size:12.5px; color:rgba(255,255,255,.72); background:rgba(255,255,255,.05)}
   @media (max-width:600px){ .demo canvas{height:180px} }
 
   section{padding:46px 0 4px}
@@ -110,13 +179,17 @@
   h2 + p.sub{color:var(--dim); margin:0 0 22px; font-size:14.5px}
 
   .grid{display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
-  .card{background:var(--card); border:1px solid var(--line); border-radius:16px;
-    padding:18px 19px; box-shadow:var(--sh)}
-  .card:hover{box-shadow:var(--sh-hi); transform:translateY(-2px)}
+  .card{background-color:var(--glass); border:1px solid var(--line); border-radius:20px;
+    padding:18px 19px; -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+    box-shadow:var(--sh);
+    transition:transform .18s, box-shadow .18s, background-color .18s, border-color .18s}
+  .card:hover{background-color:var(--glass-hi); border-color:rgba(255,255,255,.62);
+    box-shadow:var(--sh-hi); transform:translateY(-3px)}
   .card h3{margin:0 0 7px; font-size:15px; font-weight:700; display:flex;
     align-items:center; gap:9px}
   /* Chấm màu xoay vòng 4 màu cho vui mắt, thay vì chỉ cam/xanh */
-  .card h3 b{width:10px; height:10px; border-radius:4px; background:var(--rh); flex:none}
+  .card h3 b{width:10px; height:10px; border-radius:4px; background:var(--rh); flex:none;
+    box-shadow:0 0 10px -1px currentColor}
   .card:nth-child(4n+2) h3 b{background:var(--lh)}
   .card:nth-child(4n+3) h3 b{background:var(--mint)}
   .card:nth-child(4n+4) h3 b{background:var(--grape)}
@@ -125,21 +198,20 @@
 
   ol.steps{counter-reset:s; list-style:none; padding:0; margin:0; display:grid; gap:12px}
   ol.steps li{counter-increment:s; display:flex; gap:14px; align-items:flex-start;
-    background:var(--card); border:1px solid var(--line); border-radius:16px;
-    padding:16px 18px; box-shadow:var(--sh)}
-  ol.steps li::before{content:counter(s); flex:none; width:30px; height:30px; border-radius:11px;
-    background:var(--rh); color:#fff; font-size:14px; font-weight:800;
-    display:grid; place-items:center; margin-top:-1px}
-  ol.steps li:nth-child(2)::before{background:var(--lh)}
-  ol.steps li:nth-child(3)::before{background:var(--mint)}
+    background-color:var(--glass); border:1px solid var(--line); border-radius:20px;
+    padding:16px 18px; -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+    box-shadow:var(--sh)}
+  ol.steps li::before{content:counter(s); flex:none; width:30px; height:30px; border-radius:12px;
+    background:linear-gradient(150deg,#ffd08a,#ff9d24); color:#3d2200; font-size:14px;
+    font-weight:800; display:grid; place-items:center; margin-top:-1px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 6px 16px -6px rgba(255,157,36,.85)}
+  ol.steps li:nth-child(2)::before{background:linear-gradient(150deg,#a9e9ff,#4fd0f5); color:#04303f;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 6px 16px -6px rgba(79,208,245,.85)}
+  ol.steps li:nth-child(3)::before{background:linear-gradient(150deg,#a6f5d0,#5ce6a8); color:#04331f;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 6px 16px -6px rgba(92,230,168,.85)}
   ol.steps li div{font-size:15px; font-weight:600}
   ol.steps li div small{display:block; color:var(--dim); font-size:13.5px; margin-top:3px;
     font-weight:400}
-  a{color:var(--link)}
-  kbd{background:#fff; border:1px solid var(--line2); border-bottom-width:2px; border-radius:6px;
-    padding:1px 7px; font:inherit; font-size:12.5px; color:var(--text)}
-  code{background:#fff; border:1px solid var(--line2); border-radius:6px; padding:1px 6px;
-    font-size:12.5px}
 
   ul.tech{list-style:none; padding:0; margin:0; display:grid; gap:10px;
     grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
@@ -147,15 +219,24 @@
   ul.tech li::before{content:'♪'; position:absolute; left:0; color:var(--lh); font-size:13px}
   ul.tech li b{color:var(--text); font-weight:600}
 
-  footer{margin-top:54px; border-top:1px solid var(--line); background:#fffdf9}
+  footer{margin-top:54px; border-top:1px solid var(--line2);
+    background-color:rgba(255,255,255,.08);
+    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur); box-shadow:var(--edge)}
   footer .wrap{display:flex; gap:14px; flex-wrap:wrap; align-items:center;
     padding-top:20px; padding-bottom:calc(20px + env(safe-area-inset-bottom));
     font-size:13px; color:var(--dim)}
-  footer a{color:var(--link); text-decoration:none}
-  footer a:hover{text-decoration:underline}
   footer .spacer{margin-left:auto}
-  footer img{display:block; height:20px; width:auto}
+  footer img{display:block; height:20px; width:auto; border-radius:5px}
   footer .lic{color:var(--dim)}
+
+  /* Luật gom vệt loé, phải nằm CUỐI file: mọi luật ở trên dùng background-color chứ
+     không dùng shorthand "background:", nên không có gì xoá mất vệt — kể cả các luật
+     :hover (chúng chỉ đổi màu). Ai thêm mặt kính mới thì phải theo đúng hai điều đó.
+     Cố tình KHÔNG gom .btn.primary / .cta / .demo: chúng đã có gradient riêng làm nền,
+     gán thêm là mất luôn màu của chúng. */
+  nav, footer, .btn, .card, ol.steps li, code, kbd, .banner{
+    background-image:var(--sheen);
+  }
 </style>
 </head>
 <body>

@@ -13,36 +13,78 @@
 <meta name="description" content="Danh sách bài MIDI có sẵn trong mypiano. Chọn một bài để mở màn chơi nốt rơi.">
 <link rel="canonical" href="https://luyentm.github.io/mypiano/library/">
 <style>
-  /* Cùng bảng màu sáng với trang chủ — xem ghi chú ở index.html. Ba trang lặp lại
-     CSS là cố ý (mỗi file tự chứa), nhưng bảng màu thì phải khớp từng giá trị. */
+  /* ==========================================================================
+     GLASSMORPHISM — gradient xanh → tím → hồng sen, mọi mặt phẳng là kính mờ
+     viền sáng, CHỮ TRẮNG. Bốn thứ làm nên style này, thiếu cái nào cũng hỏng:
+       1) nền gradient BÃO HOÀ, cố định khi cuộn — cái để nhìn xuyên qua;
+       2) mặt kính = một lớp trắng rất mỏng (.14) + backdrop-filter blur;
+       3) VIỀN SÁNG 1px rõ rệt — đây mới là thứ vẽ ra hình tấm kính, nền mỏng
+          như trên gần như không thấy nếu bỏ viền đi;
+       4) vệt loé chéo + bóng đổ tối mềm, để kính nổi khỏi nền.
+
+     Vì sao gradient phải TỐI (L ≈ .058–.078) chứ không tươi sáng như nhiều
+     mẫu trên mạng: kính là lớp TRẮNG đè lên nền, nên nền càng sáng thì mặt
+     kính càng sáng và chữ trắng càng chìm. Đo ở mốc sáng nhất (hồng sen),
+     kính .14 + loé .05 cho chữ trắng 5.4:1; nền sáng thêm một nấc là tụt
+     xuống dưới 4.5. Muốn đổi màu nền thì chạy lại phép đo trước.
+     ========================================================================== */
   :root{
-    --bg:#fff8ee; --card:#ffffff; --line:#f2e2cd; --line2:#e7ddf0;
-    --text:#3b3550; --dim:#6b6485;
-    --rh:#ff9f2e; --lh:#2bb3d9; --mint:#22b378; --grape:#8a5cf0;
-    --link:#0b7392;
-    --sh:0 1px 0 rgba(59,53,80,.03), 0 10px 24px -16px rgba(59,53,80,.35);
-    --sh-hi:0 2px 0 rgba(59,53,80,.04), 0 16px 30px -18px rgba(59,53,80,.42);
+    --g1:#17409c; --g2:#33359f; --g3:#4b2ea6; --g4:#6d2478; --g5:#822369;
+    --text:#ffffff;
+    --dim:rgba(255,255,255,.88);        /* chữ phụ — gần trắng là CỐ Ý, xem đo bên dưới */
+    --rh:#ffb648; --lh:#4fd0f5; --mint:#5ce6a8; --grape:#c89cff;
+
+    --glass:rgba(255,255,255,.14);
+    --glass-hi:rgba(255,255,255,.18);   /* hover chỉ nhích nhẹ; sáng hơn là chữ trắng chìm */
+    --glass-lo:rgba(255,255,255,.09);
+    --line:rgba(255,255,255,.42);       /* viền sáng — chữ ký của style này */
+    --line2:rgba(255,255,255,.16);
+    --blur:saturate(150%) blur(16px);
+    --edge:inset 0 1px 0 rgba(255,255,255,.45);
+    --sheen:linear-gradient(135deg, rgba(255,255,255,.20) 0%,
+      rgba(255,255,255,.03) 40%, rgba(255,255,255,.09) 100%);
+    --sh:var(--edge), 0 10px 30px -12px rgba(6,2,28,.65);
+    --sh-hi:var(--edge), 0 18px 40px -14px rgba(6,2,28,.8);
   }
   *{box-sizing:border-box}
-  body{margin:0; background:var(--bg); color:var(--text); min-height:100vh;
-    background-image:radial-gradient(720px 280px at 15% -70px, rgba(255,159,46,.15), transparent 70%),
-      radial-gradient(640px 280px at 85% -50px, rgba(43,179,217,.15), transparent 70%);
-    background-repeat:no-repeat;
-    font:400 15px/1.6 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; -webkit-text-size-adjust:100%}
-  .wrap{max-width:980px; margin:0 auto; padding:0 20px}
-  a{color:var(--link)}
+  html{background:var(--g3)}
+  /* Nền đứng yên khi cuộn: kính trôi qua vùng màu khác nhau, đó mới ra cảm giác
+     tấm kính thật. Hai vệt tròn chỉ để nền đỡ phẳng, alpha thấp để không kéo độ
+     sáng nền vượt mốc đã đo. */
+  body::before{
+    content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background:
+      radial-gradient(38vmax 32vmax at 14% 10%,  rgba(56,132,255,.30), transparent 68%),
+      radial-gradient(34vmax 30vmax at 88% 88%,  rgba(255,86,170,.24), transparent 68%),
+      linear-gradient(135deg, var(--g1) 0%, var(--g2) 26%, var(--g3) 50%,
+        var(--g4) 78%, var(--g5) 100%);
+  }
+  body{margin:0; color:var(--text); background:transparent;
+    -webkit-text-size-adjust:100%}
+  a{color:var(--text)}
+  /* Link trong thân bài phải xanh nhạt + gạch chân: trên nền tím chữ đã là trắng,
+     không còn màu nào để phân biệt link với chữ thường mà vẫn đủ tương phản.
+     Bọc :where() để luật này có độ ưu tiên bằng 0 phần class — mọi link đã có
+     kiểu riêng (nav, footer, .crumb, .toc, .near, .btn, .cta, card) tự đè lên nó,
+     không phải viết một rừng ngoại lệ. */
+  :where(.wrap) p a, :where(.wrap) li a, dd a{color:#9fe6ff; text-decoration:underline;
+    text-underline-offset:2px}
+  :where(.wrap) p a:hover, :where(.wrap) li a:hover, dd a:hover{color:#fff}
 
-  nav{position:sticky; top:0; z-index:9; background:rgba(255,248,238,.88);
-    backdrop-filter:blur(10px); border-bottom:1px solid var(--line)}
-  nav .wrap{display:flex; align-items:center; gap:6px; height:60px}
+  nav{position:sticky; top:0; z-index:9; background-color:rgba(255,255,255,.10);
+    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+    border-bottom:1px solid var(--line2);
+    box-shadow:var(--edge), 0 12px 34px -26px #000}
   nav .brand{font-weight:800; font-size:16px; color:var(--text); text-decoration:none;
     display:flex; align-items:center; gap:9px; margin-right:10px}
-  nav .brand i{width:28px; height:28px; border-radius:9px; flex:none; font-style:normal;
-    background:var(--rh); color:#fff; font-size:16px; display:grid; place-items:center;
-    box-shadow:0 3px 8px -3px rgba(255,159,46,.9)}
+  nav .brand i{width:28px; height:28px; border-radius:10px; flex:none; font-style:normal;
+    background:linear-gradient(150deg,#ffd08a,#ff9d24); color:#3d2200; font-size:16px;
+    display:grid; place-items:center;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 6px 16px -6px rgba(255,157,36,.9)}
   nav a{color:var(--dim); text-decoration:none; font-size:14px; font-weight:500;
-    padding:7px 11px; border-radius:9px; white-space:nowrap}
-  nav a:hover{color:var(--text); background:#fff}
+    padding:7px 11px; border-radius:11px; white-space:nowrap; border:1px solid transparent}
+  nav a:hover{color:var(--text); background-color:var(--glass); border-color:var(--line);
+    box-shadow:var(--edge)}
   /* 375px: nav phải vừa đúng một hàng. Không bóp thì mục cuối bị đẩy ra ngoài mép. */
   @media (max-width:560px){
     nav .wrap{gap:2px; height:54px}
@@ -54,69 +96,129 @@
   }
   nav .spacer{margin-left:auto}
 
+  .btn{display:inline-block; border-radius:16px; padding:12px 22px; font-size:14.5px;
+    font-weight:600; text-decoration:none; color:var(--text);
+    background-color:var(--glass); border:1px solid var(--line);
+    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+    box-shadow:var(--sh); transition:transform .16s, box-shadow .16s, background-color .16s,
+      border-color .16s}
+  .btn:hover{background-color:var(--glass-hi); border-color:rgba(255,255,255,.62);
+    box-shadow:var(--sh-hi); transform:translateY(-1px)}
+  .btn:active{transform:translateY(1px)}
+  /* Nút chính giữ màu cam của app — cam trên nền tím nổi bật hẳn, và đúng quy ước
+     cam = tay phải mà trẻ thấy ở màn chơi. Vẫn là kính, chỉ là kính nhuộm cam đậm. */
+  .btn.primary{color:#3d2200; font-weight:700; border-color:rgba(255,255,255,.55);
+    background-image:linear-gradient(160deg, rgba(255,201,120,.96), rgba(255,157,36,.92));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 14px 32px -12px rgba(255,157,36,.65)}
+  .btn.primary:hover{background-image:linear-gradient(160deg, rgba(255,214,146,1), rgba(255,172,62,.96))}
+
+  code, kbd{background-color:var(--glass); border:1px solid var(--line2); border-radius:8px;
+    padding:1px 6px; font-size:12.5px; color:var(--text)}
+  kbd{border-bottom-width:2px; font:inherit; font-size:12.5px}
+
+  footer a{color:var(--dim); text-decoration:none}
+  footer a:hover{color:var(--text); text-decoration:underline}
+
+  /* Máy không có backdrop-filter thì mặt kính .14 gần như trong veo, chữ chồng
+     thẳng lên gradient — đục hẳn lên cho đọc được. */
+  @supports not ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){
+    :root{--glass:rgba(38,26,86,.72); --glass-hi:rgba(52,38,104,.78);
+      --glass-lo:rgba(30,20,72,.62)}
+    nav{background-color:rgba(30,22,80,.86)}
+  }
+  /* Người bật "giảm trong suốt" của hệ điều hành: bỏ hẳn phần nhìn xuyên. */
+  @media (prefers-reduced-transparency:reduce){
+    :root{--glass:#5a4aa8; --glass-hi:#6a59b8; --glass-lo:#4a3c92; --blur:none}
+    nav{background-color:#4e3f9c}
+  }
+
+  body{min-height:100vh; font:400 15px/1.6 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  .wrap{max-width:980px; margin:0 auto; padding:0 20px}
+  nav .wrap{display:flex; align-items:center; gap:6px; height:60px}
+
   header.top{padding:36px 0 18px}
   header.top h1{font-size:30px; margin:0 0 7px; letter-spacing:-.6px; font-weight:800}
   header.top p{color:var(--dim); font-size:14.5px; margin:0}
 
   .tools{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:20px 0 22px}
-  #q{flex:1; min-width:180px; background:var(--card); border:1px solid var(--line);
-    border-radius:12px; padding:12px 15px; color:var(--text); font:inherit; font-size:14.5px;
+  #q{flex:1; min-width:180px; background-color:var(--glass); border:1px solid var(--line);
+    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+    border-radius:16px; padding:12px 16px; color:var(--text); font:inherit; font-size:14.5px;
     box-shadow:var(--sh)}
-  #q:focus{outline:none; border-color:var(--lh); box-shadow:0 0 0 3px rgba(43,179,217,.18)}
-  #q::placeholder{color:var(--dim)}
-  .btn{display:inline-block; border-radius:12px; padding:12px 18px; font-size:14.5px;
-    font-weight:600; text-decoration:none; border:1px solid var(--line);
-    background:var(--card); color:var(--text); box-shadow:var(--sh)}
-  .btn:hover{box-shadow:var(--sh-hi)}
+  #q:focus{outline:none; border-color:rgba(255,255,255,.85);
+    box-shadow:var(--edge), 0 0 0 4px rgba(255,255,255,.18)}
+  #q::placeholder{color:rgba(255,255,255,.72)}
   .count{color:var(--dim); font-size:13.5px; font-variant-numeric:tabular-nums}
 
   .grid{display:grid; gap:14px; grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
     padding-bottom:8px}
-  a.song{display:block; text-decoration:none; color:inherit; background:var(--card);
-    border:1px solid var(--line); border-radius:16px; padding:17px 18px; position:relative;
-    box-shadow:var(--sh)}
-  a.song:hover{box-shadow:var(--sh-hi); transform:translateY(-2px); border-color:#e8d3b6}
-  a.song:focus-visible{outline:3px solid var(--lh); outline-offset:2px}
+  a.song{display:block; text-decoration:none; color:inherit; position:relative;
+    background-color:var(--glass); border:1px solid var(--line); border-radius:20px;
+    padding:17px 18px;
+    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur); box-shadow:var(--sh);
+    transition:transform .18s, box-shadow .18s, background-color .18s, border-color .18s}
+  a.song:hover{background-color:var(--glass-hi); border-color:rgba(255,255,255,.62);
+    box-shadow:var(--sh-hi); transform:translateY(-3px)}
+  a.song:focus-visible{outline:3px solid #fff; outline-offset:2px}
   a.song .t{font-size:15.5px; font-weight:700; margin-bottom:3px; padding-right:26px}
   a.song .rank{color:var(--dim); font-weight:700; margin-right:6px; font-variant-numeric:tabular-nums}
-  a.song .c{font-size:13.5px; color:var(--link); font-weight:500}
+  a.song .c{font-size:13.5px; color:#9fe6ff; font-weight:600}
   a.song .n{font-size:13px; color:var(--dim); margin-top:8px}
   a.song .f{font-size:11.5px; color:var(--dim); margin-top:10px; font-variant-numeric:tabular-nums;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  a.song .go{position:absolute; top:15px; right:15px; color:#c9c2da; font-size:17px}
+  a.song .go{position:absolute; top:15px; right:15px; color:rgba(255,255,255,.6); font-size:17px}
   a.song:hover .go{color:var(--rh)}
   a.song .lv{display:flex; align-items:center; gap:9px; margin-top:12px}
-  a.song .bar{flex:1; height:6px; border-radius:4px; background:#f0ecf6; overflow:hidden}
-  a.song .bar i{display:block; height:100%; border-radius:4px}
+  a.song .bar{flex:1; height:6px; border-radius:4px; overflow:hidden;
+    background:rgba(0,0,0,.22); box-shadow:inset 0 1px 2px rgba(0,0,0,.3)}
+  a.song .bar i{display:block; height:100%; border-radius:4px; box-shadow:0 0 9px -1px currentColor}
   a.song .num{font-size:11.5px; color:var(--dim); font-variant-numeric:tabular-nums; white-space:nowrap}
-  a.song .lvl{font-size:12px; font-weight:700; white-space:nowrap}
+  /* Nhãn mức độ là VIÊN THUỐC tô đầy chứ không phải chữ màu: trên kính tím, không
+     màu chữ nào đạt 4.5:1 ngoài gần-trắng (đo được 3.2–4.0), mà nhãn màu chính là
+     thứ cho biết bài dễ hay khó. Tô đầy pastel + mực tối thì lên 7.3–9.8:1. */
+  a.song .lvl{font-size:11.5px; font-weight:800; white-space:nowrap; border-radius:20px;
+    padding:3px 10px; box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
   @media (prefers-reduced-motion:reduce){ a.song:hover{transform:none} }
 
-  .msg{border:2px dashed var(--line); border-radius:16px; padding:26px 22px; color:var(--dim);
-    font-size:14px; grid-column:1/-1; background:#fffdf9}
+  .msg{border:2px dashed var(--line); border-radius:20px; padding:26px 22px;
+    color:var(--dim); font-size:14px; grid-column:1/-1; background-color:var(--glass-lo);
+    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur); box-shadow:var(--edge)}
   .msg b{color:var(--text); font-weight:700; display:block; margin-bottom:7px; font-size:15px}
-  .msg code{background:#fff; border:1px solid var(--line2); border-radius:6px;
+  .msg code{background-color:var(--glass); border:1px solid var(--line2); border-radius:8px;
     padding:2px 6px; font-size:12.5px; color:var(--text)}
-  .msg pre{background:#fff; border:1px solid var(--line2); border-radius:10px; padding:12px 14px;
-    overflow-x:auto; margin:11px 0 0; font-size:12.5px; color:var(--text); line-height:1.5}
+  .msg pre{background-color:rgba(0,0,0,.24); border:1px solid var(--line2); border-radius:12px;
+    padding:12px 14px; overflow-x:auto; margin:11px 0 0; font-size:12.5px; color:var(--text);
+    line-height:1.5}
 
   /* Link sang trang riêng từng bài. Card ở trên cố ý vẫn trỏ thẳng vào /play/ để
      bấm một cái là chơi được; khối này là đường cho Google bò tới các trang bai/,
      và là chỗ copy link đi chia sẻ. */
-  section.pages{border-top:1px solid var(--line); margin:16px 0 0; padding:24px 0 30px}
+  section.pages{border-top:1px solid var(--line2); margin:16px 0 0; padding:24px 0 30px}
   section.pages h2{font-size:16px; margin:0 0 5px; font-weight:700}
   section.pages p{color:var(--dim); font-size:13.5px; margin:0 0 13px}
   section.pages .pl{display:flex; flex-wrap:wrap; gap:8px}
-  section.pages .pl a{background:var(--card); border:1px solid var(--line); border-radius:10px;
-    padding:7px 12px; font-size:13px; text-decoration:none; color:var(--dim); box-shadow:var(--sh)}
-  section.pages .pl a:hover{color:var(--text); box-shadow:var(--sh-hi)}
+  section.pages .pl a{background-color:var(--glass); border:1px solid var(--line);
+    border-radius:12px; padding:7px 12px; font-size:13px; text-decoration:none;
+    color:var(--dim); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+    box-shadow:var(--sh)}
+  section.pages .pl a:hover{color:var(--text); background-color:var(--glass-hi);
+    border-color:rgba(255,255,255,.62)}
 
-  footer{border-top:1px solid var(--line); background:#fffdf9;
+  footer{border-top:1px solid var(--line2); background-color:rgba(255,255,255,.08);
+    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur); box-shadow:var(--edge);
     padding:20px 0 calc(20px + env(safe-area-inset-bottom)); color:var(--dim); font-size:13px}
   footer .wrap{display:flex; flex-wrap:wrap; gap:14px; align-items:center}
-  footer a{color:var(--link); text-decoration:none}
-  footer a:hover{text-decoration:underline}
   .hit{position:absolute; left:-9999px; width:1px; height:1px; opacity:0; pointer-events:none}
+
+  /* Luật gom vệt loé, phải nằm CUỐI file: mọi luật ở trên dùng background-color chứ
+     không dùng shorthand "background:", nên không có gì xoá mất vệt — kể cả các luật
+     :hover (chúng chỉ đổi màu). Ai thêm mặt kính mới thì phải theo đúng hai điều đó.
+     Cố tình KHÔNG gom .btn.primary / .cta / .demo: chúng đã có gradient riêng làm nền,
+     gán thêm là mất luôn màu của chúng. */
+  nav, footer, .btn, a.song, .msg, .msg pre, #q,
+  section.pages .pl a, code, kbd{
+    background-image:var(--sheen);
+  }
 </style>
 </head>
 <body>
@@ -181,24 +283,24 @@ const withTone = qs => qs + (TONE ? (qs ? '&' : '?') + 'tone=grand' : '');
 /* Độ khó 1–1000 do người chấm, ghi trong midi/meta.json. Danh sách đã được
    tools/build-midi-index.js sắp sẵn theo số này nên ở đây giữ nguyên thứ tự. */
 const BANDS = [
-  [150, 'Rất dễ',   '#0f7d54'],
-  [300, 'Dễ',       '#3f7d16'],
-  [450, 'Vừa',      '#9a6207'],
-  [600, 'Khá khó',  '#a8511a'],
-  [750, 'Khó',      '#b93a2f'],
-  [1001,'Rất khó',  '#a72649']
+  [150, 'Rất dễ',  '#7ef0b4', '#093a24'],
+  [300, 'Dễ',      '#c8ef7c', '#2c3a06'],
+  [450, 'Vừa',     '#ffd97a', '#412c00'],
+  [600, 'Khá khó', '#ffb27a', '#4a2200'],
+  [750, 'Khó',     '#ff9a91', '#4d1109'],
+  [1001,'Rất khó', '#ff92bd', '#4d0a29']
 ];
 const band = d => BANDS.find(b => d < b[0]) || BANDS[BANDS.length-1];
 
 function card(s, rank){
-  const [, label, color] = band(s.difficulty);
+  const [, label, color, ink] = band(s.difficulty);
   return '<a class="song" href="../play/' + withTone('?song=' + encodeURIComponent(s.file)) + '">' +
     '<span class="go">›</span>' +
     '<div class="t"><span class="rank">' + rank + '.</span>' + esc(s.title) + '</div>' +
     (s.composer ? '<div class="c">' + esc(s.composer) + '</div>' : '') +
     (s.note ? '<div class="n">' + esc(s.note) + '</div>' : '') +
     '<div class="lv">' +
-      '<span class="lvl" style="color:' + color + '">' + label + '</span>' +
+      '<span class="lvl" style="background:' + color + ';color:' + ink + '">' + label + '</span>' +
       '<span class="bar"><i style="width:' + (s.difficulty/10) + '%;background:' + color + '"></i></span>' +
       '<span class="num">' + s.difficulty + '/1000</span>' +
     '</div>' +

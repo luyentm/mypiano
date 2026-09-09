@@ -361,37 +361,106 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
 - **`?song=` chỉ nhận tên file thuần** (`/^[A-Za-z0-9._-]+\.midi?$/`) rồi fetch `../midi/<tên>`.
   Đừng nhận đường dẫn hay URL đầy đủ — mở đường cho traversal và fetch bậy.
 
-## Giao diện & bảng màu
+## Giao diện: glassmorphism trên gradient xanh → tím → hồng
 
-**Hai bảng màu, cố ý.** Bốn trang tĩnh (`/`, `/library/`, `/bai/*/`, `/giay-phep/`) dùng
-nền **kem sáng** cho hợp lứa tuổi thiếu nhi; riêng `/play/` vẫn **nền tối** và không đổi.
+**Cả site một hệ duy nhất**: nền gradient chéo bão hoà, mọi mặt phẳng là kính mờ
+viền sáng, **chữ trắng**. Bốn trang tĩnh (`/`, `/library/`, `/bai/*/`, `/giay-phep/`)
+và `/play/` dùng chung bảng token; `/play/` chỉ khác ở chỗ vùng nốt rơi giữ nền gần đen.
 
-Lý do giữ `/play/` tối, đừng "thống nhất" lại: nốt màu phải nổi bật hơn mọi thứ khác trên
-màn, và toàn bộ độ tương phản ở đó đã được đo và ghi trong mục "Quyết định kỹ thuật phải
-giữ" — dải quãng tám lệch 6.3 lum, vạch lưới 30.6, vạch ô nhịp 59, phủ khoanh ô nhịp
-trắng 204→139 / đen 30→74. Đổi nền sáng là phải đo lại từng con số đó.
+Bốn thứ làm nên style này, thiếu cái nào cũng hỏng:
+
+1. **Nền gradient bão hoà, cố định khi cuộn** (`body::before`, `position:fixed; inset:0;
+   z-index:-1`) — cái để nhìn xuyên qua. Kính trôi qua vùng màu khác nhau khi cuộn.
+2. **Mặt kính = một lớp trắng rất mỏng** (`--glass` = trắng 14%) + `backdrop-filter`.
+3. **VIỀN SÁNG 1px rõ rệt** (`--line` = trắng 42%) — đây mới là thứ vẽ ra hình tấm
+   kính. Nền mỏng như trên gần như không thấy nếu bỏ viền đi.
+4. **Vệt loé chéo + bóng đổ tối mềm**, để kính nổi khỏi nền.
 
 ```
---bg #fff8ee   --card #ffffff  --line #f2e2cd  --line2 #e7ddf0
---text #3b3550 --dim #6b6485   --link #0b7392
---rh #ff9f2e   --lh #2bb3d9    --mint #22b378  --grape #8a5cf0
+--g1 #17409c  --g2 #33359f  --g3 #4b2ea6  --g4 #6d2478  --g5 #822369
+--text #ffffff        --dim rgba(255,255,255,.88)
+--rh #ffb648  --lh #4fd0f5  --mint #5ce6a8  --grape #c89cff
+--glass rgba(255,255,255,.14)   --glass-hi .18   --glass-lo .09
+--line rgba(255,255,255,.42)    --edge inset 0 1px 0 rgba(255,255,255,.45)
+--blur saturate(150%) blur(16px)
 ```
 
+- **Gradient BẮT BUỘC tối (L ≈ .058–.070), không được tươi sáng** như phần lớn mẫu
+  glassmorphism trên mạng. Kính là lớp TRẮNG đè lên nền, nên nền càng sáng thì mặt
+  kính càng sáng và chữ trắng càng chìm. Đo ở mốc sáng nhất (hồng sen): kính + vệt loé
+  cho chữ trắng 5.67:1; nền sáng thêm một nấc là tụt xuống dưới 4.5. Đúng vì lý do này
+  mà bản gốc bắt chước từ ảnh mẫu (nền pastel sáng) không dùng được — trên ảnh mẫu đó
+  chữ trắng chỉ đạt khoảng 2.5:1.
+- **`--dim` gần như trắng (.88) là CỐ Ý.** Trên kính, mực .72 chỉ còn 3.8:1. Style này
+  không có chỗ cho chữ xám — phân cấp phải làm bằng CỠ CHỮ và ĐỘ ĐẬM, không bằng màu.
+- **Vệt loé (`--sheen`) gán bằng MỘT luật gom ở CUỐI file**, không gộp vào từng luật.
+  Kèm theo đó là quy ước: mọi mặt kính dùng `background-color:` chứ **không dùng
+  shorthand `background:`** — shorthand reset `background-image` và xoá mất vệt loé,
+  nhất là ở các luật `:hover`. Ai thêm mặt kính mới thì phải theo đúng hai điều này.
+  Cố ý KHÔNG gom `.btn.primary` / `.btn.pp` / `.cta` / `.demo` / `#fall`: chúng đã có
+  gradient riêng làm nền, gán thêm là mất luôn màu của chúng.
+- **Link thân bài dùng `:where(.wrap) p a` / `li a`** (xanh nhạt + gạch chân). Trên nền
+  tím chữ đã là trắng, không còn màu nào để phân biệt link với chữ thường. Bọc
+  `:where()` để luật có độ ưu tiên bằng 0 phần class, nhờ vậy nav/footer/`.crumb`/
+  `.toc`/`.near`/`.btn`/`.cta` tự đè lên nó mà không phải viết một rừng ngoại lệ.
+- **Nhãn mức độ và thẻ bản quyền là VIÊN THUỐC TÔ ĐẦY, không phải chữ màu.** Trên kính
+  tím không màu chữ nào đạt 4.5:1 (đo được 3.2–4.0) — mà nhãn màu chính là thứ cho biết
+  bài dễ hay khó. Tô đầy pastel + mực tối thì lên 7.3–9.8:1. Vì thế bảng `BANDS` có
+  **bốn cột**: `[mốc, nhãn, màu nền, màu mực]`, và phải khớp giữa
+  [library/index.html](library/index.html) và [tools/build-pages.js](tools/build-pages.js).
+- **`backdrop-filter` KHÔNG được bọc quanh canvas đang vẽ 60fps.** Hai chỗ cố ý không có
+  nó: `#fall` ở `/play/`, và `.demo` ở trang chủ (bên trong là hero canvas). Trình duyệt
+  phải lọc lại nền mỗi frame nếu thứ bên trong vẽ liên tục. `header`/`footer` của
+  `/play/` thì được: chúng là anh em flex của `#stage` nên không giao nhau về hình học.
+  Overlay (`#done`, `#empty`, `#busy`, `#drop`) cũng được vì chỉ hiện lúc đã dừng.
+- **`#fall` gần như ĐỤC (.97 → .94 → .90).** Đo lại: đỉnh 13.8 → 11.6 lum, đáy 21.7 →
+  21.9 lum so với nền đặc cũ — tức vùng nốt rơi KHÔNG sáng lên, nên mọi con số trong
+  "Quyết định kỹ thuật phải giữ" (dải quãng tám lệch 6.3 lum, vạch lưới 30.6, vạch ô
+  nhịp 59, phủ khoanh ô nhịp trắng 204→139 / đen 30→74) vẫn đúng nguyên. Hạ alpha cho
+  gradient ánh lên nhiều hơn là phải đo lại từng con số đó.
 - **Ba nơi phải khớp từng giá trị**: `<style>` trong [index.html](index.html), trong
   [library/index.html](library/index.html), và hằng `CSS` trong
-  [tools/build-pages.js](tools/build-pages.js). Lặp lại là cố ý (mỗi trang tự chứa), nhưng
-  lệch màu thì người dùng thấy ngay khi bấm qua lại.
-- **`--rh`/`--lh` chỉ dùng làm khối màu, KHÔNG làm chữ trên nền sáng**: cam #ff9f2e trên
-  trắng chỉ đạt 2.1. Chữ cần màu thì dùng `--link` (#0b7392, đạt 5.4).
-- **Đo lại tương phản sau mỗi lần đổi màu.** Hiện thấp nhất là 4.79 (nhãn mức "Dễ" trên
-  nền kem), đạt WCAG AA. Từng có hai chỗ hụt và đã sửa: chữ phụ #a49dbb chỉ 2.59, và
-  bộ màu mức độ bản cũ (#6fc38a…) vốn chọn cho nền tối.
-- **Màu 6 mức độ phải khớp giữa `library/index.html` và `tools/build-pages.js`** — cùng
-  lý do với bảng `BANDS`. Bộ hiện tại: `#0f7d54 #3f7d16 #9a6207 #a8511a #b93a2f #a72649`,
-  đạt AA trên cả nền trắng lẫn nền kem.
-- **Khung mô phỏng ở trang chủ (`.demo`) giữ nền tối** — nó là ảnh thu nhỏ của `/play/`
-  thật. Để sáng thì trang chủ hứa một đằng, bấm vào một nẻo. Hero canvas cũng đọc
-  `--rh`/`--lh` nên hai màu đó phải luôn nổi được trên nền tối.
+  [tools/build-pages.js](tools/build-pages.js). Lặp lại là cố ý (mỗi trang tự chứa),
+  nhưng lệch màu thì người dùng thấy ngay khi bấm qua lại.
+
+### `prefers-reduced-transparency` — nhánh này gặp thường xuyên hơn bạn nghĩ
+
+Windows tắt **Settings → Personalization → Colors → Transparency effects** là Chrome báo
+`prefers-reduced-transparency: reduce` ngay, và rất nhiều máy tắt sẵn vì pin/hiệu năng
+chứ không phải vì nhu cầu tiếp cận. Máy của chủ repo đang tắt
+(`HKCU\...\Themes\Personalize\EnableTransparency = 0`), nên **mở site trên chính máy đó
+là thấy nhánh dự phòng, không phải kính**.
+
+Vì vậy nhánh dự phòng phải TRÔNG NHƯ chính thiết kế, không được thành thứ khác:
+
+- Bản đầu cho mặt kính thành khối tím **đặc và TỐI hơn nền** — lật ngược quan hệ
+  sáng/tối của cả thiết kế (kính vốn phải sáng hơn nền). Đã sửa.
+- Cách đang dùng: vẫn bỏ hẳn nhìn-xuyên-qua và bỏ blur, nhưng thay bằng màu ĐẶC lấy
+  đúng bằng màu tấm kính hiện ra khi nằm trên khúc GIỮA gradient (`#5a4aa8`). Mặt kính
+  vẫn sáng hơn nền, viền sáng và vệt loé giữ nguyên, chữ trắng lên 7.05:1.
+- Muốn xem kính thật trên máy đang tắt: bật lại Transparency effects, hoặc tạm chèn
+  `:root{--glass:rgba(255,255,255,.14)!important; --blur:saturate(150%) blur(18px)!important}`.
+
+Nhánh `@supports not (backdrop-filter)` là chuyện khác (trình duyệt không hỗ trợ) và
+vẫn dùng màu đặc hơn nữa.
+
+### Đo tương phản (WCAG, ca xấu nhất = ĐÚNG TÂM từng mốc gradient)
+
+| Chỗ | thấp nhất | ngưỡng |
+| --- | --- | --- |
+| chữ trắng trên kính (kể cả vệt loé) | 5.67 | 4.5 |
+| chữ trắng trên kính lúc hover | 5.16 | 4.5 |
+| `--dim` .88 trên kính | 4.80 | 4.5 |
+| chữ trắng nằm thẳng trên gradient | 8.77 | 4.5 |
+| viên thuốc 6 mức độ | 7.26 | 4.5 |
+| mực `#3d2200` trên nút cam | 7.08 | 4.5 |
+| nhánh giảm-trong-suốt (`#5a4aa8`) | 7.05 | 4.5 |
+
+- **`--rh`/`--lh` chỉ dùng làm khối màu và chấm, KHÔNG làm chữ.** Trên kính tím không
+  màu nào ngoài gần-trắng đạt 4.5.
+- **Khung mô phỏng ở trang chủ (`.demo`) giữ nền gần đen** — nó là ảnh thu nhỏ của
+  `/play/` thật. Để sáng thì trang chủ hứa một đằng, bấm vào một nẻo. Hero canvas cũng
+  đọc `--rh`/`--lh` nên hai màu đó phải luôn nổi được trên nền tối.
 - **`@media (max-width:560px)` bóp nav lại** (ẩn mục `#tinh-nang`, giảm cỡ chữ và đệm).
   Không có nó thì ở 375px chữ "Tính năng"/"Thư viện" xuống dòng và mục cuối bị đẩy ra
   ngoài mép. `nav a` bắt buộc `white-space:nowrap`. Đo sau khi sửa: mép phải mục cuối

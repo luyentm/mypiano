@@ -19,38 +19,78 @@
 <meta property="og:title" content="Giấy phép &amp; ghi công — mypiano">
 <meta property="og:description" content="Toàn bộ bản quyền của mypiano: mã nguồn PolyForm Noncommercial 1.0.0, mẫu tiếng đàn Salamander Grand Piano (CC BY 3.0, Alexander Holm), và tình trạng bản quyền của từng file MIDI trong thư viện.">
 <meta property="og:url" content="https://luyentm.github.io/mypiano/giay-phep/">
-<style>
-  /* Bảng màu SÁNG dùng chung với index.html và library/index.html — ba nơi phải
-     khớp từng giá trị. Riêng /play/ giữ nền tối: nốt màu phải nổi trên nền tối
-     mới đọc kịp, và mọi độ tương phản ở đó đã được đo (xem CLAUDE.md). */
+<style>  /* ==========================================================================
+     GLASSMORPHISM — gradient xanh → tím → hồng sen, mọi mặt phẳng là kính mờ
+     viền sáng, CHỮ TRẮNG. Bốn thứ làm nên style này, thiếu cái nào cũng hỏng:
+       1) nền gradient BÃO HOÀ, cố định khi cuộn — cái để nhìn xuyên qua;
+       2) mặt kính = một lớp trắng rất mỏng (.14) + backdrop-filter blur;
+       3) VIỀN SÁNG 1px rõ rệt — đây mới là thứ vẽ ra hình tấm kính, nền mỏng
+          như trên gần như không thấy nếu bỏ viền đi;
+       4) vệt loé chéo + bóng đổ tối mềm, để kính nổi khỏi nền.
+
+     Vì sao gradient phải TỐI (L ≈ .058–.078) chứ không tươi sáng như nhiều
+     mẫu trên mạng: kính là lớp TRẮNG đè lên nền, nên nền càng sáng thì mặt
+     kính càng sáng và chữ trắng càng chìm. Đo ở mốc sáng nhất (hồng sen),
+     kính .14 + loé .05 cho chữ trắng 5.4:1; nền sáng thêm một nấc là tụt
+     xuống dưới 4.5. Muốn đổi màu nền thì chạy lại phép đo trước.
+     ========================================================================== */
   :root{
-    --bg:#fff8ee; --card:#ffffff; --line:#f2e2cd; --line2:#e7ddf0;
-    --text:#3b3550; --dim:#6b6485;
-    --rh:#ff9f2e; --lh:#2bb3d9; --mint:#22b378; --grape:#8a5cf0;
-    --link:#0b7392;
-    --sh:0 1px 0 rgba(59,53,80,.03), 0 10px 24px -16px rgba(59,53,80,.35);
-    --sh-hi:0 2px 0 rgba(59,53,80,.04), 0 16px 30px -18px rgba(59,53,80,.42);
+    --g1:#17409c; --g2:#33359f; --g3:#4b2ea6; --g4:#6d2478; --g5:#822369;
+    --text:#ffffff;
+    --dim:rgba(255,255,255,.88);        /* chữ phụ — gần trắng là CỐ Ý, xem đo bên dưới */
+    --rh:#ffb648; --lh:#4fd0f5; --mint:#5ce6a8; --grape:#c89cff;
+
+    --glass:rgba(255,255,255,.14);
+    --glass-hi:rgba(255,255,255,.18);   /* hover chỉ nhích nhẹ; sáng hơn là chữ trắng chìm */
+    --glass-lo:rgba(255,255,255,.09);
+    --line:rgba(255,255,255,.42);       /* viền sáng — chữ ký của style này */
+    --line2:rgba(255,255,255,.16);
+    --blur:saturate(150%) blur(16px);
+    --edge:inset 0 1px 0 rgba(255,255,255,.45);
+    --sheen:linear-gradient(135deg, rgba(255,255,255,.20) 0%,
+      rgba(255,255,255,.03) 40%, rgba(255,255,255,.09) 100%);
+    --sh:var(--edge), 0 10px 30px -12px rgba(6,2,28,.65);
+    --sh-hi:var(--edge), 0 18px 40px -14px rgba(6,2,28,.8);
   }
   *{box-sizing:border-box}
-  body{margin:0; background:var(--bg); color:var(--text); min-height:100vh;
-    background-image:radial-gradient(720px 280px at 15% -70px, rgba(255,159,46,.15), transparent 70%),
-      radial-gradient(640px 280px at 85% -50px, rgba(43,179,217,.15), transparent 70%);
-    background-repeat:no-repeat;
-    font:400 15px/1.68 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; -webkit-text-size-adjust:100%}
-  .wrap{max-width:760px; margin:0 auto; padding:0 20px}
-  a{color:var(--link)}
+  html{background:var(--g3)}
+  /* Nền đứng yên khi cuộn: kính trôi qua vùng màu khác nhau, đó mới ra cảm giác
+     tấm kính thật. Hai vệt tròn chỉ để nền đỡ phẳng, alpha thấp để không kéo độ
+     sáng nền vượt mốc đã đo. */
+  body::before{
+    content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background:
+      radial-gradient(38vmax 32vmax at 14% 10%,  rgba(56,132,255,.30), transparent 68%),
+      radial-gradient(34vmax 30vmax at 88% 88%,  rgba(255,86,170,.24), transparent 68%),
+      linear-gradient(135deg, var(--g1) 0%, var(--g2) 26%, var(--g3) 50%,
+        var(--g4) 78%, var(--g5) 100%);
+  }
+  body{margin:0; color:var(--text); background:transparent;
+    -webkit-text-size-adjust:100%}
+  a{color:var(--text)}
+  /* Link trong thân bài phải xanh nhạt + gạch chân: trên nền tím chữ đã là trắng,
+     không còn màu nào để phân biệt link với chữ thường mà vẫn đủ tương phản.
+     Bọc :where() để luật này có độ ưu tiên bằng 0 phần class — mọi link đã có
+     kiểu riêng (nav, footer, .crumb, .toc, .near, .btn, .cta, card) tự đè lên nó,
+     không phải viết một rừng ngoại lệ. */
+  :where(.wrap) p a, :where(.wrap) li a, dd a{color:#9fe6ff; text-decoration:underline;
+    text-underline-offset:2px}
+  :where(.wrap) p a:hover, :where(.wrap) li a:hover, dd a:hover{color:#fff}
 
-  nav{position:sticky; top:0; z-index:9; background:rgba(255,248,238,.88);
-    backdrop-filter:blur(10px); border-bottom:1px solid var(--line)}
-  nav .wrap{display:flex; align-items:center; gap:6px; height:60px; max-width:980px}
+  nav{position:sticky; top:0; z-index:9; background-color:rgba(255,255,255,.10);
+    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+    border-bottom:1px solid var(--line2);
+    box-shadow:var(--edge), 0 12px 34px -26px #000}
   nav .brand{font-weight:800; font-size:16px; color:var(--text); text-decoration:none;
     display:flex; align-items:center; gap:9px; margin-right:10px}
-  nav .brand i{width:28px; height:28px; border-radius:9px; flex:none; font-style:normal;
-    background:var(--rh); color:#fff; font-size:16px; display:grid; place-items:center;
-    box-shadow:0 3px 8px -3px rgba(255,159,46,.9)}
+  nav .brand i{width:28px; height:28px; border-radius:10px; flex:none; font-style:normal;
+    background:linear-gradient(150deg,#ffd08a,#ff9d24); color:#3d2200; font-size:16px;
+    display:grid; place-items:center;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 6px 16px -6px rgba(255,157,36,.9)}
   nav a{color:var(--dim); text-decoration:none; font-size:14px; font-weight:500;
-    padding:7px 11px; border-radius:9px; white-space:nowrap}
-  nav a:hover{color:var(--text); background:#fff}
+    padding:7px 11px; border-radius:11px; white-space:nowrap; border:1px solid transparent}
+  nav a:hover{color:var(--text); background-color:var(--glass); border-color:var(--line);
+    box-shadow:var(--edge)}
   /* 375px: nav phải vừa đúng một hàng. Không bóp thì mục cuối bị đẩy ra ngoài mép. */
   @media (max-width:560px){
     nav .wrap{gap:2px; height:54px}
@@ -60,8 +100,48 @@
     nav .cur{font-size:13px; padding:6px 7px}
     nav a[href$="#tinh-nang"]{display:none}   /* mục trong trang, bỏ được */
   }
-  nav .cur{color:var(--text); font-size:14px; font-weight:700; padding:7px 11px}
   nav .spacer{margin-left:auto}
+
+  .btn{display:inline-block; border-radius:16px; padding:12px 22px; font-size:14.5px;
+    font-weight:600; text-decoration:none; color:var(--text);
+    background-color:var(--glass); border:1px solid var(--line);
+    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+    box-shadow:var(--sh); transition:transform .16s, box-shadow .16s, background-color .16s,
+      border-color .16s}
+  .btn:hover{background-color:var(--glass-hi); border-color:rgba(255,255,255,.62);
+    box-shadow:var(--sh-hi); transform:translateY(-1px)}
+  .btn:active{transform:translateY(1px)}
+  /* Nút chính giữ màu cam của app — cam trên nền tím nổi bật hẳn, và đúng quy ước
+     cam = tay phải mà trẻ thấy ở màn chơi. Vẫn là kính, chỉ là kính nhuộm cam đậm. */
+  .btn.primary{color:#3d2200; font-weight:700; border-color:rgba(255,255,255,.55);
+    background-image:linear-gradient(160deg, rgba(255,201,120,.96), rgba(255,157,36,.92));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 14px 32px -12px rgba(255,157,36,.65)}
+  .btn.primary:hover{background-image:linear-gradient(160deg, rgba(255,214,146,1), rgba(255,172,62,.96))}
+
+  code, kbd{background-color:var(--glass); border:1px solid var(--line2); border-radius:8px;
+    padding:1px 6px; font-size:12.5px; color:var(--text)}
+  kbd{border-bottom-width:2px; font:inherit; font-size:12.5px}
+
+  footer a{color:var(--dim); text-decoration:none}
+  footer a:hover{color:var(--text); text-decoration:underline}
+
+  /* Máy không có backdrop-filter thì mặt kính .14 gần như trong veo, chữ chồng
+     thẳng lên gradient — đục hẳn lên cho đọc được. */
+  @supports not ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){
+    :root{--glass:rgba(38,26,86,.72); --glass-hi:rgba(52,38,104,.78);
+      --glass-lo:rgba(30,20,72,.62)}
+    nav{background-color:rgba(30,22,80,.86)}
+  }
+  /* Người bật "giảm trong suốt" của hệ điều hành: bỏ hẳn phần nhìn xuyên. */
+  @media (prefers-reduced-transparency:reduce){
+    :root{--glass:#5a4aa8; --glass-hi:#6a59b8; --glass-lo:#4a3c92; --blur:none}
+    nav{background-color:#4e3f9c}
+  }
+
+  body{min-height:100vh; font:400 15px/1.68 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  .wrap{max-width:760px; margin:0 auto; padding:0 20px}
+  nav .wrap{display:flex; align-items:center; gap:6px; height:60px; max-width:980px}
+  nav .cur{color:var(--text); font-size:14px; font-weight:700; padding:7px 11px}
 
   .crumb{font-size:13px; color:var(--dim); margin:24px 0 0}
   .crumb a{color:var(--dim); text-decoration:none}
@@ -72,44 +152,57 @@
   p{margin:0 0 13px}
   ul{margin:0 0 13px; padding-left:22px}
   li{margin-bottom:6px}
-  code{background:#fff; border:1px solid var(--line2); border-radius:6px;
-    padding:1px 6px; font-size:12.5px}
-
-  footer{border-top:1px solid var(--line); margin-top:40px; background:#fffdf9;
+  footer{border-top:1px solid var(--line2); margin-top:40px;
+    background-color:rgba(255,255,255,.08);
+    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur); box-shadow:var(--edge);
     padding:20px 0 calc(38px + env(safe-area-inset-bottom)); color:var(--dim); font-size:12.5px}
-  footer a{color:var(--link); text-decoration:none}
-  footer a:hover{text-decoration:underline}
   footer .wrap{display:flex; flex-wrap:wrap; gap:14px; align-items:center; max-width:980px}
   .hit{position:absolute; left:-9999px; width:1px; height:1px; opacity:0; pointer-events:none}
 
+  /* Luật gom vệt loé, phải nằm CUỐI file: mọi luật ở trên dùng background-color chứ
+     không dùng shorthand "background:", nên không có gì xoá mất vệt — kể cả các luật
+     :hover (chúng chỉ đổi màu). Ai thêm mặt kính mới thì phải theo đúng hai điều đó.
+     Cố tình KHÔNG gom .btn.primary / .cta / .demo: chúng đã có gradient riêng làm nền,
+     gán thêm là mất luôn màu của chúng. */
+  nav, footer, .btn, code, kbd, .box, .tw, .note, .near a, .toc a{
+    background-image:var(--sheen);
+  }
+
   .lead{color:var(--dim); font-size:14.5px; margin:0 0 26px}
-  .box{background:var(--card); border:1px solid var(--line); border-radius:14px;
+  .box{background-color:var(--glass); border:1px solid var(--line); border-radius:18px;
+    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
     padding:16px 18px; margin:0 0 16px; box-shadow:var(--sh)}
   .box.warn{border-left:4px solid var(--rh)}
   .box h3{margin:0 0 8px; font-size:15px; font-weight:700}
   .box p:last-child{margin-bottom:0}
   dl{margin:0 0 15px; font-size:14.5px}
-  dt{color:var(--dim); font-size:12.5px; margin-top:11px; font-weight:600;
+  dt{color:var(--dim); font-size:12.5px; margin-top:11px; font-weight:700;
     text-transform:uppercase; letter-spacing:.04em}
   dd{margin:2px 0 0}
-  .tw{overflow-x:auto; margin:0 0 15px; border:1px solid var(--line); border-radius:14px;
-    background:var(--card); box-shadow:var(--sh)}
+  .tw{overflow-x:auto; margin:0 0 15px; border:1px solid var(--line); border-radius:18px;
+    background-color:var(--glass); -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+    box-shadow:var(--sh)}
   table{border-collapse:collapse; width:100%; font-size:13.5px; min-width:520px}
-  th,td{text-align:left; padding:11px 14px; border-bottom:1px solid var(--line); vertical-align:top}
-  th{color:var(--dim); font-weight:700; font-size:12px; background:#fffaf2;
+  th,td{text-align:left; padding:11px 14px; border-bottom:1px solid var(--line2); vertical-align:top}
+  th{color:var(--dim); font-weight:700; font-size:12px; background-color:rgba(255,255,255,.10);
     text-transform:uppercase; letter-spacing:.04em}
   tr:last-child td{border-bottom:0}
   td .f{display:block; color:var(--dim); font-size:11.5px; font-variant-numeric:tabular-nums}
+  /* Thẻ bản quyền tô đầy pastel + mực tối, cùng lý do với viên thuốc mức độ:
+     chữ màu trên kính tím không đạt 4.5:1. */
   .tag{display:inline-block; border-radius:20px; padding:3px 11px; font-size:11.5px;
-    font-weight:700; white-space:nowrap}
-  .tag.pd{background:#e2f6ec; color:#0f7d54}
-  .tag.cop{background:#fdeaee; color:#a72649}
+    font-weight:800; white-space:nowrap; box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
+  .tag.pd{background:#7ef0b4; color:#093a24}
+  .tag.cop{background:#ff92bd; color:#4d0a29}
   .toc{list-style:none; padding:0; margin:0 0 28px; font-size:14px;
     display:flex; flex-wrap:wrap; gap:8px}
   .toc li{margin:0}
-  .toc a{display:inline-block; text-decoration:none; padding:5px 11px; border-radius:10px;
-    background:var(--card); border:1px solid var(--line); box-shadow:var(--sh)}
-  .toc a:hover{box-shadow:var(--sh-hi)}
+  .toc a{display:inline-block; text-decoration:none; color:var(--text);
+    padding:6px 13px; border-radius:14px;
+    background-color:var(--glass); border:1px solid var(--line);
+    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur); box-shadow:var(--sh)}
+  .toc a:hover{background-color:var(--glass-hi); border-color:rgba(255,255,255,.62);
+    box-shadow:var(--sh-hi)}
 </style>
 </head>
 <body>
