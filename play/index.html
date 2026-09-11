@@ -632,14 +632,24 @@ let loopA = 0, loopB = 0;
 const loopOn = () => loopB - loopA >= LOOP_MIN &&
   (loopA > 0.05 || loopB < duration - 0.05);
 
-const NUM_SIZES = [15, 12, 10, 8];              /* nấc cỡ chữ số phím, to → nhỏ */
-const numSize = (w, h) => {                    /* nấc lớn nhất vừa cả bề ngang lẫn chiều cao */
-  const cap = Math.min(w * 0.62, h * 0.78);
+const NUM_SIZES = [15, 12, 10, 8, 7, 6];        /* nấc cỡ chữ số phím, to → nhỏ */
+/* Nấc lớn nhất vừa cả bề ngang lẫn chiều cao. Đo bằng `measureText` trên font hệ
+   thống: một chữ số rộng ≈ 0.72em, "6#" ≈ 1.41em.
+   MỘT chữ thì để thoáng như cũ (`fs ≤ 0.62w`, chữ chỉ chiếm ~45% bề ngang thân nốt).
+   HAI chữ thì chỉ đòi VỪA thân nốt với lề 2px mỗi bên — bắt nó thoáng y như một chữ
+   là cỡ chữ rơi xuống ~4px, thấp hơn mọi nấc, nên **không nốt thăng nào được in số**:
+   ở chế độ `deg` nhãn phím đen LUÔN 2 chữ (`1#`, `6#`) mà phím đen thì hẹp.
+   Bé quá thì vẫn in ở nấc nhỏ nhất, không bỏ — thà chữ nhỏ còn hơn nốt trống trơn. */
+const numSize = (w, h, two) => {
+  const cap = Math.min(two ? (w - 4) / 1.45 : w * 0.62, h * 0.78);
   for (const s of NUM_SIZES) if (cap >= s) return s;
-  return 0;                                    /* thân nốt bé quá, không in */
+  return NUM_SIZES[NUM_SIZES.length - 1];
 };
 
-const HINT_LEAD = 1.2;                         /* giây: bắt đầu nhen sáng từ đây */
+/* Chỉ còn dùng để quyết định phím nào được IN NHÃN tên nốt ("sắp bấm thật"). Độ
+   sáng của phím và của vệt dẫn thì chạy theo `q` — vị trí nốt trên màn — chứ không
+   theo mốc giây này nữa. */
+const HINT_LEAD = 1.2;                         /* giây: ngưỡng "sắp bấm thật" */
 /* Tên nốt in ở ĐÁY phím đang được gợi ý. Màu chữ CỐ ĐỊNH — đen trên phím trắng,
    trắng trên phím đen — không đổi theo độ sáng highlight, để lúc nào cũng đọc được.
    Phím C đã có sẵn nhãn quãng tám (C4…) nên không in đè thêm. */
@@ -1319,7 +1329,7 @@ function drawFalling(now, dt){
 
   /* culling: lùi window lại maxDur để nốt bass dài không biến mất */
   const from = lowerBound(now - maxDur);
-  const active = [], visible = [], hints = new Map(), trails = new Map();
+  const active = [], visible = [], hints = new Map();
   for (let i = from; i < notes.length; i++){
     const n = notes[i];
     if (n.start > winEnd) break;
@@ -1327,23 +1337,20 @@ function drawFalling(now, dt){
     if (handState[n.hand] === 'off') continue;
     const g = geom[n.midi]; if (!g) continue;
     if (n.start <= now) active.push(n);        /* 'chỉ hiện' vẫn làm sáng phím để dẫn tay */
-    else if (hintOn()){
-      /* Vệt dẫn bám nốt GẦN PHÍM NHẤT của mỗi phím và KHÔNG có cửa sổ thời gian:
-         nốt vừa hiện ra ở mép trên là đã có cột dẫn xuống đúng phím của nó, mắt đi
-         theo được từ đầu. Gắn nó vào HINT_LEAD như trước thì cột chỉ bật lên khi
-         còn 1.2s — sát quá, tới lúc thấy thì tay đã không kịp dóng.
-         `notes` sort theo start nên cái gặp trước chính là cái gần phím nhất. */
-      if (!trails.has(n.midi)) trails.set(n.midi, { start: n.start, hand: n.hand });
-      /* Phím trên bàn phím thì VẪN chỉ sáng trong HINT_LEAD — sáng sớm hơn là cả
-         bàn phím lúc nào cũng sáng, mất luôn nghĩa "sắp phải bấm". */
-      if (n.start <= now + HINT_LEAD){
-        const p = 1 - (n.start - now) / HINT_LEAD;      /* 0 = còn xa, 1 = sắp phải bấm */
-        const cur = hints.get(n.midi);
-        if (!cur || p > cur.p) hints.set(n.midi, { p, hand: n.hand });
-      }
+    else if (hintOn() && !hints.has(n.midi)){
+      /* MỘT tín hiệu duy nhất cho cả vệt dẫn lẫn phím trên bàn phím: nốt GẦN PHÍM
+         NHẤT của mỗi phím, không có cửa sổ thời gian. `notes` sort theo start nên
+         cái gặp trước chính là cái gần nhất.
+         `near` chỉ còn dùng cho khoanh ô nhịp và cho nhãn tên nốt — hai thứ đó
+         KHÔNG được nới ra cả cửa sổ, xem chỗ dùng. */
+      hints.set(n.midi, { start: n.start, hand: n.hand, near: n.start <= now + HINT_LEAD });
     }
     visible.push([n, g]);
   }
+  /* `q` = vị trí đáy nốt trên màn, 0 = vừa ló ở mép trên, 1 = chạm phím. Tính MỘT lần
+     ở đây để vệt dẫn và phím dùng chung đúng một con số — hai bên phải sáng lên cùng
+     lúc, cùng nhịp; lệch nhau là mắt thấy hai tín hiệu rời rạc thay vì một cột. */
+  for (const h of hints.values()) h.q = Math.min(Math.max(y(h.start) / HF, 0), 1);
 
   /* Vệt dẫn nối đáy nốt gần nhất với đúng phím của nó — mắt khỏi phải dóng theo cột.
      Là một KHỐI CHỮ NHẬT LIỀN rộng đúng bằng thân nốt, mờ dần lên trên. Bản cũ là
@@ -1353,14 +1360,13 @@ function drawFalling(now, dt){
      MỌI vệt dùng chung một đối tượng bất kể đáy nốt đang ở đâu.
      Vẽ TRƯỚC thân nốt: vệt chạy từ đáy nốt xuống tận vạch chạm nên nó cắt ngang thân
      nốt đang vang của chính phím đó; vẽ sau là phủ một lớp mờ lên nốt đặc. */
-  if (hintOn() && trails.size){
+  if (hintOn() && hints.size){
     fctx.save();
     fctx.beginPath(); fctx.rect(0, 0, W, HF); fctx.clip();
-    for (const [m, t] of trails){
+    for (const [m, t] of hints){
       const g = geom[m]; if (!g) continue;
       const yTop = y(t.start);
-      const q = Math.max(yTop / HF, 0);        /* 0 = vừa ló ở mép trên, 1 = chạm phím */
-      fctx.globalAlpha = 0.20 + 0.80 * q * q;
+      fctx.globalAlpha = 0.20 + 0.80 * t.q * t.q;
       fctx.fillStyle = vgrad(fctx, 0, HF, handCol(t.hand), TRAIL_STOPS);
       fctx.fillRect(g.x + 1, yTop, g.w - 2, HF - yTop);
     }
@@ -1406,9 +1412,7 @@ function drawFalling(now, dt){
           const top = y(n.end), h = Math.max((n.end - n.start) * PPS, 3);
           if (top > HF) continue;
           const txt = numText(n.midi);
-          /* số hai chữ cần chỗ ngang gấp ~1.75 lần số một chữ, không chia thì "88"
-             chọn nấc font quá to rồi chìa ra ngoài thân nốt */
-          if (numSize(txt.length > 1 ? g.w / 1.75 : g.w, h) !== fs) continue;
+          if (numSize(g.w, h, txt.length > 1) !== fs) continue;
           const cy = top + h / 2;
           if (cy < fs * 0.6 || cy > HF - 2) continue;
           if (!set){ fctx.font = '800 ' + fs + 'px system-ui,-apple-system,sans-serif'; set = true; }
@@ -1461,30 +1465,44 @@ function drawKeys(state){
   let sig = [...on.keys()].sort((a,b) => a-b).join(',');
   if (hints.size){
     const h = [];
-    for (const [m, v] of hints) h.push(m + ':' + Math.round(v.p * 8) + ':' + v.hand);
+    for (const [m, v] of hints) h.push(m + ':' + Math.round(v.q * 8) + ':' + v.hand);
     sig += '|' + h.sort().join(',');
   }
   if (scope) sig += '|b' + barIdx;             /* sang ô nhịp mới thì phải vẽ lại */
   if (sig === lastKeySig) return;
   lastKeySig = sig;
 
-  const lit = new Set([...on.keys(), ...hints.keys()]);
+  /* Nhãn tên nốt chỉ theo phím SẮP BẤM THẬT (`near`), không theo cả cửa sổ: nới ra
+     thì gần như phím trắng nào cũng có nhãn, đúng cái "rừng chữ" phải tránh. */
+  const lit = new Set(on.keys());
+  for (const [m, v] of hints) if (v.near) lit.add(m);
   kctx.clearRect(0, 0, W, HK);
   const ivory = css('--ivory'), ebony = css('--ebony');
   const shade = kctx.createLinearGradient(0, HK*0.75, 0, HK);   /* dựng 1 lần, dùng cho mọi phím */
   shade.addColorStop(0, 'rgba(0,0,0,0)'); shade.addColorStop(1, 'rgba(0,0,0,.18)');
   kctx.textAlign = 'center'; kctx.textBaseline = 'alphabetic';
 
-  /* Tô KÍN cả phím, chỉ đậm dần lên theo p. Từng thử kiểu vệt màu dâng dần từ trên
-     xuống như đếm ngược — nhìn rối hơn hẳn, bỏ. Một tín hiệu duy nhất là đủ.
-     Bình phương nên lúc còn xa chỉ nhen nhẹ, tới sát mới bừng; trần vẫn nhạt hơn
-     phím đang kêu để không lẫn "sắp bấm" với "đang kêu". */
-  const hintAlpha = p => 0.10 + 0.42 * p * p;
+  /* Tô KÍN cả phím, chỉ đậm dần lên theo `q` — ĐÚNG con số vệt dẫn đang dùng, nên
+     phím dưới và cột trên sáng lên cùng lúc, cùng nhịp. Trước đây phím chạy theo
+     thang HINT_LEAD riêng nên nó bật muộn hơn cột hẳn một nhịp, nhìn thành hai tín
+     hiệu rời rạc. Từng thử kiểu vệt màu dâng dần từ trên xuống như đếm ngược — nhìn
+     rối hơn hẳn, bỏ. Một tín hiệu duy nhất là đủ.
+     Bình phương nên lúc còn xa chỉ nhen nhẹ (q = 0.3 -> 0.05), tới sát mới bừng;
+     trần 0.52 vẫn nhạt hơn phím đang kêu để không lẫn "sắp bấm" với "đang kêu". */
+  const hintAlpha = q => 0.52 * q * q;
 
   /* Phím trắng thì phủ tối đi, phím đen thì nhấc sáng lên một chút — cùng dồn về
      phía xám nhưng vẫn giữ trắng sáng hơn đen, nếu không thì mất luôn hình dạng
-     bàn phím và người ta không dóng được phím nào ra phím nào. */
-  const dim = m => scope && !scope.has(m) && !on.has(m) && !hints.has(m);
+     bàn phím và người ta không dóng được phím nào ra phím nào.
+     Mức phủ NHẠT DẦN theo đúng `q` của nốt đang tới (`1 - q²`) chứ không bật/tắt ở
+     mốc cứng 1.2s: mốc cứng tạo ra một cú nhảy sáng ngay giữa lúc phím đang sáng dần
+     lên, nhìn thành hai tín hiệu rời rạc thay vì một. Phím không có nốt nào đang tới
+     thì vẫn phủ đủ 100% như cũ. */
+  const dimA = m => {
+    if (!scope || scope.has(m) || on.has(m)) return 0;
+    const h = hints.get(m);
+    return h ? 1 - h.q * h.q : 1;
+  };
 
   for (let m = loMidi; m <= hiMidi; m++){
     const g = geom[m]; if (!g || g.black) continue;
@@ -1494,20 +1512,25 @@ function drawKeys(state){
       kctx.fillStyle = shade; kctx.fillRect(g.x, 0, g.w - 1, HK);
       const hint = hints.get(m);
       if (hint){
-        kctx.globalAlpha = hintAlpha(hint.p);
+        kctx.globalAlpha = hintAlpha(hint.q);
         kctx.fillStyle = handCol(hint.hand);
         kctx.fillRect(g.x, 0, g.w - 1, HK);
         /* Vệt dẫn chạy tiếp xuống thân phím: đậm ở mép trên đúng chỗ nối với vạch
            chạm rồi nhạt dần, nên cột nốt rơi và phím thành MỘT khối liền trong mắt.
            Vẽ ở đây chứ không phải cuối hàm, để nhãn tên nốt in đè lên trên chứ
            không bị lớp mờ này phủ xuống. */
-        kctx.globalAlpha = 0.35 + 0.5 * hint.p;
+        kctx.globalAlpha = 0.85 * hint.q * hint.q;   /* cùng đường cong q² với vệt dẫn */
         kctx.fillStyle = vgrad(kctx, 0, HK, handCol(hint.hand), KEY_STOPS);
         kctx.fillRect(g.x, 0, g.w - 1, HK);
         kctx.globalAlpha = 1;
       }
     }
-    if (dim(m)){ kctx.fillStyle = 'rgba(74,84,102,.62)'; kctx.fillRect(g.x, 0, g.w - 1, HK); }
+    const da = dimA(m);
+    if (da){
+      kctx.globalAlpha = da;
+      kctx.fillStyle = 'rgba(74,84,102,.62)'; kctx.fillRect(g.x, 0, g.w - 1, HK);
+      kctx.globalAlpha = 1;
+    }
     const cx = g.x + (g.w - 1) / 2, by = HK - Math.max(HK * 0.07, 5);
     /* Chế độ số thì in số lên MỌI phím, không chỉ phím đang sáng: cả bàn phím trở
        thành cái thước để mắt dóng vào. Làm được vì số chỉ 1–2 chữ, chứ nhãn tên nốt
@@ -1534,22 +1557,28 @@ function drawKeys(state){
       kctx.fillStyle = 'rgba(255,255,255,.07)'; kctx.fillRect(g.x, 0, g.w, bh*0.18);
       const hint = hints.get(m);
       if (hint){
-        kctx.globalAlpha = hintAlpha(hint.p);
+        kctx.globalAlpha = hintAlpha(hint.q);
         kctx.fillStyle = handCol(hint.hand);
         kctx.fillRect(g.x, 0, g.w, bh);
-        kctx.globalAlpha = 0.45 + 0.5 * hint.p;    /* phím đen tối hơn nên cần đậm hơn */
+        kctx.globalAlpha = 0.95 * hint.q * hint.q;   /* phím đen tối hơn nên trần cao hơn */
         kctx.fillStyle = vgrad(kctx, 0, bh, handCol(hint.hand), KEY_STOPS);
         kctx.fillRect(g.x, 0, g.w, bh);
         kctx.globalAlpha = 1;
       }
     }
-    if (dim(m)){ kctx.fillStyle = 'rgba(150,163,186,.30)'; kctx.fillRect(g.x, 0, g.w, bh); }
-    /* Phím đen hẹp hơn phím trắng nên nhãn hay chìa ra ngoài — truyền nền lót
-       tối để phần chìa lên phím trắng vẫn đọc được. */
-    if (numMode())
-      keyLabel(numText(m), g.x + g.w / 2, bh - Math.max(bh * 0.08, 3), g.w - 2, 10, '#fff', '#1b202b');
-    else if (lit.has(m))
-      keyLabel(keyName(m), g.x + g.w / 2, bh - Math.max(bh * 0.08, 3), g.w - 2, 10, '#fff', '#1b202b');
+    const da = dimA(m);
+    if (da){
+      kctx.globalAlpha = da;
+      kctx.fillStyle = 'rgba(150,163,186,.30)'; kctx.fillRect(g.x, 0, g.w, bh);
+      kctx.globalAlpha = 1;
+    }
+    /* Nhãn in trên MỌI phím thăng, không chỉ phím đang sáng: "nốt thăng này là nốt
+       nào" đúng là chỗ người mới bí nhất, mà phím đen chỉ có 5 cái mỗi quãng tám nên
+       in hết cũng không thành rừng chữ như in hết 52 phím trắng.
+       Phím đen hẹp hơn phím trắng nên nhãn hay chìa ra ngoài — truyền nền lót tối để
+       phần chìa lên phím trắng vẫn đọc được. */
+    keyLabel(numMode() ? numText(m) : keyName(m),
+             g.x + g.w / 2, bh - Math.max(bh * 0.08, 3), g.w - 2, 10, '#fff', '#1b202b');
   }
   kctx.fillStyle = 'rgba(0,0,0,.5)'; kctx.fillRect(0, 0, W, 2);
 }

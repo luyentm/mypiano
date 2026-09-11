@@ -93,8 +93,13 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
   - Tên nốt mặc định **Đô Rê Mi** (`noteLang = 'solfa'`), có tuỳ chọn đổi sang C D E.
     (Chỉ có tác dụng ở chế độ gợi ý `note` — xem mục "Hai chế độ SỐ" bên dưới.)
     Trẻ Việt học solfège; chữ cái là thứ phải học thêm chứ không giúp học nhanh hơn.
-  - Nhãn chỉ in trên phím đang kêu / sắp bấm và trên các phím Đô — in hết 88 phím
-    thì thành rừng chữ.
+  - Trên phím TRẮNG, nhãn chỉ in ở phím đang kêu / sắp bấm và ở các phím Đô — in hết
+    52 phím trắng thì thành rừng chữ.
+  - **Phím ĐEN thì in hết, luôn luôn.** "Nốt thăng này là nốt nào" đúng là chỗ người
+    mới bí nhất, mà mỗi quãng tám chỉ có 5 phím đen nên in hết cũng không thành rừng
+    chữ như phím trắng. Đo ở ca xấu nhất (88 phím trên khung 1024px, tên solfa
+    `Sol#` dài nhất): 36 nhãn ở cỡ 6.5px, khe hẹp nhất giữa hai nhãn **1.4px**,
+    **0 cặp đè nhau**.
 - **Audio**: `MAX_VOICES = 96`, chạm trần thì **CƯỚP voice cũ nhất** (`stealOldest()`),
   tuyệt đối không bỏ nốt mới. Trần cũ 16 + bỏ nốt mới đã làm He's a Pirate (16 nốt/giây)
   rơi 15% số nốt, nghe y như đánh sai giai điệu — bug này rất khó thấy vì phần nhìn
@@ -141,11 +146,20 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
   họ cần biết *bấm phím nào, ngay bây giờ*.
   Cách đang dùng — phím trên bàn phím sáng dần lên khi nốt tới gần, kèm **vệt dẫn**
   nối đáy nốt xuống thẳng phím của nó:
-  - `HINT_LEAD = 1.2s`, `p = 1 - (start - now)/HINT_LEAD` (0 = còn xa, 1 = sắp bấm).
-  - Tô **kín cả phím**, chỉ đậm dần `0.10 + 0.42p²`. Bình phương để lúc còn xa chỉ nhen
-    nhẹ, tới sát mới bừng. Đã thử kiểu vệt màu dâng dần từ trên xuống như đếm ngược —
-    **rối hơn hẳn, đừng làm lại**: một tín hiệu (độ đậm) là đủ.
-  - Trần độ đậm cố ý thấp hơn phím đang kêu, để không lẫn "sắp bấm" với "đang kêu".
+  - **MỘT tín hiệu duy nhất `q` cho CẢ cột dẫn lẫn phím**: `q = yTop / HF`, tức vị trí
+    đáy nốt trên màn (0 = vừa ló ở mép trên, 1 = chạm phím). Tính một lần trong
+    `drawFalling()` rồi gắn thẳng vào từng mục của map `hints`, để hai bên dùng đúng
+    một con số. Bản trước cho phím chạy theo thang `HINT_LEAD` riêng nên nó bật muộn
+    hơn cột hẳn một nhịp — nhìn thành hai tín hiệu rời rạc thay vì một cột liền.
+  - `HINT_LEAD = 1.2s` giờ CHỈ còn quyết định phím nào được **in nhãn tên nốt**
+    (cờ `near`). Không còn dính gì tới độ sáng.
+  - Tô **kín cả phím**, đậm dần `0.52q²`. Bình phương để lúc còn xa chỉ nhen nhẹ
+    (`q = 0.3` → 0.05), tới sát mới bừng. Đã thử kiểu vệt màu dâng dần từ trên xuống
+    như đếm ngược — **rối hơn hẳn, đừng làm lại**: một tín hiệu (độ đậm) là đủ.
+  - Trần độ đậm (0.52) cố ý thấp hơn phím đang kêu, để không lẫn "sắp bấm" với "đang kêu".
+  - **Nhãn tên nốt chỉ theo `near`, KHÔNG theo cả cửa sổ.** `hints` giờ phủ toàn bộ
+    tầm nhìn nên lấy `hints.keys()` làm tập phím-có-nhãn là gần như phím trắng nào
+    cũng có nhãn — đúng cái "rừng chữ" phải tránh.
   - **Vệt dẫn là KHỐI CHỮ NHẬT LIỀN, không phải đường nét đứt** (`TRAIL_STOPS`,
     `KEY_STOPS`, `vgrad()`). Rộng đúng bằng thân nốt, chạy từ đáy nốt xuống vạch chạm
     rồi tiếp tục xuống thân phím. Bản đầu là nét đứt 1px: trên iPad/điện thoại mảnh
@@ -153,16 +167,15 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
     Gradient mờ ở trên, bừng ở sát vạch chạm; xuống thân phím thì ĐẢO LẠI (đậm ở mép
     trên, nhạt dần xuống) để hai bên khớp nhau thành một cột.
   - **Vệt dẫn KHÔNG dùng `HINT_LEAD`** — nó bám nốt **gần phím nhất của mỗi phím**
-    (map `trails`) và hiện ngay từ lúc nốt ló ra ở mép trên. Bản đầu gắn nó vào
+    (map `hints`) và hiện ngay từ lúc nốt ló ra ở mép trên. Bản đầu gắn nó vào
     `HINT_LEAD` nên cột chỉ bật lên khi còn 1.2s: **sát quá**, thấy được thì tay đã
     không kịp dóng. `notes` sort theo `start` nên cái gặp trước chính là cái gần nhất,
     không cần so sánh gì thêm.
-    Độ đậm cả cột theo `q = yTop / HF` (0 = vừa ló, 1 = chạm phím): `0.20 + 0.80q²`.
-    Đo alpha tại vạch chạm ở He's a Pirate: nốt còn 3.2s = **0.11–0.14**, còn 2.3s
-    = 0.18, còn 0.2–0.35s = **0.48–0.51** — xa thì chỉ nhen, gần mới rõ.
-  - **Phím trên bàn phím thì VẪN chỉ sáng trong `HINT_LEAD`.** Sáng sớm hơn là gần như
-    cả bàn phím lúc nào cũng sáng, mất luôn nghĩa "sắp phải bấm". Hai thứ này cố ý
-    lệch nhau: cột dẫn cho biết *nốt nào đang tới*, phím sáng cho biết *bấm ngay bây giờ*.
+    Độ đậm cả cột: `0.20 + 0.80q²`. Đo tại vạch chạm ở He's a Pirate khi bám theo
+    MỘT nốt rơi từ đỉnh xuống: alpha 0.141 → 0.165 → 0.212 → 0.286 → 0.384 → 0.51,
+    còn kênh xanh của chính phím đó 146 → 150 → 158 → 170 → 186 → 205 — **hai đường
+    lên đều, không có bậc nhảy nào**. Đó là phép kiểm cho "đồng bộ"; đo lại thì đo
+    đúng cặp này.
   - **Gradient trải đúng cả vùng rơi (`0 → HF`) và neo ở vạch chạm**, nên độ mờ chỉ là
     hàm của `y` — MỌI vệt dùng chung một đối tượng bất kể đáy nốt đang ở đâu. Nhờ vậy
     `vgrad()` cache được theo `(canvas, y0, y1, màu, bộ mốc)`; tạo gradient là thao tác
@@ -172,8 +185,10 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
     ngang thân nốt ĐANG VANG của chính phím đó; vẽ sau là phủ một lớp mờ lên nốt đặc.
   - Vệt trên thân phím thì vẽ NGAY TRONG vòng vẽ phím, trước khi in nhãn — vẽ ở cuối
     hàm như nét đứt cũ thì lớp mờ phủ xuống làm nhạt mất tên nốt.
-  - `lastKeySig` phải gồm cả độ sáng gợi ý **làm tròn 8 nấc**, nếu không thì hoặc đứng
-    hình hoặc vẽ lại mỗi frame. Đo được: 47/120 frame vẽ lại, 0.06ms/frame.
+  - `lastKeySig` phải gồm cả `q` **làm tròn 8 nấc**, nếu không thì hoặc đứng hình hoặc
+    vẽ lại mỗi frame. Đo lại sau khi `q` trải cả cửa sổ (He's a Pirate, 15 vệt):
+    **37/120 frame vẽ lại**, cả hai canvas 0.18 ms/frame — `q` chạy chậm hơn `p` cũ
+    (3.5s thay vì 1.2s cho trọn thang) nên số lần vẽ lại không tăng.
   - Gradient bóng phím trắng dựng MỘT lần ngoài vòng lặp; trước đây tạo lại cho từng
     phím mỗi lần vẽ, giờ vẽ dày hơn nên phải sửa.
   - **Tên nốt in ở đáy phím** đang sáng (`keyLabel()`): đen đậm trên phím trắng, trắng
@@ -204,11 +219,22 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
     *bấm phím nào*.
   - Chế độ số in nhãn lên **MỌI phím**, không chỉ phím đang sáng — cả bàn phím thành
     cái thước để mắt dóng vào. Làm được vì số chỉ 1–2 chữ; nhãn tên nốt (`Sol#`) in hết
-    88 phím thì thành rừng chữ, nên chế độ `note` vẫn chỉ in ở phím đang kêu / sắp bấm.
+    52 phím trắng thì thành rừng chữ, nên chế độ `note` chỉ in phím trắng đang kêu /
+    sắp bấm (phím đen thì chế độ nào cũng in hết).
   - **Viên thuốc đậm ở Đô giữa giữ cho cả ba chế độ.** Ở `deg` mọi C đều là "1" nên đó
     là thứ duy nhất còn neo được mắt.
-  - Số hai chữ cần chỗ ngang gấp ~1.75 lần số một chữ, nên chọn nấc font phải chia
-    `g.w / 1.75`; không chia thì "88" ăn nấc font quá to rồi chìa ra ngoài thân nốt.
+  - **`numSize()` phải đối xử với nhãn 2 chữ bằng luật KHÁC, không phải chia bề ngang
+    cho một hằng số.** Đo bằng `measureText`: một chữ số rộng ≈ 0.72em, `6#` ≈ 1.41em.
+    Một chữ để thoáng như cũ (`fs ≤ 0.62w`, chữ chiếm ~45% thân nốt); hai chữ chỉ đòi
+    VỪA thân nốt với lề 2px mỗi bên (`fs ≤ (w-4)/1.45`).
+    Bản đầu dùng `numSize(g.w / 1.75, h)` — tức bắt nhãn 2 chữ thoáng y như 1 chữ —
+    nên trên phím ĐEN (hẹp) cỡ chữ tính ra ~4px, thấp hơn mọi nấc và hàm trả 0:
+    **ở chế độ `deg` KHÔNG nốt thăng nào được in số**, vì nhãn phím đen luôn 2 chữ
+    (`1#`, `6#`). Bug này rất dễ lọt vì phím trắng vẫn in bình thường.
+  - `NUM_SIZES` có thêm nấc 7 và 6, và **`numSize()` không bao giờ trả 0** — thân nốt
+    bé quá thì vẫn in ở nấc nhỏ nhất. Kiểm lại trên cả He's a Pirate ở chế độ 88 phím
+    (phím đen 12.2px, ca hẹp nhất): 2230 lượt nốt × 2 chế độ số, **0 nốt thiếu số,
+    0 nhãn chìa ra ngoài thân nốt**, nấc nhỏ nhất chạm tới là 6px.
   - Ô "Tên nốt" (Đô Rê Mi / C D E) **tự khoá** ở chế độ số — chế độ số không dùng tên
     nốt nào cả, để mở thì người ta đổi mà không thấy gì thay đổi.
   - `hintMode` có mặt trong `panelSummary()` nên handler phải gọi `refreshSum()`,
@@ -269,9 +295,11 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
 - **Khoanh ô nhịp** (`barScope()`, `showScope`, mặc định BẬT) — phủ xám mọi phím
   KHÔNG dùng trong ô nhịp đang chơi. Đo ở Happy Birthday: mỗi ô nhịp chỉ 5–6 phím
   trên tổng 40 phím đang hiện, tức mắt bớt phải quét ~85% bàn phím.
-  - Phím **đang vang** và phím **trong tầm gợi ý** (1.2s) không bị phủ. Nhờ vậy
-    phím của ô nhịp kế tiếp mở ra sớm ~1.2s, đúng lúc cần chuẩn bị ngón — và
-    quan trọng hơn là không đá nhau với phím đang sáng.
+  - Phím **đang vang** không bị phủ; phím có nốt đang tới thì mức phủ **nhạt dần
+    theo đúng `q`** (`1 - q²`), chứ KHÔNG bật/tắt ở mốc cứng 1.2s như bản đầu. Mốc
+    cứng tạo ra một cú nhảy sáng ngay giữa lúc phím đang sáng dần lên — chính là thứ
+    phá vỡ sự đồng bộ giữa cột và phím, dù bản thân độ sáng phím đã đúng. Phím không
+    có nốt nào đang tới thì vẫn phủ đủ 100% như cũ, nên khoanh ô nhịp không mất nghĩa.
   - Phím trắng phủ tối đi (`rgba(74,84,102,.62)`), phím đen **nhấc sáng lên**
     (`rgba(150,163,186,.30)`) — cùng dồn về xám nhưng phải giữ trắng sáng hơn đen,
     nếu không thì mất hình dạng bàn phím và không dóng được phím nào ra phím nào.
