@@ -1189,7 +1189,7 @@ function vgrad(ctx, y0, y1, col, stops){
 }
 /* Vệt dẫn: mờ hẳn ở trên, bừng lên ở sát vạch chạm. Trên thân phím thì ngược lại —
    đậm ở mép trên (chỗ nối với vạch chạm) rồi nhạt dần xuống, để hai bên khớp nhau. */
-const TRAIL_STOPS = Object.assign([[0, 0], [0.55, 0.10], [1, 0.55]], { id: 'fall' });
+const TRAIL_STOPS = Object.assign([[0, .03], [0.62, .14], [1, .55]], { id: 'fall' });
 const KEY_STOPS   = Object.assign([[0, 0.60], [0.75, 0.06], [1, 0]], { id: 'key' });
 
 function spawnHit(midi, hand){
@@ -1319,7 +1319,7 @@ function drawFalling(now, dt){
 
   /* culling: lùi window lại maxDur để nốt bass dài không biến mất */
   const from = lowerBound(now - maxDur);
-  const active = [], visible = [], hints = new Map();
+  const active = [], visible = [], hints = new Map(), trails = new Map();
   for (let i = from; i < notes.length; i++){
     const n = notes[i];
     if (n.start > winEnd) break;
@@ -1327,12 +1327,44 @@ function drawFalling(now, dt){
     if (handState[n.hand] === 'off') continue;
     const g = geom[n.midi]; if (!g) continue;
     if (n.start <= now) active.push(n);        /* 'chỉ hiện' vẫn làm sáng phím để dẫn tay */
-    else if (hintOn() && n.start <= now + HINT_LEAD){
-      const p = 1 - (n.start - now) / HINT_LEAD;      /* 0 = còn xa, 1 = sắp phải bấm */
-      const cur = hints.get(n.midi);
-      if (!cur || p > cur.p) hints.set(n.midi, { p, hand: n.hand });
+    else if (hintOn()){
+      /* Vệt dẫn bám nốt GẦN PHÍM NHẤT của mỗi phím và KHÔNG có cửa sổ thời gian:
+         nốt vừa hiện ra ở mép trên là đã có cột dẫn xuống đúng phím của nó, mắt đi
+         theo được từ đầu. Gắn nó vào HINT_LEAD như trước thì cột chỉ bật lên khi
+         còn 1.2s — sát quá, tới lúc thấy thì tay đã không kịp dóng.
+         `notes` sort theo start nên cái gặp trước chính là cái gần phím nhất. */
+      if (!trails.has(n.midi)) trails.set(n.midi, { start: n.start, hand: n.hand });
+      /* Phím trên bàn phím thì VẪN chỉ sáng trong HINT_LEAD — sáng sớm hơn là cả
+         bàn phím lúc nào cũng sáng, mất luôn nghĩa "sắp phải bấm". */
+      if (n.start <= now + HINT_LEAD){
+        const p = 1 - (n.start - now) / HINT_LEAD;      /* 0 = còn xa, 1 = sắp phải bấm */
+        const cur = hints.get(n.midi);
+        if (!cur || p > cur.p) hints.set(n.midi, { p, hand: n.hand });
+      }
     }
     visible.push([n, g]);
+  }
+
+  /* Vệt dẫn nối đáy nốt gần nhất với đúng phím của nó — mắt khỏi phải dóng theo cột.
+     Là một KHỐI CHỮ NHẬT LIỀN rộng đúng bằng thân nốt, mờ dần lên trên. Bản cũ là
+     đường nét đứt 1px: trên iPad/điện thoại mảnh quá, gần như không thấy, mà nét đứt
+     còn cắt vụn cái cột lẽ ra phải liền mạch.
+     Gradient trải đúng CẢ vùng rơi và neo ở vạch chạm, nên độ mờ chỉ là hàm của y —
+     MỌI vệt dùng chung một đối tượng bất kể đáy nốt đang ở đâu.
+     Vẽ TRƯỚC thân nốt: vệt chạy từ đáy nốt xuống tận vạch chạm nên nó cắt ngang thân
+     nốt đang vang của chính phím đó; vẽ sau là phủ một lớp mờ lên nốt đặc. */
+  if (hintOn() && trails.size){
+    fctx.save();
+    fctx.beginPath(); fctx.rect(0, 0, W, HF); fctx.clip();
+    for (const [m, t] of trails){
+      const g = geom[m]; if (!g) continue;
+      const yTop = y(t.start);
+      const q = Math.max(yTop / HF, 0);        /* 0 = vừa ló ở mép trên, 1 = chạm phím */
+      fctx.globalAlpha = 0.20 + 0.80 * q * q;
+      fctx.fillStyle = vgrad(fctx, 0, HF, handCol(t.hand), TRAIL_STOPS);
+      fctx.fillRect(g.x + 1, yTop, g.w - 2, HF - yTop);
+    }
+    fctx.restore();
   }
 
   fctx.save(); fctx.beginPath(); fctx.rect(0, 0, W, HF); fctx.clip();
@@ -1387,26 +1419,6 @@ function drawFalling(now, dt){
     }
   }
   fctx.restore();
-
-  /* Vệt dẫn nối đáy nốt sắp tới với đúng phím của nó — mắt khỏi phải dóng theo cột.
-     Là một KHỐI CHỮ NHẬT LIỀN rộng đúng bằng thân nốt, mờ dần lên trên. Bản cũ là
-     đường nét đứt 1px: trên iPad/điện thoại mảnh quá, gần như không thấy, mà nét đứt
-     còn cắt vụn cái cột lẽ ra phải liền mạch.
-     Gradient neo ở vạch chạm và cao đúng HINT_LEAD giây, nên MỌI vệt dùng chung một
-     đối tượng bất kể đáy nốt đang ở đâu — độ mờ chỉ là hàm của y. */
-  if (hintOn() && hints.size){
-    fctx.save();
-    fctx.beginPath(); fctx.rect(0, 0, W, HF); fctx.clip();
-    const yBase = HF - HINT_LEAD * PPS;
-    for (const [m, hint] of hints){
-      const g = geom[m]; if (!g) continue;
-      const yTop = HF - (1 - hint.p) * HINT_LEAD * PPS;
-      fctx.globalAlpha = 0.45 + 0.55 * hint.p;
-      fctx.fillStyle = vgrad(fctx, yBase, HF, handCol(hint.hand), TRAIL_STOPS);
-      fctx.fillRect(g.x + 1, yTop, g.w - 2, HF - yTop);
-    }
-    fctx.restore();
-  }
 
   /* Đang đếm vào (songTime âm): in số phách còn lại thật to, bé nhìn là biết
      "còn mấy nhịp nữa tới lượt mình". */

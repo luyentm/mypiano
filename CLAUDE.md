@@ -151,14 +151,27 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
     rồi tiếp tục xuống thân phím. Bản đầu là nét đứt 1px: trên iPad/điện thoại mảnh
     quá gần như không thấy, mà nét đứt còn cắt vụn đúng cái cột lẽ ra phải liền mạch.
     Gradient mờ ở trên, bừng ở sát vạch chạm; xuống thân phím thì ĐẢO LẠI (đậm ở mép
-    trên, nhạt dần xuống) để hai bên khớp nhau thành một cột. Đo ở vạch chạm: alpha
-    0.27–0.43 màu tay trên nền gần đen, so với nét đứt cũ 1px duty 50%.
-  - **Gradient neo ở vạch chạm và cao đúng `HINT_LEAD` giây**, nên độ mờ chỉ là hàm
-    của `y` — MỌI vệt dùng chung một đối tượng bất kể đáy nốt đang ở đâu. Nhờ vậy
-    `vgrad()` cache được theo `(canvas, y0, y1, màu, bộ mốc)`; tạo gradient là thao
-    tác đắt, đừng dựng lại cho từng vệt mỗi frame. Đo: 6 vệt = **0.007 ms/frame**.
-  - Vẽ vệt trên thân phím NGAY TRONG vòng vẽ phím, trước khi in nhãn — vẽ ở cuối hàm
-    như nét đứt cũ thì lớp mờ phủ xuống làm nhạt mất tên nốt.
+    trên, nhạt dần xuống) để hai bên khớp nhau thành một cột.
+  - **Vệt dẫn KHÔNG dùng `HINT_LEAD`** — nó bám nốt **gần phím nhất của mỗi phím**
+    (map `trails`) và hiện ngay từ lúc nốt ló ra ở mép trên. Bản đầu gắn nó vào
+    `HINT_LEAD` nên cột chỉ bật lên khi còn 1.2s: **sát quá**, thấy được thì tay đã
+    không kịp dóng. `notes` sort theo `start` nên cái gặp trước chính là cái gần nhất,
+    không cần so sánh gì thêm.
+    Độ đậm cả cột theo `q = yTop / HF` (0 = vừa ló, 1 = chạm phím): `0.20 + 0.80q²`.
+    Đo alpha tại vạch chạm ở He's a Pirate: nốt còn 3.2s = **0.11–0.14**, còn 2.3s
+    = 0.18, còn 0.2–0.35s = **0.48–0.51** — xa thì chỉ nhen, gần mới rõ.
+  - **Phím trên bàn phím thì VẪN chỉ sáng trong `HINT_LEAD`.** Sáng sớm hơn là gần như
+    cả bàn phím lúc nào cũng sáng, mất luôn nghĩa "sắp phải bấm". Hai thứ này cố ý
+    lệch nhau: cột dẫn cho biết *nốt nào đang tới*, phím sáng cho biết *bấm ngay bây giờ*.
+  - **Gradient trải đúng cả vùng rơi (`0 → HF`) và neo ở vạch chạm**, nên độ mờ chỉ là
+    hàm của `y` — MỌI vệt dùng chung một đối tượng bất kể đáy nốt đang ở đâu. Nhờ vậy
+    `vgrad()` cache được theo `(canvas, y0, y1, màu, bộ mốc)`; tạo gradient là thao tác
+    đắt, đừng dựng lại cho từng vệt mỗi frame. Đo ở He's a Pirate (bài dày nhất, 15 vệt
+    cùng lúc): cả `drawFalling()` **0.118 ms/frame**.
+  - **Vẽ vệt TRƯỚC thân nốt** — vệt chạy từ đáy nốt xuống tận vạch chạm nên nó cắt
+    ngang thân nốt ĐANG VANG của chính phím đó; vẽ sau là phủ một lớp mờ lên nốt đặc.
+  - Vệt trên thân phím thì vẽ NGAY TRONG vòng vẽ phím, trước khi in nhãn — vẽ ở cuối
+    hàm như nét đứt cũ thì lớp mờ phủ xuống làm nhạt mất tên nốt.
   - `lastKeySig` phải gồm cả độ sáng gợi ý **làm tròn 8 nấc**, nếu không thì hoặc đứng
     hình hoặc vẽ lại mỗi frame. Đo được: 47/120 frame vẽ lại, 0.06ms/frame.
   - Gradient bóng phím trắng dựng MỘT lần ngoài vòng lặp; trước đây tạo lại cho từng
