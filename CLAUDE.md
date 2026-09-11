@@ -135,17 +135,30 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
   Đo trên 844×390 (điện thoại ngang): vùng nốt rơi 144px → 220px khi thu panel.
 - **Gợi ý phím sắp bấm** — combo box `hintMode` bốn chế độ, mặc định `note`:
   `note` (hiện tên nốt, hành vi cũ) · `abs` (số phím 1–88) · `deg` (số bậc theo C 1–7) · `off`.
-  Cơ chế sáng dần + nét đứt là CHUNG cho ba chế độ đầu; chúng chỉ khác nhau ở
+  Cơ chế sáng dần + vệt dẫn là CHUNG cho ba chế độ đầu; chúng chỉ khác nhau ở
   **hệ nhãn** in ra. `hintOn()` = khác `off`, `numMode()` = `abs` hoặc `deg`.
   Từng thử in TÊN NỐT lên thân nốt rơi rồi bỏ: người tập không cần đọc tên nốt,
   họ cần biết *bấm phím nào, ngay bây giờ*.
-  Cách đang dùng — phím trên bàn phím sáng dần lên khi nốt tới gần, kèm đường nét đứt
-  nối đáy nốt với tâm phím:
+  Cách đang dùng — phím trên bàn phím sáng dần lên khi nốt tới gần, kèm **vệt dẫn**
+  nối đáy nốt xuống thẳng phím của nó:
   - `HINT_LEAD = 1.2s`, `p = 1 - (start - now)/HINT_LEAD` (0 = còn xa, 1 = sắp bấm).
   - Tô **kín cả phím**, chỉ đậm dần `0.10 + 0.42p²`. Bình phương để lúc còn xa chỉ nhen
     nhẹ, tới sát mới bừng. Đã thử kiểu vệt màu dâng dần từ trên xuống như đếm ngược —
     **rối hơn hẳn, đừng làm lại**: một tín hiệu (độ đậm) là đủ.
   - Trần độ đậm cố ý thấp hơn phím đang kêu, để không lẫn "sắp bấm" với "đang kêu".
+  - **Vệt dẫn là KHỐI CHỮ NHẬT LIỀN, không phải đường nét đứt** (`TRAIL_STOPS`,
+    `KEY_STOPS`, `vgrad()`). Rộng đúng bằng thân nốt, chạy từ đáy nốt xuống vạch chạm
+    rồi tiếp tục xuống thân phím. Bản đầu là nét đứt 1px: trên iPad/điện thoại mảnh
+    quá gần như không thấy, mà nét đứt còn cắt vụn đúng cái cột lẽ ra phải liền mạch.
+    Gradient mờ ở trên, bừng ở sát vạch chạm; xuống thân phím thì ĐẢO LẠI (đậm ở mép
+    trên, nhạt dần xuống) để hai bên khớp nhau thành một cột. Đo ở vạch chạm: alpha
+    0.27–0.43 màu tay trên nền gần đen, so với nét đứt cũ 1px duty 50%.
+  - **Gradient neo ở vạch chạm và cao đúng `HINT_LEAD` giây**, nên độ mờ chỉ là hàm
+    của `y` — MỌI vệt dùng chung một đối tượng bất kể đáy nốt đang ở đâu. Nhờ vậy
+    `vgrad()` cache được theo `(canvas, y0, y1, màu, bộ mốc)`; tạo gradient là thao
+    tác đắt, đừng dựng lại cho từng vệt mỗi frame. Đo: 6 vệt = **0.007 ms/frame**.
+  - Vẽ vệt trên thân phím NGAY TRONG vòng vẽ phím, trước khi in nhãn — vẽ ở cuối hàm
+    như nét đứt cũ thì lớp mờ phủ xuống làm nhạt mất tên nốt.
   - `lastKeySig` phải gồm cả độ sáng gợi ý **làm tròn 8 nấc**, nếu không thì hoặc đứng
     hình hoặc vẽ lại mỗi frame. Đo được: 47/120 frame vẽ lại, 0.06ms/frame.
   - Gradient bóng phím trắng dựng MỘT lần ngoài vòng lặp; trước đây tạo lại cho từng
@@ -154,7 +167,15 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
     đậm trên phím đen, **màu cố định** không đổi theo độ sáng highlight — vẽ sau khi đã
     trả `globalAlpha` về 1. Nhãn quãng tám `C1…C8` cũng dùng đúng font đen đậm đó và
     không đổi màu khi phím được bấm. Phím C chỉ in `C4`, không in đè thêm chữ `C`.
-    Chữ tự co theo `measureText` cho vừa bề ngang phím, dưới 6.5px thì bỏ không vẽ.
+    Chữ tự co theo `measureText` cho vừa bề ngang phím nhưng **co tới `LABEL_MIN`
+    = 6.5px là DỪNG, rồi cho chữ chìa ra ngoài phím — không bao giờ bỏ không vẽ**.
+    Bản cũ bỏ hẳn nhãn khi phải co dưới 6.5px, nên đúng trên iPad/điện thoại (phím đen
+    chỉ 12.2px ở chế độ 88 phím) nhãn dài như `Sol#` thỉnh thoảng biến mất — mà nhãn
+    nhỏ thì vẫn đọc được, nhãn không có thì không. Cùng lý do, mọi ngưỡng `g.w >= 9/10/11`
+    trong `drawKeys()` đã gỡ.
+    Chữ chìa ra thì phần chìa nằm trên phím BÊN CẠNH và mất nền tương phản, nên
+    `keyLabel()` nhận thêm tham số `pad`: phím đen truyền `#1b202b` để lót một viên nền
+    tối dưới chữ trắng. Phím trắng không cần (chữ đen trên phím trắng bên cạnh vẫn đọc được).
     In cho cả phím đang kêu lẫn phím sắp bấm, để nhãn không nháy mất đúng lúc chạm phím.
 - **Hai chế độ SỐ** (`numText()`, `DEG_TXT`) — nhắm đúng chỗ khó nhất của người tập
   piano: **đọc** bản nhạc, không phải nhớ bài. Mắt đọc một con số rồi tìm thẳng ra phím,

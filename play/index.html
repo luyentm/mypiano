@@ -657,14 +657,20 @@ const numText = m => hintMode === 'abs' ? String(m - 20) : DEG_TXT[m % 12];
 /* Đô giữa (C4) là mốc neo mọi giáo trình vỡ lòng dạy tìm trước tiên. In nhãn của
    nó trong một viên thuốc đậm để phân biệt với các Đô khác — không thêm ký hiệu mới
    nào, chỉ làm nổi cái nhãn đã có. */
+/* Co tới đây là DỪNG, chữ có chìa ra ngoài phím cũng kệ. Bản cũ bỏ không vẽ khi
+   phải co dưới 6.5px, nên trên iPad/điện thoại — chỗ phím hẹp nhất — nhãn dài
+   ("Sol#", "Đô#") thỉnh thoảng biến mất đúng lúc cần đọc nhất. Nhãn nhỏ vẫn đọc
+   được; nhãn không có thì không. */
+const LABEL_MIN = 6.5;
+const labFont = fs => kctx.font = '700 ' + fs + 'px system-ui,-apple-system,sans-serif';
+
 function keyBadge(txt, cx, y, room){
   let fs = Math.min(Math.max(room * 0.46, 7), 11);
-  kctx.font = '700 ' + fs + 'px system-ui,-apple-system,sans-serif';
+  labFont(fs);
   let w = kctx.measureText(txt).width;
   if (w > room - 6){
-    fs = fs * (room - 6) / w;
-    if (fs < 6.5) return;
-    kctx.font = '700 ' + fs + 'px system-ui,-apple-system,sans-serif';
+    fs = Math.max(fs * (room - 6) / w, LABEL_MIN);
+    labFont(fs);
     w = kctx.measureText(txt).width;
   }
   const pw = w + 7, ph = fs + 5;
@@ -674,14 +680,21 @@ function keyBadge(txt, cx, y, room){
   kctx.fillText(txt, cx, y);
 }
 
-function keyLabel(txt, cx, y, room, max, color){
+function keyLabel(txt, cx, y, room, max, color, pad){
   let fs = Math.min(Math.max(room * 0.5, 7), max);
-  kctx.font = '700 ' + fs + 'px system-ui,-apple-system,sans-serif';
-  const w = kctx.measureText(txt).width;
+  labFont(fs);
+  let w = kctx.measureText(txt).width;
   if (w > room){
-    fs = fs * room / w;
-    if (fs < 6.5) return;                      /* hẹp quá thì thôi, đừng vẽ cho rối */
-    kctx.font = '700 ' + fs + 'px system-ui,-apple-system,sans-serif';
+    fs = Math.max(fs * room / w, LABEL_MIN);
+    labFont(fs);
+    w = kctx.measureText(txt).width;
+  }
+  /* Chữ rộng hơn phím thì phần chìa ra nằm trên phím BÊN CẠNH và mất nền tương phản
+     (chữ trắng của phím đen tràn lên phím trắng là mất hút). Lót một viên nền ngược
+     màu cho đúng mấy ca đó — cái giá phải trả của luật "luôn luôn hiện tên". */
+  if (pad && w > room){
+    kctx.fillStyle = pad;
+    rrect(kctx, cx - w / 2 - 2, y - fs, w + 4, fs + 4, (fs + 4) / 2); kctx.fill();
   }
   kctx.fillStyle = color;
   kctx.fillText(txt, cx, y);
@@ -1151,6 +1164,34 @@ function rrect(ctx, x, y, w, h, r){
          ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
 }
 
+/* #rgb / #rrggbb -> rgba(). Cần cho gradient: globalAlpha là một con số cho cả hình,
+   không đổi được theo chiều dọc, nên độ mờ phải nằm ngay trong chính mốc màu. */
+function hexA(h, a){
+  if (h.length === 4) h = '#' + h[1]+h[1] + h[2]+h[2] + h[3]+h[3];
+  return 'rgba(' + parseInt(h.slice(1,3),16) + ',' + parseInt(h.slice(3,5),16) + ','
+       + parseInt(h.slice(5,7),16) + ',' + a + ')';
+}
+/* Gradient dọc dùng lại được: tập gradient của app chỉ vài cái (2 màu tay x 2 khung),
+   mà tạo gradient là thao tác đắt — đừng dựng lại cho từng vệt mỗi frame. Khoá cache
+   gồm cả y0/y1 nên đổi khung hay đổi tầm nhìn là tự có cái mới. */
+const gradCache = new Map();
+function vgrad(ctx, y0, y1, col, stops){
+  const key = (ctx === fctx ? 'f' : 'k') + y0 + ',' + y1 + ',' + col + ',' + stops.id;
+  let g = gradCache.get(key);
+  if (!g){
+    if (gradCache.size > 24) gradCache.clear();   /* kéo đổi khung liên tục thì y0/y1
+                                                     đổi từng frame, đừng giữ lại hết */
+    g = ctx.createLinearGradient(0, y0, 0, y1);
+    for (const [off, a] of stops) g.addColorStop(off, hexA(col, a));
+    gradCache.set(key, g);
+  }
+  return g;
+}
+/* Vệt dẫn: mờ hẳn ở trên, bừng lên ở sát vạch chạm. Trên thân phím thì ngược lại —
+   đậm ở mép trên (chỗ nối với vạch chạm) rồi nhạt dần xuống, để hai bên khớp nhau. */
+const TRAIL_STOPS = Object.assign([[0, 0], [0.55, 0.10], [1, 0.55]], { id: 'fall' });
+const KEY_STOPS   = Object.assign([[0, 0.60], [0.75, 0.06], [1, 0]], { id: 'key' });
+
 function spawnHit(midi, hand){
   const g = geom[midi]; if (!g) return;
   const cx = g.x + g.w / 2;
@@ -1347,19 +1388,22 @@ function drawFalling(now, dt){
   }
   fctx.restore();
 
-  /* Đường nét đứt nối đáy nốt sắp tới với đúng phím của nó — mắt khỏi phải dóng
-     theo cột. Chỉ vẽ cho nốt trong tầm gợi ý, và mờ dần theo cùng nhịp với phím. */
+  /* Vệt dẫn nối đáy nốt sắp tới với đúng phím của nó — mắt khỏi phải dóng theo cột.
+     Là một KHỐI CHỮ NHẬT LIỀN rộng đúng bằng thân nốt, mờ dần lên trên. Bản cũ là
+     đường nét đứt 1px: trên iPad/điện thoại mảnh quá, gần như không thấy, mà nét đứt
+     còn cắt vụn cái cột lẽ ra phải liền mạch.
+     Gradient neo ở vạch chạm và cao đúng HINT_LEAD giây, nên MỌI vệt dùng chung một
+     đối tượng bất kể đáy nốt đang ở đâu — độ mờ chỉ là hàm của y. */
   if (hintOn() && hints.size){
     fctx.save();
-    fctx.setLineDash([5, 5]);
-    fctx.lineWidth = 1;
+    fctx.beginPath(); fctx.rect(0, 0, W, HF); fctx.clip();
+    const yBase = HF - HINT_LEAD * PPS;
     for (const [m, hint] of hints){
       const g = geom[m]; if (!g) continue;
-      const x = Math.round(g.x + g.w / 2) + 0.5;
       const yTop = HF - (1 - hint.p) * HINT_LEAD * PPS;
-      fctx.globalAlpha = 0.14 + 0.46 * hint.p * hint.p;
-      fctx.strokeStyle = handCol(hint.hand);
-      fctx.beginPath(); fctx.moveTo(x, yTop); fctx.lineTo(x, HF); fctx.stroke();
+      fctx.globalAlpha = 0.45 + 0.55 * hint.p;
+      fctx.fillStyle = vgrad(fctx, yBase, HF, handCol(hint.hand), TRAIL_STOPS);
+      fctx.fillRect(g.x + 1, yTop, g.w - 2, HF - yTop);
     }
     fctx.restore();
   }
@@ -1441,6 +1485,13 @@ function drawKeys(state){
         kctx.globalAlpha = hintAlpha(hint.p);
         kctx.fillStyle = handCol(hint.hand);
         kctx.fillRect(g.x, 0, g.w - 1, HK);
+        /* Vệt dẫn chạy tiếp xuống thân phím: đậm ở mép trên đúng chỗ nối với vạch
+           chạm rồi nhạt dần, nên cột nốt rơi và phím thành MỘT khối liền trong mắt.
+           Vẽ ở đây chứ không phải cuối hàm, để nhãn tên nốt in đè lên trên chứ
+           không bị lớp mờ này phủ xuống. */
+        kctx.globalAlpha = 0.35 + 0.5 * hint.p;
+        kctx.fillStyle = vgrad(kctx, 0, HK, handCol(hint.hand), KEY_STOPS);
+        kctx.fillRect(g.x, 0, g.w - 1, HK);
         kctx.globalAlpha = 1;
       }
     }
@@ -1452,14 +1503,14 @@ function drawKeys(state){
        in ở phím đang kêu / sắp bấm. Viên thuốc đậm ở Đô giữa thì giữ nguyên cho cả
        ba chế độ: ở deg mọi C đều là "1" nên đó là thứ duy nhất còn neo được mắt. */
     if (numMode()){
-      if (m === 60 && g.w >= 10) keyBadge(numText(m), cx, by, g.w - 3);
-      else if (g.w >= 9) keyLabel(numText(m), cx, by, g.w - 3, 12, '#1b202b');
+      if (m === 60) keyBadge(numText(m), cx, by, g.w - 3);
+      else keyLabel(numText(m), cx, by, g.w - 3, 12, '#1b202b');
     }
-    else if (m === 60 && g.w >= 10)
+    else if (m === 60)
       keyBadge(octName(m), cx, by, g.w - 3);   /* Đô giữa */
-    else if (m % 12 === 0 && g.w >= 10)
+    else if (m % 12 === 0)
       keyLabel(octName(m), cx, by, g.w - 3, 11, '#1b202b');
-    else if (lit.has(m) && g.w >= 11)
+    else if (lit.has(m))
       keyLabel(keyName(m), cx, by, g.w - 3, 12, '#1b202b');
   }
   const bh = HK * 0.62;
@@ -1474,32 +1525,20 @@ function drawKeys(state){
         kctx.globalAlpha = hintAlpha(hint.p);
         kctx.fillStyle = handCol(hint.hand);
         kctx.fillRect(g.x, 0, g.w, bh);
+        kctx.globalAlpha = 0.45 + 0.5 * hint.p;    /* phím đen tối hơn nên cần đậm hơn */
+        kctx.fillStyle = vgrad(kctx, 0, bh, handCol(hint.hand), KEY_STOPS);
+        kctx.fillRect(g.x, 0, g.w, bh);
         kctx.globalAlpha = 1;
       }
     }
     if (dim(m)){ kctx.fillStyle = 'rgba(150,163,186,.30)'; kctx.fillRect(g.x, 0, g.w, bh); }
-    if (numMode()){
-      if (g.w >= 9) keyLabel(numText(m), g.x + g.w / 2, bh - Math.max(bh * 0.08, 3), g.w - 2, 10, '#fff');
-    }
+    /* Phím đen hẹp hơn phím trắng nên nhãn hay chìa ra ngoài — truyền nền lót
+       tối để phần chìa lên phím trắng vẫn đọc được. */
+    if (numMode())
+      keyLabel(numText(m), g.x + g.w / 2, bh - Math.max(bh * 0.08, 3), g.w - 2, 10, '#fff', '#1b202b');
     else if (lit.has(m))
-      keyLabel(keyName(m), g.x + g.w / 2, bh - Math.max(bh * 0.08, 3), g.w - 2, 10, '#fff');
+      keyLabel(keyName(m), g.x + g.w / 2, bh - Math.max(bh * 0.08, 3), g.w - 2, 10, '#fff', '#1b202b');
   }
-  /* Nối tiếp đường nét đứt xuống giữa thân phím, để nốt rơi và phím thành một
-     đường thẳng liền mạch trong mắt. */
-  if (hintOn() && hints.size){
-    kctx.save();
-    kctx.setLineDash([4, 4]);
-    kctx.lineWidth = 1;
-    for (const [m, hint] of hints){
-      const g = geom[m]; if (!g || on.has(m)) continue;
-      const x = Math.round(g.x + g.w / 2) + 0.5;
-      kctx.globalAlpha = 0.20 + 0.5 * hint.p * hint.p;
-      kctx.strokeStyle = g.black ? '#fff' : handCol(hint.hand);
-      kctx.beginPath(); kctx.moveTo(x, 0); kctx.lineTo(x, g.black ? bh : HK); kctx.stroke();
-    }
-    kctx.restore();
-  }
-
   kctx.fillStyle = 'rgba(0,0,0,.5)'; kctx.fillRect(0, 0, W, 2);
 }
 
