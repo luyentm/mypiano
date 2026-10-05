@@ -11,6 +11,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0a0c">
 <title>Endless Love (Thần Thoại) — Nathan Wang · phối: An Coong | Nốt rơi piano - mypiano</title>
 <meta name="description" content="Tập Endless Love (Thần Thoại) của Nathan Wang · phối: An Coong bằng nốt rơi, chạy thẳng trong trình duyệt. Độ khó vừa (330/1000). Bản phối piano của An…">
 <link rel="canonical" href="https://luyentm.github.io/mypiano/bai/endless-love/">
@@ -20,195 +21,218 @@
 <meta property="og:description" content="Tập Endless Love (Thần Thoại) của Nathan Wang · phối: An Coong bằng nốt rơi, chạy thẳng trong trình duyệt. Độ khó vừa (330/1000). Bản phối piano của An…">
 <meta property="og:url" content="https://luyentm.github.io/mypiano/bai/endless-love/">
 <style>  /* ==========================================================================
-     GLASSMORPHISM — gradient xanh → tím → hồng sen, mọi mặt phẳng là kính mờ
-     viền sáng, CHỮ TRẮNG. Bốn thứ làm nên style này, thiếu cái nào cũng hỏng:
-       1) nền gradient BÃO HOÀ, cố định khi cuộn — cái để nhìn xuyên qua;
-       2) mặt kính = một lớp trắng rất mỏng (.14) + backdrop-filter blur;
-       3) VIỀN SÁNG 1px rõ rệt — đây mới là thứ vẽ ra hình tấm kính, nền mỏng
-          như trên gần như không thấy nếu bỏ viền đi;
-       4) vệt loé chéo + bóng đổ tối mềm, để kính nổi khỏi nền.
-
-     Vì sao gradient phải TỐI (L ≈ .058–.078) chứ không tươi sáng như nhiều
-     mẫu trên mạng: kính là lớp TRẮNG đè lên nền, nên nền càng sáng thì mặt
-     kính càng sáng và chữ trắng càng chìm. Đo ở mốc sáng nhất (hồng sen),
-     kính .14 + loé .05 cho chữ trắng 5.4:1; nền sáng thêm một nấc là tụt
-     xuống dưới 4.5. Muốn đổi màu nền thì chạy lại phép đo trước.
+     EBONY · IVORY · CHAMPAGNE — một hệ màu cho cả site.
+     Nền đen ấm như gỗ mun, chữ màu ngà, và MỘT màu nhấn duy nhất là vàng
+     sâm-panh (màu chữ mạ vàng trên nắp đàn grand). Sang là ở chỗ KIỀM CHẾ:
+       1) màu chỉ dùng để MANG NGHĨA (tay phải/trái, mức độ khó); mọi thứ còn
+          lại là đen – ngà – vàng. Không gradient bão hoà, không chấm cầu vồng;
+       2) đường viền là SỢI TÓC 1px mờ — khối tách nhau bằng nền lệch vài nấc
+          sáng, không bằng viền sáng hay bóng đổ nặng;
+       3) phân cấp bằng KIỂU CHỮ chứ không bằng màu: tiêu đề serif (phông hệ
+          thống, không tải gì), nhãn nhỏ IN HOA giãn chữ, số dùng chữ số đều;
+       4) nút là chữ ký riêng: viên thuốc, chữ IN HOA giãn .14em; nút chính mạ
+          vàng, có vệt sáng quét ngang + mũi tên trượt khi rê chuột.
+     Tương phản (WCAG, đo trên --surface): --text 16.0 · --dim 8.1 · --mute 5.5
+     · --gold 9.7 · mực --ink trên nút vàng 9.8. Đổi màu thì đo lại.
      ========================================================================== */
   :root{
-    --g1:#17409c; --g2:#33359f; --g3:#4b2ea6; --g4:#6d2478; --g5:#822369;
-    --text:#ffffff;
-    --dim:rgba(255,255,255,.88);        /* chữ phụ — gần trắng là CỐ Ý, xem đo bên dưới */
-    --rh:#ffb648; --lh:#4fd0f5; --mint:#5ce6a8; --grape:#c89cff;
-
-    --glass:rgba(255,255,255,.14);
-    --glass-hi:rgba(255,255,255,.18);   /* hover chỉ nhích nhẹ; sáng hơn là chữ trắng chìm */
-    --glass-lo:rgba(255,255,255,.09);
-    --line:rgba(255,255,255,.42);       /* viền sáng — chữ ký của style này */
-    --line2:rgba(255,255,255,.16);
-    --blur:saturate(150%) blur(16px);
-    --edge:inset 0 1px 0 rgba(255,255,255,.45);
-    --sheen:linear-gradient(135deg, rgba(255,255,255,.20) 0%,
-      rgba(255,255,255,.03) 40%, rgba(255,255,255,.09) 100%);
-    --sh:var(--edge), 0 10px 30px -12px rgba(6,2,28,.65);
-    --sh-hi:var(--edge), 0 18px 40px -14px rgba(6,2,28,.8);
+    --bg:#0b0a0c; --bg-2:#111013;
+    --surface:#151417; --surface-2:#1c1b1f;
+    --line:rgba(244,239,230,.09); --line-2:rgba(244,239,230,.17);
+    --text:#f4efe6;                      /* ngà */
+    --dim:#b3ab9f;                       /* chữ phụ */
+    --mute:#948c81;                      /* nhãn nhỏ, chú thích — vẫn 5.5:1 */
+    --gold:#d9b878; --gold-hi:#ecd5a3; --gold-lo:#a8874e;
+    --gold-line:rgba(217,184,120,.42);
+    --ink:#17120a;                       /* mực trên mặt vàng */
+    --rh:#edb04a; --lh:#57a8d4;          /* tay phải / tay trái — y hệt màn chơi */
+    --metal:linear-gradient(180deg,#f1dcab 0%,#d9b878 50%,#c09955 100%);
+    --sweep:linear-gradient(105deg,transparent 38%,rgba(255,255,255,.55) 50%,transparent 62%);
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua","Noto Serif",Georgia,serif;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    --hl:inset 0 1px 0 rgba(255,255,255,.045);
+    --sh:var(--hl), 0 24px 48px -30px rgba(0,0,0,.9);
+    --ease:cubic-bezier(.2,.7,.2,1);
   }
   *{box-sizing:border-box}
-  html{background:var(--g3)}
-  /* Nền đứng yên khi cuộn: kính trôi qua vùng màu khác nhau, đó mới ra cảm giác
-     tấm kính thật. Hai vệt tròn chỉ để nền đỡ phẳng, alpha thấp để không kéo độ
-     sáng nền vượt mốc đã đo. */
+  [hidden]{display:none !important}   /* .btn là inline-flex, đừng để nó đè [hidden] */
+  html{background:var(--bg); color-scheme:dark}
+  /* Một quầng vàng rất nhạt trên đỉnh trang, như ánh đèn rọi xuống nắp đàn.
+     Cố định khi cuộn; alpha thấp để nền vẫn là đen chứ không thành nâu. */
   body::before{
     content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
     background:
-      radial-gradient(38vmax 32vmax at 14% 10%,  rgba(56,132,255,.30), transparent 68%),
-      radial-gradient(34vmax 30vmax at 88% 88%,  rgba(255,86,170,.24), transparent 68%),
-      linear-gradient(135deg, var(--g1) 0%, var(--g2) 26%, var(--g3) 50%,
-        var(--g4) 78%, var(--g5) 100%);
+      radial-gradient(70vmax 46vmax at 50% -14%, rgba(217,184,120,.11), transparent 64%),
+      radial-gradient(46vmax 34vmax at 104% 104%, rgba(87,168,212,.05), transparent 70%),
+      var(--bg);
   }
-  body{margin:0; color:var(--text); background:transparent;
-    -webkit-text-size-adjust:100%}
+  body{margin:0; color:var(--text); background:transparent; font-family:var(--sans);
+    -webkit-text-size-adjust:100%; -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility}
+  ::selection{background:rgba(217,184,120,.34); color:#fff}
   a{color:var(--text)}
-  /* Link trong thân bài phải xanh nhạt + gạch chân: trên nền tím chữ đã là trắng,
-     không còn màu nào để phân biệt link với chữ thường mà vẫn đủ tương phản.
-     Bọc :where() để luật này có độ ưu tiên bằng 0 phần class — mọi link đã có
-     kiểu riêng (nav, footer, .crumb, .toc, .near, .btn, .cta, card) tự đè lên nó,
-     không phải viết một rừng ngoại lệ. */
-  :where(.wrap) p a, :where(.wrap) li a, dd a{color:#9fe6ff; text-decoration:underline;
-    text-underline-offset:2px}
-  :where(.wrap) p a:hover, :where(.wrap) li a:hover, dd a:hover{color:#fff}
+  :focus-visible{outline:2px solid var(--gold); outline-offset:3px}
+  /* Link trong thân bài: vàng nhạt + gạch chân sợi tóc. Bọc :where() để luật có độ
+     ưu tiên bằng 0 phần class — nav, footer, .crumb, .toc, .near, .btn, .cta tự đè
+     lên nó mà không phải viết một rừng ngoại lệ. */
+  :where(.wrap) p a, :where(.wrap) li a, dd a{color:var(--gold-hi); text-decoration:underline;
+    text-decoration-color:var(--gold-line); text-decoration-thickness:1px;
+    text-underline-offset:3px; transition:color .2s, text-decoration-color .2s}
+  :where(.wrap) p a:hover, :where(.wrap) li a:hover, dd a:hover{color:#fff;
+    text-decoration-color:currentColor}
 
-  nav{position:sticky; top:0; z-index:9; background-color:rgba(255,255,255,.10);
-    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
-    border-bottom:1px solid var(--line2);
-    box-shadow:var(--edge), 0 12px 34px -26px #000}
-  nav .brand{font-weight:800; font-size:16px; color:var(--text); text-decoration:none;
-    display:flex; align-items:center; gap:9px; margin-right:10px}
-  nav .brand i{width:28px; height:28px; border-radius:10px; flex:none; font-style:normal;
-    background:linear-gradient(150deg,#ffd08a,#ff9d24); color:#3d2200; font-size:16px;
-    display:grid; place-items:center;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 6px 16px -6px rgba(255,157,36,.9)}
-  nav a{color:var(--dim); text-decoration:none; font-size:14px; font-weight:500;
-    padding:7px 11px; border-radius:11px; white-space:nowrap; border:1px solid transparent}
-  nav a:hover{color:var(--text); background-color:var(--glass); border-color:var(--line);
-    box-shadow:var(--edge)}
+  /* Nhãn nhỏ đặt trên tiêu đề: IN HOA, giãn chữ, vàng, có vạch dẫn. */
+  .eyebrow{display:flex; align-items:center; gap:12px; margin:0 0 16px; font-size:11px;
+    font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:var(--gold)}
+  .eyebrow::before{content:''; width:28px; height:1px; background:currentColor; opacity:.75;
+    flex:none}
+
+  nav{position:sticky; top:0; z-index:9; background-color:rgba(11,10,12,.8);
+    -webkit-backdrop-filter:saturate(140%) blur(14px); backdrop-filter:saturate(140%) blur(14px);
+    border-bottom:1px solid var(--line)}
+  /* Logo: một khúc bàn phím mạ vàng 3 phím trắng + 2 phím đen, vẽ bằng gradient —
+     không ảnh, không emoji, nét nào cũng sắc ở mọi DPI. */
+  nav .brand{font-family:var(--serif); font-size:19px; font-weight:600; letter-spacing:-.01em;
+    color:var(--text); text-decoration:none; display:flex; align-items:center; gap:11px;
+    margin-right:10px; text-transform:none; padding:0}
+  .mark{width:24px; height:24px; border-radius:6px; flex:none; display:block;
+    background:
+      linear-gradient(90deg, transparent 27%, var(--bg) 27% 39%, transparent 39% 61%,
+        var(--bg) 61% 73%, transparent 73%) 0 0/100% 58% no-repeat,
+      linear-gradient(90deg, transparent 33%, rgba(11,10,12,.55) 33% 35%, transparent 35% 65%,
+        rgba(11,10,12,.55) 65% 67%, transparent 67%),
+      var(--metal);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.25), 0 6px 18px -8px rgba(217,184,120,.7)}
+  nav a{color:var(--dim); text-decoration:none; font-size:11.5px; font-weight:600;
+    letter-spacing:.16em; text-transform:uppercase; padding:9px 12px; white-space:nowrap;
+    position:relative; transition:color .2s}
+  nav a:not(.brand)::after{content:''; position:absolute; left:12px; right:12px; bottom:4px;
+    height:1px; background:var(--gold); transform:scaleX(0); transform-origin:left;
+    transition:transform .3s var(--ease)}
+  nav a:hover{color:var(--text)}
+  nav a:hover::after{transform:scaleX(1)}
+  nav .cur{color:var(--gold); font-size:11.5px; font-weight:600; letter-spacing:.16em;
+    text-transform:uppercase; padding:9px 12px; white-space:nowrap}
+  nav .spacer{margin-left:auto}
   /* 375px: nav phải vừa đúng một hàng. Không bóp thì mục cuối bị đẩy ra ngoài mép. */
   @media (max-width:560px){
-    nav .wrap{gap:2px; height:54px}
-    nav .brand{font-size:15px; gap:7px; margin-right:4px}
-    nav .brand i{width:25px; height:25px; font-size:14px}
-    nav a{font-size:13px; padding:6px 7px}
-    nav .cur{font-size:13px; padding:6px 7px}
+    nav .wrap{gap:0; height:56px}
+    nav .brand{font-size:17px; gap:9px; margin-right:2px}
+    .mark{width:22px; height:22px}
+    nav a, nav .cur{font-size:10.5px; letter-spacing:.1em; padding:8px 7px}
+    nav a:not(.brand)::after{left:7px; right:7px}
     nav a[href$="#tinh-nang"]{display:none}   /* mục trong trang, bỏ được */
   }
-  nav .spacer{margin-left:auto}
 
-  .btn{display:inline-block; border-radius:16px; padding:12px 22px; font-size:14.5px;
-    font-weight:600; text-decoration:none; color:var(--text);
-    background-color:var(--glass); border:1px solid var(--line);
-    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
-    box-shadow:var(--sh); transition:transform .16s, box-shadow .16s, background-color .16s,
-      border-color .16s}
-  .btn:hover{background-color:var(--glass-hi); border-color:rgba(255,255,255,.62);
-    box-shadow:var(--sh-hi); transform:translateY(-1px)}
+  /* NÚT — chữ ký của cả site. Viên thuốc, chữ IN HOA giãn .14em, viền sợi tóc.
+     Rê chuột: viền và chữ ngả vàng. Nút chính mạ vàng, vệt sáng quét ngang qua
+     mặt nút + mũi tên trượt ra. */
+  .btn{display:inline-flex; align-items:center; justify-content:center; gap:12px;
+    min-height:48px; padding:0 26px; border-radius:999px; position:relative;
+    font:600 12px/1 var(--sans); letter-spacing:.14em; text-transform:uppercase;
+    text-decoration:none; white-space:nowrap; color:var(--text); cursor:pointer;
+    background-color:rgba(244,239,230,.02); border:1px solid var(--line-2);
+    transition:color .25s, border-color .25s, background-color .25s, box-shadow .3s,
+      transform .25s var(--ease), background-position .9s var(--ease)}
+  .btn:hover{color:var(--gold-hi); border-color:var(--gold-line);
+    background-color:rgba(217,184,120,.06)}
   .btn:active{transform:translateY(1px)}
-  /* Nút chính giữ màu cam của app — cam trên nền tím nổi bật hẳn, và đúng quy ước
-     cam = tay phải mà trẻ thấy ở màn chơi. Vẫn là kính, chỉ là kính nhuộm cam đậm. */
-  .btn.primary{color:#3d2200; font-weight:700; border-color:rgba(255,255,255,.55);
-    background-image:linear-gradient(160deg, rgba(255,201,120,.96), rgba(255,157,36,.92));
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 14px 32px -12px rgba(255,157,36,.65)}
-  .btn.primary:hover{background-image:linear-gradient(160deg, rgba(255,214,146,1), rgba(255,172,62,.96))}
+  .btn.primary{color:var(--ink); border-color:rgba(255,236,196,.5);
+    background-image:var(--sweep), var(--metal);
+    background-size:260% 100%, 100% 100%; background-position:130% 0, 0 0;
+    background-repeat:no-repeat;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.6), inset 0 -1px 0 rgba(90,64,20,.35),
+      0 16px 34px -16px rgba(217,184,120,.6)}
+  .btn.primary::after{content:'→'; content:'→' / ''; font-size:15px; letter-spacing:0;
+    transition:transform .35s var(--ease)}
+  .btn.primary:hover{color:var(--ink); background-position:-30% 0, 0 0;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.7), inset 0 -1px 0 rgba(90,64,20,.35),
+      0 20px 40px -14px rgba(217,184,120,.75)}
+  .btn.primary:hover::after{transform:translateX(4px)}
 
-  code, kbd{background-color:var(--glass); border:1px solid var(--line2); border-radius:8px;
-    padding:1px 6px; font-size:12.5px; color:var(--text)}
-  kbd{border-bottom-width:2px; font:inherit; font-size:12.5px}
+  code, kbd{font-family:var(--mono); font-size:.86em; color:var(--text);
+    background-color:rgba(244,239,230,.05); border:1px solid var(--line-2); border-radius:6px;
+    padding:1px 6px}
+  kbd{border-bottom-width:2px}
 
-  footer a{color:var(--dim); text-decoration:none}
-  footer a:hover{color:var(--text); text-decoration:underline}
+  footer a{color:var(--dim); text-decoration:none; transition:color .2s}
+  footer a:hover{color:var(--gold-hi)}
 
-  /* Máy không có backdrop-filter thì mặt kính .14 gần như trong veo, chữ chồng
-     thẳng lên gradient — đục hẳn lên cho đọc được. */
+  /* Thiết kế này KHÔNG dựa vào nhìn-xuyên-qua: mọi mặt khối là màu đặc, chỉ nav có
+     blur. Nên máy tắt hiệu ứng trong suốt (Windows: Settings → Personalization →
+     Colors → Transparency effects) thấy đúng thiết kế, chỉ nav đặc lại. */
   @supports not ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){
-    :root{--glass:rgba(38,26,86,.72); --glass-hi:rgba(52,38,104,.78);
-      --glass-lo:rgba(30,20,72,.62)}
-    nav{background-color:rgba(30,22,80,.86)}
+    nav{background-color:rgba(11,10,12,.96)}
   }
-  /* Người bật "giảm trong suốt" của hệ điều hành: bỏ hẳn phần nhìn xuyên. */
   @media (prefers-reduced-transparency:reduce){
-    :root{--glass:#5a4aa8; --glass-hi:#6a59b8; --glass-lo:#4a3c92; --blur:none}
-    nav{background-color:#4e3f9c}
+    nav{background-color:#0e0d10; -webkit-backdrop-filter:none; backdrop-filter:none}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .btn, .btn.primary::after, nav a::after{transition:none}
+    .btn.primary:hover{background-position:130% 0, 0 0}
   }
 
-  body{min-height:100vh; font:400 15px/1.68 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-  .wrap{max-width:760px; margin:0 auto; padding:0 20px}
-  nav .wrap{display:flex; align-items:center; gap:6px; height:60px; max-width:980px}
-  nav .cur{color:var(--text); font-size:14px; font-weight:700; padding:7px 11px}
+  body{min-height:100vh; font-size:15.5px; line-height:1.72}
+  .wrap{max-width:760px; margin:0 auto; padding:0 24px}
+  nav .wrap{display:flex; align-items:center; gap:4px; height:64px; max-width:1040px}
+  @media (max-width:560px){ .wrap{padding:0 18px} }
 
-  .crumb{font-size:13px; color:var(--dim); margin:24px 0 0}
-  .crumb a{color:var(--dim); text-decoration:none}
-  .crumb a:hover{color:var(--text)}
+  .crumb{font-size:10.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--mute); margin:52px 0 0}
+  .crumb a{color:var(--mute); text-decoration:none; transition:color .2s}
+  .crumb a:hover{color:var(--gold-hi)}
 
-  h1{font-size:31px; line-height:1.18; margin:10px 0 6px; letter-spacing:-.7px; font-weight:800}
-  h2{font-size:19px; margin:32px 0 10px; letter-spacing:-.3px; font-weight:800}
-  p{margin:0 0 13px}
-  ul{margin:0 0 13px; padding-left:22px}
-  li{margin-bottom:6px}
-  footer{border-top:1px solid var(--line2); margin-top:40px;
-    background-color:rgba(255,255,255,.08);
-    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur); box-shadow:var(--edge);
-    padding:20px 0 calc(38px + env(safe-area-inset-bottom)); color:var(--dim); font-size:12.5px}
-  footer .wrap{display:flex; flex-wrap:wrap; gap:14px; align-items:center; max-width:980px}
+  h1{font-family:var(--serif); font-weight:500; font-size:clamp(34px, 6vw, 52px); line-height:1.08;
+    letter-spacing:-.02em; margin:18px 0 10px}
+  h2{font-family:var(--serif); font-weight:500; font-size:26px; line-height:1.2;
+    letter-spacing:-.01em; margin:52px 0 14px; padding-top:28px; border-top:1px solid var(--line)}
+  p{margin:0 0 15px}
+  ul{margin:0 0 15px; padding-left:22px}
+  li{margin-bottom:8px}
+  li::marker{color:var(--gold)}
+  b{font-weight:600}
+  footer{border-top:1px solid var(--line); margin-top:72px; background-color:rgba(0,0,0,.28);
+    padding:26px 0 calc(40px + env(safe-area-inset-bottom)); color:var(--mute); font-size:13px}
+  footer .wrap{display:flex; flex-wrap:wrap; gap:12px 20px; align-items:center; max-width:1040px}
+  footer .fb{display:flex; align-items:center; gap:10px; color:var(--text);
+    font-family:var(--serif); font-size:16px}
   .hit{position:absolute; left:-9999px; width:1px; height:1px; opacity:0; pointer-events:none}
 
-  /* Luật gom vệt loé, phải nằm CUỐI file: mọi luật ở trên dùng background-color chứ
-     không dùng shorthand "background:", nên không có gì xoá mất vệt — kể cả các luật
-     :hover (chúng chỉ đổi màu). Ai thêm mặt kính mới thì phải theo đúng hai điều đó.
-     Cố tình KHÔNG gom .btn.primary / .cta / .demo: chúng đã có gradient riêng làm nền,
-     gán thêm là mất luôn màu của chúng. */
-  nav, footer, .btn, code, kbd, .box, .tw, .note, .near a, .toc a{
-    background-image:var(--sheen);
-  }
-
-  .by{color:#9fe6ff; font-size:15.5px; font-weight:600; margin:0 0 18px}
-  .lv{display:flex; align-items:center; gap:10px; margin:0 0 24px; max-width:420px}
-  .lv .bar{flex:1; height:7px; border-radius:5px; overflow:hidden;
-    background:rgba(0,0,0,.22); box-shadow:inset 0 1px 2px rgba(0,0,0,.3)}
-  .lv .bar i{display:block; height:100%; border-radius:5px; box-shadow:0 0 10px -1px currentColor}
-  /* Viên thuốc tô đầy, không phải chữ màu — xem ghi chú ở library/index.html */
-  .lv .lvl{font-size:12px; font-weight:800; white-space:nowrap; border-radius:20px;
-    padding:4px 12px; box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
-  .lv .num{font-size:12.5px; color:var(--dim); font-variant-numeric:tabular-nums; white-space:nowrap}
-  .cta{display:inline-flex; align-items:center; gap:9px; color:#3d2200;
-    background-image:linear-gradient(160deg, rgba(255,201,120,.96), rgba(255,157,36,.92));
-    border:1px solid rgba(255,255,255,.55);
-    font-weight:800; font-size:17px; text-decoration:none; border-radius:20px;
-    padding:15px 30px; margin-bottom:12px;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 18px 38px -14px rgba(255,157,36,.7);
-    transition:transform .16s, box-shadow .16s, background-image .16s}
-  .cta:hover{background-image:linear-gradient(160deg, rgba(255,214,146,1), rgba(255,172,62,.96));
-    transform:translateY(-1px)}
-  .cta:active{transform:translateY(1px)}
-  .sub{font-size:13.5px; color:var(--dim); margin:0 0 28px}
-  .note{background-color:var(--glass); border:1px solid var(--line); border-left:4px solid var(--lh);
-    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
-    border-radius:18px; padding:14px 17px; color:var(--text); font-size:14.5px; margin:0 0 14px;
-    box-shadow:var(--sh)}
-  .facts{list-style:none; padding:0; font-size:13.5px; color:var(--dim)}
-  .facts b{color:var(--text); font-weight:700}
-  .near{display:flex; flex-wrap:wrap; gap:8px; padding:0; list-style:none; margin:0 0 14px}
+  .by{color:var(--gold-hi); font-size:15px; font-weight:500; margin:0 0 26px}
+  .lv{display:flex; align-items:center; gap:14px; margin:0 0 34px; max-width:440px}
+  .lv .bar{flex:1; height:3px; border-radius:2px; overflow:hidden; background:rgba(244,239,230,.08)}
+  .lv .bar i{display:block; height:100%; border-radius:2px; background:var(--c)}
+  /* Viên thuốc nhuộm — xem ghi chú ở library/index.html */
+  .lv .lvl{font-size:10.5px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+    white-space:nowrap; border-radius:999px; padding:5px 12px; color:var(--c);
+    background-color:rgba(244,239,230,.04); border:1px solid rgba(244,239,230,.14);
+    background-color:color-mix(in srgb, var(--c) 13%, transparent);
+    border-color:color-mix(in srgb, var(--c) 34%, transparent)}
+  .lv .num{font-size:12px; color:var(--mute); font-variant-numeric:tabular-nums; white-space:nowrap}
+  .cta{min-height:56px; padding:0 34px; font-size:12.5px}
+  .sub{font-size:13px; color:var(--mute); margin:16px 0 0}
+  .note{background-color:var(--surface); border:1px solid var(--line);
+    border-left:2px solid var(--gold); border-radius:4px 14px 14px 4px;
+    padding:16px 20px; color:var(--text); font-family:var(--serif); font-style:italic;
+    font-size:17px; line-height:1.55; margin:0 0 18px}
+  .facts{list-style:none; padding:0; font-size:14px; color:var(--dim); margin:0;
+    border-top:1px solid var(--line)}
+  .facts li{margin:0; padding:12px 0; border-bottom:1px solid var(--line)}
+  .facts b{color:var(--text)}
+  .near{display:flex; flex-wrap:wrap; gap:8px; padding:0; list-style:none; margin:0 0 18px}
   .near li{margin:0}
-  .near a{display:inline-block; background-color:var(--glass); border:1px solid var(--line);
-    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
-    border-radius:14px; padding:8px 13px; font-size:13.5px; text-decoration:none;
-    color:var(--text); box-shadow:var(--sh)}
-  .near a:hover{background-color:var(--glass-hi); border-color:rgba(255,255,255,.62);
-    box-shadow:var(--sh-hi)}
-  @media (prefers-reduced-motion:reduce){ .cta:hover{transform:none} }
+  .near a{display:inline-block; border:1px solid var(--line-2); border-radius:999px;
+    padding:8px 15px; font-size:13.5px; text-decoration:none; color:var(--dim);
+    transition:color .2s, border-color .2s, background-color .2s}
+  .near a:hover{color:var(--gold-hi); border-color:var(--gold-line);
+    background-color:rgba(217,184,120,.06)}
 </style>
 </head>
 <body>
 <nav>
   <div class="wrap">
-    <a class="brand" href="../../"><i>♪</i> mypiano</a>
+    <a class="brand" href="../../"><i class="mark" aria-hidden="true"></i>mypiano</a>
     <span class="spacer"></span>
     <a href="../../library/">Thư viện</a>
     <a href="../../play/">Chơi</a>
@@ -221,13 +245,13 @@
   <h1>Endless Love (Thần Thoại)</h1>
   <p class="by">Nathan Wang · phối: An Coong</p>
 
-  <div class="lv">
-    <span class="lvl" style="background:#ffd97a;color:#412c00">Vừa</span>
-    <span class="bar"><i style="width:33%;background:#ffd97a"></i></span>
+  <div class="lv" style="--c:#e3c27e">
+    <span class="lvl">Vừa</span>
+    <span class="bar"><i style="width:33%"></i></span>
     <span class="num">330/1000</span>
   </div>
 
-  <a class="cta" href="../../play/?song=endless-love.mid">▶ Tập bài này</a>
+  <a class="btn primary cta" href="../../play/?song=endless-love.mid">Tập bài này</a>
   <p class="sub">Mở thẳng trong trình duyệt — không cài đặt, không tài khoản, không mất phí.</p>
 
   <h2>Về bản MIDI này</h2>
@@ -268,7 +292,8 @@
 
 <footer>
   <div class="wrap">
-    <span>mypiano — falling notes cho người tập piano</span>
+    <span class="fb"><i class="mark" aria-hidden="true"></i>mypiano</span>
+    <span>Falling notes cho người tập piano</span>
     <a href="../../giay-phep/">Giấy phép &amp; ghi công</a>
     <a href="https://github.com/luyentm/mypiano">Mã nguồn</a>
   </div>

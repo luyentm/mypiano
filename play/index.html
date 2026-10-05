@@ -9,84 +9,72 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f0e11">
 <title>Chơi nốt rơi piano — mypiano</title>
 <meta name="description" content="Màn chơi nốt rơi: mở file MIDI bất kỳ, nốt rơi xuống chạm bàn phím 88 phím đúng lúc nốt kêu. Chậm lại, tập từng tay, khoanh đoạn lặp — miễn phí, chạy thẳng trong trình duyệt.">
 <link rel="canonical" href="https://luyentm.github.io/mypiano/play/">
 <style>
   /* ==========================================================================
-     GLASSMORPHISM — cùng gradient xanh → tím → hồng sen với bốn trang tĩnh
-     (xem ghi chú dài ở index.html). Top bar, panel dưới, mọi nút và mọi overlay
-     đều là kính bán trong viền sáng, chữ trắng.
+     EBONY · IVORY · CHAMPAGNE — cùng hệ với bốn trang tĩnh (xem ghi chú dài ở
+     index.html). Màn chơi là một cây đàn: thân gỗ mun (top bar, panel), bàn phím
+     ngà, MỘT màu nhấn vàng sâm-panh cho nút Chơi và thứ đang bật. Màu sắc khác
+     chỉ có hai màu TAY — để mắt không phải lọc gì ngoài nốt rơi.
 
-     Hai chỗ phải cẩn thận vì đã đo bằng số, đừng nới thêm:
-     · #fall gần như ĐỤC (.97 → .90 từ trên xuống) nên vùng nốt rơi vẫn tối gần
-       như đen y hệt bản nền đặc cũ — đo được đỉnh 13.8 → 11.6 lum, đáy 21.7 →
-       22.1 lum. Mọi mốc trong vùng rơi (dải quãng tám lệch 6.3 lum, vạch lưới
-       30.6, vạch ô nhịp 59 — xem CLAUDE.md) vì thế vẫn đúng nguyên. Hạ alpha
-       cho gradient ánh lên nhiều hơn là phải đo lại từng con số đó.
-     · backdrop-filter chỉ đặt lên thứ KHÔNG chồng lên canvas đang chạy 60fps.
-       header/footer là anh em flex của #stage nên không giao nhau về hình học,
-       trình duyệt không phải lọc lại nền mỗi frame. Các overlay (#done, #empty,
-       #busy, #drop) có chồng lên canvas, nhưng chúng chỉ hiện lúc đã dừng.
+     Mọi mặt phẳng đều ĐẶC, không backdrop-filter: top bar và panel không cần nhìn
+     xuyên, nên trình duyệt khỏi phải lọc nền. Chỉ overlay (#done, #empty, #busy,
+     #drop) có blur, và chúng chỉ hiện lúc đã dừng.
+
+     #fall là gradient ĐẶC chọn khớp độ sáng của bản kính cũ (đo cùng chỗ, 1024×768:
+     đỉnh 10.6 / giữa 15.7 / đáy 21.4 lum, bản cũ 9.2 / 15.8 / 20.5) để mọi mốc đo
+     trong vùng rơi — dải quãng tám lệch 6.3 lum, vạch lưới 30.6, vạch ô nhịp 59, phủ
+     khoanh ô nhịp (xem CLAUDE.md) — vẫn đúng nguyên. Đặc nên không còn phụ thuộc
+     màu nền trang phía sau nữa.
      ========================================================================== */
   :root{
-    --g1:#17409c; --g2:#33359f; --g3:#4b2ea6; --g4:#6d2478; --g5:#822369;
-    --text:#ffffff; --dim:rgba(255,255,255,.88);
+    --bg:#0b0a0c; --chrome:#0f0e11; --surface:#151417; --surface-2:#1c1b1f;
+    --line:rgba(244,239,230,.09); --line-2:rgba(244,239,230,.17);
+    --text:#f4efe6; --dim:#b3ab9f; --mute:#948c81;
+    --gold:#d9b878; --gold-hi:#ecd5a3; --gold-line:rgba(217,184,120,.42); --ink:#17120a;
+    --metal:linear-gradient(180deg,#f1dcab 0%,#d9b878 50%,#c09955 100%);
+    --sweep:linear-gradient(105deg,transparent 38%,rgba(255,255,255,.55) 50%,transparent 62%);
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua","Noto Serif",Georgia,serif;
     --ivory:#e6e2d8; --ebony:#1b202b;
     --rh:#edb04a;   /* tay phải */
     --lh:#57a8d4;   /* tay trái */
-
-    --glass:rgba(255,255,255,.14);
-    --glass-hi:rgba(255,255,255,.20);
-    --glass-lo:rgba(255,255,255,.08);
-    --pane:rgba(255,255,255,.10);      /* mặt kính to: top bar, panel dưới */
-    --line:rgba(255,255,255,.34);
-    --line2:rgba(255,255,255,.16);
-    --edge:inset 0 1px 0 rgba(255,255,255,.40);
-    --blur:saturate(150%) blur(18px);
-    --sheen:linear-gradient(135deg, rgba(255,255,255,.16) 0%,
-      rgba(255,255,255,.02) 42%, rgba(255,255,255,.07) 100%);
-    --sh:var(--edge), 0 12px 30px -14px rgba(6,2,28,.8);
+    --ease:cubic-bezier(.2,.7,.2,1);
   }
   *{box-sizing:border-box}
+  /* .btn đặt display:inline-flex, sẽ đè mất [hidden] của trình duyệt (#loopchip, #fs). */
+  [hidden]{display:none !important}
   html,body{height:100%;margin:0}
-  html{background:var(--g3)}
-  body::before{
-    content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
-    background:
-      radial-gradient(38vmax 32vmax at 14% 10%, rgba(56,132,255,.30), transparent 68%),
-      radial-gradient(34vmax 30vmax at 88% 88%, rgba(255,86,170,.24), transparent 68%),
-      linear-gradient(135deg, var(--g1) 0%, var(--g2) 26%, var(--g3) 50%,
-        var(--g4) 78%, var(--g5) 100%);
-  }
+  html{background:var(--bg); color-scheme:dark}
   body{
-    background:transparent; color:var(--text);
-    font:400 14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    background:var(--bg); color:var(--text);
+    font:400 14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;
     display:flex; flex-direction:column;
     overscroll-behavior:none; -webkit-text-size-adjust:100%;
   }
+  ::selection{background:rgba(217,184,120,.34)}
   /* Top bar: play/pause + đồng hồ + lượt tập nằm hết trên này, thanh tua bám sát
      mép dưới của bar để lúc nào cũng tua được mà không phải mở panel. */
-  header{flex:none; background-color:var(--pane);
-    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
-    border-bottom:1px solid var(--line2);
-    box-shadow:var(--edge), 0 12px 30px -22px #000;
+  header{flex:none; background-color:var(--chrome); border-bottom:1px solid var(--line);
     display:flex; flex-direction:column; z-index:3}
   /* 3 cột: thông tin bên trái — nút Chơi chính giữa — thao tác bên phải.
      Dùng grid 1fr/auto/1fr để nút Chơi luôn nằm đúng giữa màn, bất kể hai bên dài ngắn. */
   header .bar{display:grid; grid-template-columns:1fr auto 1fr; align-items:center;
-    gap:9px; padding:7px 12px}
-  header .side{display:flex; align-items:center; gap:9px; min-width:0}
+    gap:9px; padding:8px 12px 6px}
+  header .side{display:flex; align-items:center; gap:8px; min-width:0}
   header .side.right{justify-content:flex-end}
-  header h1{font-size:14px; font-weight:600; margin:0; white-space:nowrap}
+  header h1{font-family:var(--serif); font-size:16px; font-weight:500; margin:0;
+    white-space:nowrap; letter-spacing:-.005em}
   /* Chú thích tay phải nằm NGOÀI panel: panel tự thu khi bấm Chơi, mà lúc đang chơi
      mới là lúc cần biết màu nào là tay nào nhất. */
   header .leg{display:flex; align-items:center; gap:4px; font-size:11px;
     color:var(--dim); white-space:nowrap; flex:none}
-  header .leg i{width:8px; height:8px; border-radius:50%; flex:none; margin-left:7px;
-    box-shadow:0 0 8px -1px currentColor}
+  header .leg i{width:7px; height:7px; border-radius:50%; flex:none; margin-left:7px}
   header .leg i:first-child{margin-left:0}
-  header .sub{color:var(--dim); font-size:12px;
+  header .sub{color:var(--dim); font-size:12.5px; font-family:var(--serif); font-style:italic;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:46%}
   @media (max-width:1100px){ header h1{display:none} }
   @media (max-width:560px){ header .leg{display:none} }
@@ -95,215 +83,275 @@
      Nó nằm ở nhóm TRÁI chứ không phải nhóm phải: nhóm phải có #songname co giãn, thêm
      57px vào đó là tên bài bị cắt từ 172px xuống 107px. Nhóm trái thì còn chỗ thật.
      Đo với badge "lượt tập" giả lập 95px (trên site thật #hits có badge, ở localhost
-     thì rỗng — không giả lập là đo thiếu 95px): 844px còn khe 28px tới nút Chơi, 812px
-     còn 12px, 800px còn 6px, 780px thì âm. Ngưỡng để 820 chứ không sát mép vì bề ngang
-     chữ "Giấy phép" đổi theo phông hệ thống từng máy.
+     thì rỗng — không giả lập là đo thiếu 95px). Ngưỡng để 820 chứ không sát mép vì
+     bề ngang chữ "Giấy phép" đổi theo phông hệ thống từng máy — số đo hiện tại ghi
+     trong CLAUDE.md, mục "Trang /giay-phep/".
      Ẩn ở đây không mất ghi công: footer trang chủ, footer thư viện, nav mọi trang bai/
      và trang giay-phep/ đều còn link. */
   @media (max-width:820px){ header a.lic{display:none} }
+  /* Badge lượt tập (~95px trên site thật) nhường chỗ cho chú thích tay: dưới 760px
+     nhóm trái không đủ chỗ cho cả hai, mà chú thích tay mới là thứ cần lúc đang chơi.
+     Ảnh vẫn được tải (display:none không chặn tải ảnh) nên lượt tập vẫn được đếm. */
+  @media (max-width:760px){ #hits{display:none} }
+  /* Điện thoại DỌC: ba nút bên phải (~225px) không thể nằm cùng hàng với nút Chơi ở
+     giữa, nên xuống hàng thứ hai. Màn dọc thừa chiều cao, mất 36px không đáng kể; màn
+     ngang hẹp nhất (568px) thì vẫn một hàng. */
+  @media (max-width:480px){
+    header .side.right{grid-column:1/-1; grid-row:2; justify-content:center; padding-top:2px}
+  }
+  /* Đang có đoạn lặp thì chip "Lặp 0:28–0:36 ×" (~115px) phải có chỗ ở nhóm trái.
+     Bản cũ cứ nhét thêm vào nên nhóm trái đè lên nút Chơi ở MỌI bề ngang (đo với
+     badge 95px: −100px ở 844, −17px ở 1024). Thứ tự nhường: link giấy phép + badge
+     lượt tập trước (link còn ở mọi trang khác, badge vẫn đếm), dưới 760px thì cả chú
+     thích tay. Dưới 480px nhóm phải đã xuống hàng 2, chip lặp xuống góc trái hàng đó. */
+  header .side:has(#loopchip:not([hidden])) :is(a.lic, #hits){display:none}
+  @media (max-width:760px){ header .side:has(#loopchip:not([hidden])) .leg{display:none} }
+  @media (max-width:480px){
+    header .bar{position:relative}
+    header .bar:has(#loopchip:not([hidden])) .side.right{justify-content:flex-end}
+    #loopchip{position:absolute; left:12px; bottom:10px}
+  }
 
-  /* Nút chính của cả màn hình: kính nhuộm cam, to, dễ trúng ngón tay. Cam trên nền
-     tím nổi bật hẳn, và đúng quy ước cam = tay phải mà người tập thấy ở nốt rơi. */
-  .btn.pp{display:inline-flex; align-items:center; justify-content:center;
-    padding:8px 22px; min-width:74px; min-height:40px; border-radius:15px;
-    background-image:linear-gradient(160deg, rgba(255,208,138,.98), rgba(255,157,36,.94));
-    border:1px solid rgba(255,255,255,.55); color:#3d2200; font-weight:700;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 10px 26px -6px rgba(255,157,36,.6)}
-  .btn.pp:hover{background-image:linear-gradient(160deg, rgba(255,220,164,1), rgba(255,172,62,.98));
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.66), 0 12px 32px -6px rgba(255,157,36,.75)}
+  /* NÚT — cùng chữ ký với bốn trang tĩnh: viên thuốc, chữ IN HOA giãn chữ, viền sợi
+     tóc; rê chuột thì viền + chữ ngả vàng. */
+  .btn{display:inline-flex; align-items:center; justify-content:center; gap:7px;
+    min-height:32px; padding:0 14px; border-radius:999px;
+    font:600 10.5px/1 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    letter-spacing:.13em; text-transform:uppercase;
+    color:var(--text); background-color:rgba(244,239,230,.02); border:1px solid var(--line-2);
+    cursor:pointer; touch-action:manipulation; white-space:nowrap; flex:none;
+    transition:color .2s, border-color .2s, background-color .2s, background-position .9s var(--ease)}
+  .btn:hover{color:var(--gold-hi); border-color:var(--gold-line); background-color:rgba(217,184,120,.06)}
+  .btn:focus-visible{outline:2px solid var(--gold); outline-offset:2px}
+  /* Nút chính của cả màn hình: mạ vàng, to, dễ trúng ngón tay. Vàng là màu nhấn duy
+     nhất của cả app, và cùng họ với màu tay phải nên vẫn giữ quy ước cũ. */
+  .btn.pp{padding:0 22px; min-width:74px; min-height:40px; color:var(--ink);
+    border-color:rgba(255,236,196,.5);
+    background-image:var(--sweep), var(--metal);
+    background-size:260% 100%, 100% 100%; background-position:130% 0, 0 0;
+    background-repeat:no-repeat;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.6), inset 0 -1px 0 rgba(90,64,20,.35),
+      0 10px 26px -10px rgba(217,184,120,.6)}
+  .btn.pp:hover{color:var(--ink); background-position:-30% 0, 0 0;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.7), inset 0 -1px 0 rgba(90,64,20,.35),
+      0 12px 30px -8px rgba(217,184,120,.75)}
   .btn.pp:active{transform:translateY(1px)}
-  .btn.pp:focus-visible{outline:2px solid #fff; outline-offset:3px}
   .btn.pp svg{display:block}
+  .btn.primary{color:var(--ink); border-color:rgba(255,236,196,.5); background-image:var(--metal);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 10px 24px -12px rgba(217,184,120,.6)}
+  .btn.primary:hover{color:var(--ink); filter:brightness(1.06)}
 
   #seek{-webkit-appearance:none; appearance:none; display:block; width:100%; height:17px;
     margin:0; padding:0; background:transparent; cursor:pointer; touch-action:none}
-  /* Rãnh tua cũng trong suốt — một vạch đặc màu là mảng duy nhất trên top bar không
-     nhìn xuyên qua được, lộ ra ngay khi mọi thứ quanh nó là kính. */
-  #seek::-webkit-slider-runnable-track{height:5px; border-radius:3px;
-    background:linear-gradient(90deg,#fff var(--p,0%), rgba(255,255,255,.22) var(--p,0%))}
-  #seek::-webkit-slider-thumb{-webkit-appearance:none; width:15px; height:15px; margin-top:-5px;
-    border-radius:50%; background:#fff; border:2px solid rgba(255,255,255,.75);
-    box-shadow:0 2px 10px -1px rgba(255,255,255,.75)}
-  #seek::-moz-range-track{height:5px; border-radius:3px; background:rgba(255,255,255,.22)}
-  #seek::-moz-range-progress{height:5px; border-radius:3px; background:#fff}
-  #seek::-moz-range-thumb{width:13px; height:13px; border:2px solid rgba(255,255,255,.75);
-    border-radius:50%; background:#fff; box-shadow:0 2px 10px -1px rgba(255,255,255,.75)}
+  #seek::-webkit-slider-runnable-track{height:3px; border-radius:2px;
+    background:linear-gradient(90deg,var(--gold) var(--p,0%), rgba(244,239,230,.14) var(--p,0%))}
+  #seek::-webkit-slider-thumb{-webkit-appearance:none; width:13px; height:13px; margin-top:-5px;
+    border-radius:50%; background:var(--text);
+    box-shadow:0 0 0 3px rgba(217,184,120,.28), 0 2px 6px rgba(0,0,0,.6)}
+  #seek::-moz-range-track{height:3px; border-radius:2px; background:rgba(244,239,230,.14)}
+  #seek::-moz-range-progress{height:3px; border-radius:2px; background:var(--gold)}
+  #seek::-moz-range-thumb{width:13px; height:13px; border:0; border-radius:50%;
+    background:var(--text); box-shadow:0 0 0 3px rgba(217,184,120,.28), 0 2px 6px rgba(0,0,0,.6)}
 
   #seekwrap{position:relative}
   #loopband{position:absolute; top:6px; height:5px; border-radius:3px;
-    background:var(--rh); opacity:.75; pointer-events:none; display:none;
-    box-shadow:0 0 10px -2px rgba(237,176,74,.95)}
+    background:var(--rh); opacity:.6; pointer-events:none; display:none}
   /* Tay cầm đoạn lặp. Vùng bấm 22×23px (ngón tay cần chỗ), phần nhìn thấy chỉ là
-     một vạch cam 4px — vươn LÊN 6px vào thanh top bar chứ không vươn xuống, để
+     một vạch hổ phách 4px — vươn LÊN 6px vào thanh top bar chứ không vươn xuống, để
      không đè lên vùng nốt rơi. */
   .lgrip{position:absolute; top:-6px; width:22px; height:23px; z-index:2;
     cursor:ew-resize; touch-action:none}
   .lgrip::before{content:''; position:absolute; left:9px; top:5px; width:4px; height:17px;
-    border-radius:2px; background:var(--rh);
-    box-shadow:0 0 0 1.5px rgba(20,10,50,.7), 0 0 10px -1px rgba(237,176,74,.95)}
+    border-radius:2px; background:var(--rh); box-shadow:0 0 0 1.5px rgba(11,10,12,.85)}
   .lgrip.on::before{height:19px; top:4px; width:5px; left:8.5px}
-  .btn.loop{padding:3px 8px; font-size:11px; border-color:rgba(255,208,138,.7);
-    color:#ffd08a; background-color:rgba(255,157,36,.22)}
-  .btn.loop:hover{background-color:rgba(255,157,36,.34)}
-
-  .btn{background-color:var(--glass); color:var(--text); border:1px solid var(--line);
-    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
-    border-radius:13px; padding:7px 13px; font:inherit; font-size:13px;
-    cursor:pointer; touch-action:manipulation; white-space:nowrap; flex:none;
-    box-shadow:var(--edge)}
-  .btn:hover{background-color:var(--glass-hi); border-color:rgba(255,255,255,.55)}
-  .btn:focus-visible{outline:2px solid #fff; outline-offset:2px}
-  .btn.primary{background-image:linear-gradient(160deg, rgba(255,255,255,.96), rgba(228,235,255,.88));
-    border-color:rgba(255,255,255,.8); color:#2a1a5e; font-weight:700;
-    box-shadow:inset 0 1px 0 #fff, 0 10px 26px -8px rgba(255,255,255,.55)}
+  /* Chip đoạn lặp ở nhóm trái — chữ thường, không giãn: nhóm trái là chỗ chật nhất. */
+  .btn.loop{min-height:24px; padding:0 9px; font-size:11px; font-weight:600; letter-spacing:0;
+    text-transform:none; font-variant-numeric:tabular-nums; border-color:rgba(237,176,74,.45);
+    color:var(--rh); background-color:rgba(237,176,74,.1)}
+  .btn.loop:hover{color:var(--gold-hi); background-color:rgba(237,176,74,.18)}
 
   #stage{flex:1; display:flex; flex-direction:column; min-height:0; position:relative}
-  /* Vùng nốt rơi giữ nền gần như đen — xem ghi chú đo đạc ở đầu file. Chỉ chừa một
-     hơi tím rất mỏng ở đáy, chỗ giáp bàn phím, cho liền mạch với phần kính quanh nó. */
+  /* Vùng nốt rơi: gradient ĐẶC, độ sáng chọn khớp bản cũ — xem ghi chú đầu file. */
   #fall{flex:1; display:block; width:100%; min-height:0;
-    background:linear-gradient(180deg, rgba(7,10,20,.97) 0%, rgba(10,12,26,.94) 60%,
-      rgba(16,16,38,.90) 100%)}
+    background:linear-gradient(180deg, #0a0a0f 0%, #0f0f15 60%, #15141e 100%)}
   #keys{display:block; width:100%; height:110px; flex:none;
     box-shadow:0 -14px 30px -18px #000}
   @media (max-width:600px){ #keys{height:76px} }
   /* Điện thoại/iPad xoay ngang: chiều cao là thứ khan hiếm nhất, bóp mọi thứ trừ vùng nốt rơi */
   @media (orientation:landscape) and (max-height:520px){
     #keys{height:62px}
-    header .bar{padding:4px 10px; gap:7px}
-    .btn{padding:5px 10px; font-size:12px}
-    .btn.pp{min-height:34px; min-width:64px; padding:6px 16px}   /* vẫn giữ to: đây là nút chính */
-    footer .body{padding-top:1px; gap:5px}
+    header .bar{padding:4px 10px 3px; gap:7px}
+    .btn{min-height:28px; padding:0 11px}
+    .btn.pp{min-height:34px; min-width:64px; padding:0 16px}   /* vẫn giữ to: đây là nút chính */
+    footer .body{padding-top:1px; gap:6px}
     .row{gap:8px}
   }
 
-  #drop{position:absolute; inset:0; display:none; place-items:center; font-size:15px;
-    background:rgba(12,10,40,.62); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
-    border:2px dashed rgba(255,255,255,.75); color:#fff; z-index:3}
+  #drop{position:absolute; inset:0; display:none; place-items:center; z-index:3;
+    font-family:var(--serif); font-size:20px; font-style:italic; color:var(--gold-hi);
+    background:rgba(8,7,10,.78); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+    border:1px dashed var(--gold-line); border-radius:4px}
   #drop.on{display:grid}
 
   /* Panel dưới tự thu lại khi đang chơi để nhường chiều cao cho nốt rơi
      (iPad/điện thoại nằm ngang rất thiếu chỗ). Bấm thanh tay cầm để mở lại. */
-  footer{flex:none; background-color:var(--pane);
-    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
-    border-top:1px solid var(--line2);
-    box-shadow:var(--edge), 0 -12px 30px -22px #000;
+  footer{flex:none; background-color:var(--chrome); border-top:1px solid var(--line);
     display:flex; flex-direction:column; z-index:3}
   footer .grip{all:unset; display:flex; align-items:center; justify-content:center; gap:11px;
-    height:24px; flex:none; cursor:pointer; color:var(--dim); font-size:11.5px;
+    height:22px; flex:none; cursor:pointer; color:var(--mute); font-size:11px;
     touch-action:manipulation; padding-bottom:env(safe-area-inset-bottom)}
-  footer .grip:hover{background:rgba(255,255,255,.08)}
-  footer .grip .chev{width:28px; height:3px; border-radius:2px;
-    background:rgba(255,255,255,.5); flex:none}
+  footer .grip:hover .chev{background:var(--gold)}
+  footer .grip:focus-visible{outline:2px solid var(--gold); outline-offset:-2px}
+  footer .grip .chev{width:32px; height:3px; border-radius:2px;
+    background:rgba(244,239,230,.22); flex:none; transition:background-color .2s}
   footer .grip .sum{display:none; font-variant-numeric:tabular-nums;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   footer.collapsed .grip{padding-bottom:calc(2px + env(safe-area-inset-bottom))}
   footer.collapsed .grip .sum{display:inline}
   footer.collapsed .body{display:none}
-  footer .body{padding:3px 13px calc(9px + env(safe-area-inset-bottom));
-    display:flex; flex-direction:column; gap:8px}
+  footer .body{padding:2px 14px calc(10px + env(safe-area-inset-bottom));
+    display:flex; flex-direction:column; gap:9px}
   .row{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
   /* Hàng thanh kéo xếp thành CỘT chứ không flex-wrap: bốn thanh luôn dóng thẳng
      với nhau, và khi hẹp thì rụng xuống 2 cột đều nhau chứ không so le. */
-  .row.sliders{display:grid; gap:6px 16px;
+  .row.sliders{display:grid; gap:6px 22px;
     grid-template-columns:repeat(auto-fit,minmax(176px,1fr))}
-  .row.sliders label.ctl{gap:8px}
-  .row.sliders input[type=range]{flex:1; min-width:64px; width:auto}
+  .row.sliders label.ctl{gap:9px}
+  .row.sliders input[type=range]{flex:1; min-width:56px; width:auto}
   /* Dưới 700px thì auto-fit chỉ nhét được 3 cột, thành 3+1 so le. Ép 2 cột cho
      ra khối 2×2 cân đối — cùng chiều cao mà nhìn gọn hơn hẳn. */
   @media (max-width:700px){ .row.sliders{grid-template-columns:repeat(2,1fr)} }
-  .row.chips{gap:7px}
-  .row.chips .sep{width:1px; height:18px; background:var(--line2); flex:none; margin:0 2px}
-  .time{font-variant-numeric:tabular-nums; color:var(--dim); font-size:12px; min-width:80px}
-  label.ctl{display:flex; align-items:center; gap:7px; font-size:12px; color:var(--dim)}
+  /* Dưới 480px nửa bề ngang không đủ cho nhãn + thanh + số trên một dòng (thanh bị
+     đẩy ra ngoài mép, cả trang tràn ngang). Xếp nhãn và số lên trên, thanh xuống dưới:
+     chữ là phần tử ẩn danh order 0, số order 1, thanh order 2 chiếm trọn hàng sau. */
+  @media (max-width:480px){
+    .row.sliders{gap:2px 20px}
+    .row.sliders label.ctl{display:grid; grid-template-columns:1fr auto; gap:0 8px}
+    .row.sliders label.ctl b{order:1; min-width:0; text-align:right}
+    .row.sliders label.ctl input[type=range]{order:2; grid-column:1/-1; width:100%; min-width:0}
+  }
+  .row.chips{gap:6px}
+  .row.chips .sep{width:1px; height:18px; background:var(--line-2); flex:none; margin:0 3px}
+  .time{font-variant-numeric:tabular-nums; color:var(--text); font-size:12px; min-width:80px}
+  /* Nhãn điều khiển IN HOA nhỏ giãn chữ, giá trị chữ số đều màu ngà — kiểu mặt máy. */
+  label.ctl{display:flex; align-items:center; gap:7px; font-size:10px; font-weight:600;
+    letter-spacing:.12em; text-transform:uppercase; color:var(--mute); white-space:nowrap}
   label.ctl input[type=range]{width:110px}
-  label.ctl b{color:var(--text); font-weight:600; font-variant-numeric:tabular-nums;
-    min-width:40px; display:inline-block}
+  label.ctl b{color:var(--text); font-weight:600; font-size:12px; letter-spacing:0;
+    text-transform:none; font-variant-numeric:tabular-nums; min-width:38px; display:inline-block}
   /* Ghi công CC BY của mẫu tiếng đàn phải với tới được từ chính màn đang phát tiếng đó.
      Là chữ thường chứ không phải .btn — top bar là chỗ chật nhất, không cho thêm nút. */
-  a.lic{font-size:12px; color:var(--dim); text-decoration:none; white-space:nowrap}
-  a.lic:hover{color:#fff; text-decoration:underline}
-  input[type=range]{accent-color:#fff; height:24px}
+  a.lic{font-size:12px; color:var(--mute); text-decoration:none; white-space:nowrap}
+  a.lic:hover{color:var(--gold-hi)}
+  /* Thanh kéo tự vẽ: rãnh sợi tóc, phần đã kéo màu vàng (--p do JS gán, xem
+     paintRange()), núm ngà có quầng vàng. */
+  footer input[type=range]{-webkit-appearance:none; appearance:none; height:24px; margin:0;
+    background:transparent; cursor:pointer; touch-action:manipulation}
+  footer input[type=range]::-webkit-slider-runnable-track{height:3px; border-radius:2px;
+    background:linear-gradient(90deg,var(--gold) var(--p,50%), rgba(244,239,230,.14) var(--p,50%))}
+  footer input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:14px; height:14px;
+    margin-top:-5.5px; border-radius:50%; background:var(--text);
+    box-shadow:0 0 0 3px rgba(217,184,120,.22), 0 2px 6px rgba(0,0,0,.6);
+    transition:box-shadow .2s}
+  footer input[type=range]:hover::-webkit-slider-thumb,
+  footer input[type=range]:focus-visible::-webkit-slider-thumb{
+    box-shadow:0 0 0 5px rgba(217,184,120,.3), 0 2px 6px rgba(0,0,0,.6)}
+  footer input[type=range]::-moz-range-track{height:3px; border-radius:2px; background:rgba(244,239,230,.14)}
+  footer input[type=range]::-moz-range-progress{height:3px; border-radius:2px; background:var(--gold)}
+  footer input[type=range]::-moz-range-thumb{width:14px; height:14px; border:0; border-radius:50%;
+    background:var(--text); box-shadow:0 0 0 3px rgba(217,184,120,.22), 0 2px 6px rgba(0,0,0,.6)}
+  footer input[type=range]:focus-visible{outline:none}
   /* Viên thuốc bật/tắt — cùng hình dáng với nút chọn tay để cả hàng nhìn thành một
      nhóm. Checkbox thật nằm bên trong, chỉ bị ẩn phần nhìn. */
   label.chip, .hand{display:inline-flex; align-items:center; gap:7px; font:inherit; font-size:12px;
-    color:var(--text); background-color:var(--glass); border:1px solid var(--line);
-    border-radius:20px;
-    padding:5px 12px 5px 9px; cursor:pointer; user-select:none; white-space:nowrap;
-    touch-action:manipulation; position:relative;
-    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur); box-shadow:var(--edge)}
-  label.chip:hover, .hand:hover{background-color:var(--glass-hi)}
-  label.chip:focus-within, .hand:focus-visible{outline:2px solid #fff; outline-offset:2px}
+    color:var(--dim); background-color:transparent; border:1px solid var(--line-2);
+    border-radius:999px; min-height:30px; padding:0 11px 0 9px; cursor:pointer;
+    user-select:none; white-space:nowrap; touch-action:manipulation; position:relative;
+    transition:color .2s, border-color .2s, background-color .2s}
+  label.chip:hover, .hand:hover{color:var(--text); border-color:rgba(244,239,230,.3)}
+  label.chip:focus-within, .hand:focus-visible{outline:2px solid var(--gold); outline-offset:2px}
   label.chip input{position:absolute; opacity:0; width:1px; height:1px; margin:0}
-  label.chip i, .hand i{width:9px; height:9px; border-radius:50%; flex:none;
-    background:rgba(255,255,255,.3)}
-  label.chip input:checked + i{background:#fff; box-shadow:0 0 9px -1px rgba(255,255,255,.95)}
-  /* Chip TẮT phải đục hẳn xuống, không chỉ đổi màu chấm: trên nền kính, chữ trắng
-     mờ đi một chút thì gần như không thấy khác. */
-  label.chip:has(input:not(:checked)){color:rgba(255,255,255,.72);
-    background-color:var(--glass-lo); border-color:var(--line2)}
-  label.chip:has(input:checked){border-color:rgba(255,255,255,.7)}
-  .hand i{box-shadow:0 0 9px -1px currentColor}
-  .hand b{color:var(--dim); font-weight:400; font-size:11px}
-  .hand[data-s="silent"]{border-style:dashed; opacity:.85}
+  label.chip i{width:7px; height:7px; border-radius:50%; flex:none;
+    box-shadow:inset 0 0 0 1.5px var(--mute)}
+  /* BẬT = chấm vàng đặc + chữ ngà + viền vàng; TẮT = chấm rỗng + chữ xám + viền sợi
+     tóc. Ba tín hiệu cùng đổi nên nhìn lướt cũng phân biệt được. Chấm đổi bằng
+     `input:checked + i` (mọi trình duyệt); chữ/viền dùng :has() là phần trang trí thêm. */
+  label.chip input:checked + i{background:var(--gold); box-shadow:0 0 0 3px rgba(217,184,120,.18)}
+  label.chip:has(input:checked){color:var(--text); border-color:var(--gold-line);
+    background-color:rgba(217,184,120,.07)}
+  .hand{color:var(--text)}
+  .hand i{width:8px; height:8px; border-radius:50%; flex:none}
+  .hand b{color:var(--mute); font-weight:500; font-size:10.5px}
+  .hand[data-s="silent"]{border-style:dashed}
   .hand[data-s="off"]{opacity:.5}
-  .hand[data-s="off"] i{background:rgba(255,255,255,.3) !important; box-shadow:none}
-  select.tone{padding:5px 8px; font-size:12px; border-radius:11px}
-  /* Menu bung ra của <select> do hệ điều hành vẽ, nền kính không áp được vào đó —
-     nên phải khai màu chữ/nền cho từng <option>, không thì Windows vẽ chữ trắng
-     trên nền trắng. */
-  select.tone option{background:#2a1e63; color:#fff}
-  #toneV{color:var(--dim); font-weight:400; min-width:0}
-  .btn.icon{padding:6px 9px; display:inline-flex; align-items:center}
+  .hand[data-s="off"] i{background:rgba(244,239,230,.3) !important}
+  /* Ô chọn: KHÔNG in hoa (giá trị là chữ đọc, không phải nhãn), mũi tên vẽ bằng 2
+     gradient chéo — không ảnh, không SVG. */
+  select.tone{-webkit-appearance:none; appearance:none; min-height:28px;
+    padding:0 30px 0 12px; font-size:12px; font-weight:500; letter-spacing:0;
+    text-transform:none; color:var(--text); background-color:var(--surface);
+    border-color:var(--line-2);
+    background-image:linear-gradient(45deg, transparent 50%, var(--gold) 50%),
+      linear-gradient(135deg, var(--gold) 50%, transparent 50%);
+    background-size:5px 5px, 5px 5px; background-repeat:no-repeat;
+    background-position:calc(100% - 16px) 52%, calc(100% - 11px) 52%}
+  select.tone:hover{color:var(--text)}
+  select.tone:disabled{opacity:.4; cursor:not-allowed}
+  /* Menu bung ra của <select> do hệ điều hành vẽ — phải khai màu cho từng <option>,
+     không thì Windows vẽ chữ trắng trên nền trắng. */
+  select.tone option{background:#151417; color:#f4efe6}
+  #toneV{color:var(--gold); font-weight:500; min-width:0}
+  .btn.icon{padding:0; width:32px; min-width:32px}
   .btn.icon svg{display:block}
-  .err{color:#ffb4a6; font-size:12px}
+  .err{color:#e8a598; font-size:12px}
   .hit{position:absolute; left:-9999px; width:1px; height:1px; opacity:0; pointer-events:none}
-  #hits img{display:block; height:20px; width:auto; border-radius:5px}
-  a.btn{text-decoration:none; display:inline-block}
-  a.home{color:#ffd08a; text-decoration:none; font-size:19px; line-height:1; flex:none;
-    text-shadow:0 0 14px rgba(255,208,138,.7)}
-  a.home:hover{opacity:.75}
-  /* Overlay: kính dày phủ hết màn. Chúng CHỒNG lên canvas nhưng chỉ hiện lúc đã dừng
-     nên backdrop-filter ở đây không phải chạy lại mỗi frame. */
+  #hits img{display:block; height:20px; width:auto; border-radius:4px; opacity:.85}
+  a.btn{text-decoration:none}
+  /* Logo về trang chủ: khúc bàn phím mạ vàng, y hệt logo trên nav các trang khác. */
+  a.home{display:block; flex:none; width:20px; height:20px; border-radius:5px;
+    background:
+      linear-gradient(90deg, transparent 27%, var(--bg) 27% 39%, transparent 39% 61%,
+        var(--bg) 61% 73%, transparent 73%) 0 0/100% 58% no-repeat,
+      linear-gradient(90deg, transparent 33%, rgba(11,10,12,.55) 33% 35%, transparent 35% 65%,
+        rgba(11,10,12,.55) 65% 67%, transparent 67%),
+      var(--metal);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.25), 0 6px 18px -8px rgba(217,184,120,.7);
+    transition:filter .2s}
+  a.home:hover{filter:brightness(1.12)}
+  /* Overlay: phủ tối + blur. Chúng CHỒNG lên canvas nhưng chỉ hiện lúc đã dừng nên
+     backdrop-filter ở đây không phải chạy lại mỗi frame. */
   #busy{position:absolute; inset:0; display:none; place-items:center; color:var(--dim);
-    background:rgba(10,8,32,.5); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
-    font-size:13px; z-index:2}
+    background:rgba(8,7,10,.6); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+    font-size:10.5px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; z-index:2}
   #busy.on{display:grid}
   #done, #empty{position:absolute; inset:0; display:none; place-items:center; z-index:1;
-    background:rgba(10,8,32,.5); -webkit-backdrop-filter:blur(16px); backdrop-filter:blur(16px);
+    background:rgba(8,7,10,.66); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
     padding:16px}
   #done.on, #empty.on{display:grid}
-  #done .box, #empty .box{background-color:rgba(255,255,255,.14);
-    border:1px solid rgba(255,255,255,.42);
-    -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
-    border-radius:22px; padding:20px 22px; text-align:center; max-width:340px;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.45), 0 24px 50px -20px rgba(6,2,28,.9)}
-  #done .h, #empty .h{font-size:17px; font-weight:700; margin-bottom:4px}
-  #done .s, #empty .s{font-size:13px; color:var(--dim); margin-bottom:16px; line-height:1.5}
+  #done .box, #empty .box{background-color:var(--surface); border:1px solid var(--line-2);
+    border-radius:20px; padding:26px 26px 24px; text-align:center; max-width:380px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 40px 80px -30px #000,
+      0 0 0 6px rgba(244,239,230,.02)}
+  #done .box::before, #empty .box::before{content:''; display:block; width:28px; height:1px;
+    background:var(--gold); margin:0 auto 16px}
+  #done .h, #empty .h{font-family:var(--serif); font-size:24px; font-weight:500;
+    letter-spacing:-.01em; margin-bottom:6px}
+  #done .s, #empty .s{font-size:13px; color:var(--dim); margin-bottom:20px; line-height:1.55}
   #done .s{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   #done .b, #empty .b{display:flex; gap:8px; justify-content:center; flex-wrap:wrap}
+  #done .btn, #empty .btn{min-height:38px; padding:0 18px}
 
-  /* Máy không có backdrop-filter: mặt kính .14 gần như trong veo, chữ chồng thẳng
-     lên gradient — đục hẳn lên cho đọc được. */
+  /* Thiết kế không dựa vào nhìn-xuyên-qua, nên hai nhánh dưới chỉ phải lo overlay. */
   @supports not ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){
-    :root{--pane:rgba(30,22,80,.88); --glass:rgba(46,34,102,.85);
-      --glass-hi:rgba(60,46,122,.9); --glass-lo:rgba(36,26,86,.8)}
-    #done, #empty, #busy, #drop{background:rgba(12,8,40,.93)}
-    #done .box, #empty .box{background-color:rgba(46,34,102,.98)}
+    #done, #empty, #busy, #drop{background:rgba(8,7,10,.92)}
   }
   @media (prefers-reduced-transparency:reduce){
-    :root{--pane:#4e3f9c; --glass:#5a4aa8; --glass-hi:#6a59b8; --glass-lo:#4a3c92;
-      --blur:none}
-    #fall{background:linear-gradient(180deg,#070a14,#0a0c1a 60%,#101026)}
-    #done, #empty, #busy, #drop{background:rgba(12,8,40,.94)}
-    #done .box, #empty .box{background-color:#5a4aa8}
+    #done, #empty, #busy, #drop{background:rgba(8,7,10,.94);
+      -webkit-backdrop-filter:none; backdrop-filter:none}
   }
-
-  /* Luật gom vệt loé, phải nằm CUỐI file: mọi luật ở trên dùng background-color chứ
-     không dùng shorthand `background:`, nên không có gì xoá mất vệt — kể cả các luật
-     :hover. Cố tình KHÔNG gom .btn.pp / .btn.primary / #fall: mấy cái đó đã có
-     gradient riêng làm nền, gán thêm là mất luôn màu của chúng. */
-  header, footer, .btn, label.chip, .hand, #done .box, #empty .box{
-    background-image:var(--sheen);
+  @media (prefers-reduced-motion:reduce){
+    .btn, label.chip, .hand{transition:none}
+    .btn.pp:hover{background-position:130% 0, 0 0}
   }
 </style>
 </head>
@@ -312,7 +360,7 @@
 <header>
  <div class="bar">
   <div class="side">
-    <a class="home" href="../" title="Trang chủ">♪</a>
+    <a class="home" href="../" title="Trang chủ" aria-label="Trang chủ"></a>
     <h1>Piano falling notes</h1>
     <span class="time" id="time">0:00 / 0:00</span>
     <span class="leg" title="Màu nốt theo tay">
@@ -1839,7 +1887,7 @@ function setReverb(pct){
 function setRate(pct){
   const t = songTime();
   rate = pct / 100;
-  $('rate').value = pct; $('rateV').textContent = pct + '%';
+  $('rate').value = pct; $('rateV').textContent = pct + '%'; paintRange($('rate'));
   killVoices(); anchorAt(t); schedIdx = lowerBound(t);
 }
 
@@ -1899,6 +1947,12 @@ $('tone').onchange = e => {
   savePrefs();
 };
 $('look').oninput = e => { lookahead = +e.target.value; $('lookV').textContent = lookahead + 's'; };
+/* Phần đã kéo của thanh trượt tô vàng — CSS không tự biết giá trị nên phải gán --p.
+   Ngoài lúc kéo, còn phải gọi ở mọi chỗ code tự đổi .value (setRate, khôi phục prefs). */
+function paintRange(r){
+  r.style.setProperty('--p', ((r.value - r.min) / (r.max - r.min) * 100).toFixed(1) + '%');
+}
+document.addEventListener('input', e => { if (e.target.matches('footer input[type=range]')) paintRange(e.target); });
 $('hint').onchange = e => { hintMode = e.target.value; syncHintUI(); lastKeySig = null; refreshSum(); };
 /* Ô "Tên nốt" (Đô Rê Mi / C D E) chỉ có nghĩa ở chế độ note — chế độ số không dùng
    tên nốt nào cả, nên khoá lại thay vì để người ta đổi mà không thấy gì thay đổi. */
@@ -2030,7 +2084,7 @@ function countSong(file){
   const img = document.createElement('img');
   img.src = HITS + '/play/' + encodeURIComponent(file) +
             '.svg?style=flat-square&label=' + encodeURIComponent('lượt tập') +
-            '&color=edb04a&labelColor=232a38';
+            '&color=a8874e&labelColor=1c1b1f';
   img.alt = 'lượt tập'; img.height = 20;
   a.appendChild(img);
   $('hits').replaceChildren(a);
@@ -2118,6 +2172,7 @@ if (typeof prefs.vol === 'number'){ $('vol').value = prefs.vol; setVolume(prefs.
 if (typeof prefs.rev === 'number'){ $('rev').value = prefs.rev; setReverb(prefs.rev); }
 if (Array.isArray(prefs.hands)) prefs.hands.forEach((st, i) => { if (st) setHand(i, st); });
 if (prefs.panel === false) setPanel(false);
+for (const r of document.querySelectorAll('footer input[type=range]')) paintRange(r);
 if (q.get('tone') === 'grand' || prefs.tone === 'grand'){
   $('tone').value = 'grand';
   $('tone').onchange({ target: $('tone') });
