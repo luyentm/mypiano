@@ -43,16 +43,16 @@ CI chặn phần lớn các vi phạm này — xem job `check` trong [.github/wo
 
 | Mục | Dòng | Nội dung |
 | --- | --- | --- |
-| 1 | ~316 | `parseMidi()` — SMF format 0/1: VLQ, running status, note on/off, tempo (0x51), time signature (0x58), tên track (0x03), tempo map tick→giây |
-| 2 | ~456 | State toàn cục: `notes`, `grid`, `duration`, `maxDur`, `geom`, canvas context |
-| 3 | ~567 | Audio: `initAudio()`, `voice()` (2 oscillator + ADSR), `killVoices()` |
-| 4 | ~807 | Đồng hồ: `songTime()`, `songToAudio()`, `anchorAt()` |
-| 5 | ~817 | `normalize()` (bỏ track nhân bản + gán tay), `load()`, `computeRange()` |
-| 6 | ~928 | `buildGeom()`, `resize()` — bảng geometry 88 phím + DPI |
-| 7 | ~972 | `drawFalling()`, `drawKeys()` — vòng vẽ |
-| 8 | ~1377 | Scheduler 25ms + `frame()` (rAF) |
-| 9 | ~1530 | Transport: `play/pause/stop/seekTo/setRate` |
-| 10 | ~1637 | UI binding, `setHand()`, `setPanel()`, toàn màn hình, `countSong()`, `loadFromLibrary()`, overlay hết bài / trống, drag-drop, phím tắt, khởi động |
+| 1 | ~494 | `parseMidi()` — SMF format 0/1: VLQ, running status, note on/off, tempo (0x51), time signature (0x58), tên track (0x03), tempo map tick→giây |
+| 2 | ~634 | State toàn cục: `notes`, `grid`, `duration`, `maxDur`, `geom`, canvas context |
+| 3 | ~768 | Audio: `initAudio()`, `voice()` (2 oscillator + ADSR), `killVoices()` |
+| 4 | ~1008 | Đồng hồ: `songTime()`, `songToAudio()`, `anchorAt()` |
+| 5 | ~1018 | `normalize()` (bỏ track nhân bản + gán tay), `load()`, `computeRange()` |
+| 6 | ~1129 | `buildGeom()`, `resize()` — bảng geometry 88 phím + DPI |
+| 7 | ~1173 | `drawFalling()`, `drawKeys()` — vòng vẽ |
+| 8 | ~1635 | Scheduler 25ms + `frame()` (rAF) |
+| 9 | ~1788 | Transport: `play/pause/stop/seekTo/setRate` |
+| 10 | ~1895 | UI binding, `setHand()`, `setPanel()`, `paintRange()`, toàn màn hình, `countSong()`, `loadFromLibrary()`, overlay hết bài / trống, drag-drop, phím tắt, khởi động |
 
 **Không còn bài demo hardcode** (đã gỡ cùng menu chọn bài trong header).
 `/play/` không tham số sẽ nạp **bài dễ nhất** trong `midi/index.json`; thư viện rỗng
@@ -129,11 +129,15 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
   nhất, nên: transport gom vào top bar (một nút play/pause duy nhất, không có nút Dừng
   riêng), thanh tua bám sát mép dưới top bar để lúc nào cũng tua được, "lượt tập" cũng
   nằm trên top bar, và panel chỉnh ở đáy **tự thu lại khi bấm Chơi**.
-  Top bar chia `grid-template-columns: 1fr auto 1fr` — thông tin trái, **nút Chơi màu cam
+  Top bar chia `grid-template-columns: 1fr auto 1fr` — thông tin trái, **nút Chơi mạ vàng
   chính giữa** (nút chính của cả app, to 74×40 để dễ trúng ngón tay), thao tác dồn phải.
   Grid chứ không phải flex + margin auto, để nút Chơi nằm đúng tâm màn bất kể hai bên
   dài ngắn thế nào. `.btn` phải `white-space:nowrap` không thì nhãn xuống dòng và top bar
   cao vọt lên ở màn hẹp.
+  **Điện thoại DỌC (≤480px) là ngoại lệ duy nhất**: ba nút phải (~225px) không thể nằm
+  cùng hàng với nút Chơi, nên nhóm phải xuống hàng 2 (`grid-column:1/-1`). Màn dọc thừa
+  chiều cao; màn ngang hẹp nhất (568px) vẫn một hàng. Trước đây ở 390px nhóm phải đè lên
+  nút Chơi và cả trang tràn ngang 472px.
   Panel chỉ mở lại khi bấm thanh tay cầm — cố tình KHÔNG tự bung ra lúc pause, vì
   play/pause liên tục sẽ làm layout nhảy. Lúc thu, thanh tay cầm in tóm tắt
   (`panelSummary()`) để vẫn biết đang ở tốc độ / tiếng đàn nào.
@@ -313,6 +317,14 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
   vạch ngăn + 2 nút chọn tay). Bản cũ là hai hàng `flex-wrap` trộn lẫn nên mỗi bề
   ngang lại rơi dòng một kiểu. Đo ở 844×390: panel **176px → 138px**, vùng nốt rơi
   **92px → 130px** (+41%); ở 1024×768 panel 138px, vùng rơi 448px.
+  Đo lại sau khi đổi giao diện Ebony: 844×390 panel **135px**, vùng rơi **134px**;
+  1024×768 panel 135px, vùng rơi 451px. Hàng viên thuốc ở 844 chỉ còn dư ~28px (mép phải
+  802 trên 830): công tắc mới cao 30px, chữ "phát" của nút tay để chữ thường chứ không
+  in hoa — in hoa giãn chữ là hàng này rớt xuống 2 dòng, vùng rơi tụt còn 97px.
+  - **Dưới 480px nhãn thanh kéo xếp LÊN TRÊN thanh** (`label.ctl` thành grid 2 cột: chữ
+    là phần tử ẩn danh `order:0`, số `order:1`, thanh `order:2` chiếm trọn hàng sau).
+    Nửa bề ngang 390px không đủ cho nhãn + thanh + số trên một dòng — trước đây thanh
+    "Nhìn trước"/"Vang" bị đẩy ra ngoài mép.
   - Hàng thanh kéo là **grid** `repeat(auto-fit,minmax(176px,1fr))` để bốn thanh dóng
     thẳng cột. Dưới 700px ép `repeat(2,1fr)`: auto-fit ở đó chỉ nhét được 3 cột nên
     ra khối 3+1 so le, ép 2 cột thì thành 2×2 cân đối mà không cao thêm.
@@ -423,110 +435,115 @@ Vì vậy `/play/` bắt buộc phải chạy qua http — mở bằng `file://`
 - **`?song=` chỉ nhận tên file thuần** (`/^[A-Za-z0-9._-]+\.midi?$/`) rồi fetch `../midi/<tên>`.
   Đừng nhận đường dẫn hay URL đầy đủ — mở đường cho traversal và fetch bậy.
 
-## Giao diện: glassmorphism trên gradient xanh → tím → hồng
+## Giao diện: Ebony · Ivory · Champagne
 
-**Cả site một hệ duy nhất**: nền gradient chéo bão hoà, mọi mặt phẳng là kính mờ
-viền sáng, **chữ trắng**. Bốn trang tĩnh (`/`, `/library/`, `/bai/*/`, `/giay-phep/`)
-và `/play/` dùng chung bảng token; `/play/` chỉ khác ở chỗ vùng nốt rơi giữ nền gần đen.
+**Cả site một hệ duy nhất**: nền đen ấm như gỗ mun, chữ màu ngà, và **MỘT màu nhấn duy
+nhất là vàng sâm-panh** (màu chữ mạ vàng trên nắp đàn grand). Bốn trang tĩnh (`/`,
+`/library/`, `/bai/*/`, `/giay-phep/`) và `/play/` dùng chung bảng token. Thay cho hệ
+glassmorphism tím-hồng trước đó (2026-10): gradient bão hoà + kính viền sáng ở mọi khối +
+chấm 4 màu cầu vồng + nút cam gradient + emoji/chữ chạy — đọc ra đúng "template miễn phí".
 
-Bốn thứ làm nên style này, thiếu cái nào cũng hỏng:
+Sang là ở chỗ **KIỀM CHẾ**. Bốn thứ làm nên style này:
 
-1. **Nền gradient bão hoà, cố định khi cuộn** (`body::before`, `position:fixed; inset:0;
-   z-index:-1`) — cái để nhìn xuyên qua. Kính trôi qua vùng màu khác nhau khi cuộn.
-2. **Mặt kính = một lớp trắng rất mỏng** (`--glass` = trắng 14%) + `backdrop-filter`.
-3. **VIỀN SÁNG 1px rõ rệt** (`--line` = trắng 42%) — đây mới là thứ vẽ ra hình tấm
-   kính. Nền mỏng như trên gần như không thấy nếu bỏ viền đi.
-4. **Vệt loé chéo + bóng đổ tối mềm**, để kính nổi khỏi nền.
+1. **Màu chỉ để MANG NGHĨA** — hai màu tay (`--rh`/`--lh`) và dải mức độ khó. Mọi thứ
+   còn lại là đen – ngà – vàng. Không gradient bão hoà, không chấm cầu vồng, không emoji.
+2. **Đường viền là SỢI TÓC 1px mờ** (`--line` = ngà 9%, `--line-2` = 17%). Khối tách nhau
+   bằng nền lệch vài nấc sáng (`--bg` → `--bg-2` → `--surface`), không bằng viền sáng
+   hay bóng đổ nặng.
+3. **Phân cấp bằng KIỂU CHỮ, không bằng màu**: tiêu đề **serif** (`--serif`, toàn phông
+   hệ thống: Iowan Old Style / Palatino Linotype / Book Antiqua / Noto Serif / Georgia —
+   đều có dấu tiếng Việt, không tải gì), nhãn nhỏ **IN HOA giãn chữ** (`.eyebrow`, `dt`,
+   `th`, nhãn thanh kéo), số dùng `tabular-nums`. Chữ nghiêng serif vàng (`h1 em`) là
+   điểm nhấn duy nhất trong tiêu đề.
+4. **Nút là chữ ký riêng**: viên thuốc (`border-radius:999px`), chữ IN HOA giãn `.14em`,
+   viền sợi tóc; rê chuột thì viền + chữ ngả vàng. Nút chính (`.btn.primary`, `.btn.pp`)
+   **mạ vàng** bằng `--metal` (gradient 3 nấc + gờ sáng trên / gờ tối dưới), có **vệt
+   sáng quét ngang** (`--sweep`, chạy bằng `background-position`, 0 JS) và mũi tên `→`
+   trượt ra (`::after`, `content:'→' / ''` để trình đọc màn hình bỏ qua).
 
 ```
---g1 #17409c  --g2 #33359f  --g3 #4b2ea6  --g4 #6d2478  --g5 #822369
---text #ffffff        --dim rgba(255,255,255,.88)
---rh #ffb648  --lh #4fd0f5  --mint #5ce6a8  --grape #c89cff
---glass rgba(255,255,255,.14)   --glass-hi .18   --glass-lo .09
---line rgba(255,255,255,.42)    --edge inset 0 1px 0 rgba(255,255,255,.45)
---blur saturate(150%) blur(16px)
+--bg #0b0a0c  --bg-2 #111013  --surface #151417  --surface-2 #1c1b1f   (play: --chrome #0f0e11)
+--text #f4efe6 (ngà)   --dim #b3ab9f   --mute #948c81
+--gold #d9b878  --gold-hi #ecd5a3  --gold-lo #a8874e  --gold-line rgba(217,184,120,.42)
+--ink #17120a (mực trên mặt vàng)
+--rh #edb04a  --lh #57a8d4   (CẢ site dùng đúng cặp của màn chơi)
+--line rgba(244,239,230,.09)   --line-2 rgba(244,239,230,.17)
 ```
 
-- **Gradient BẮT BUỘC tối (L ≈ .058–.070), không được tươi sáng** như phần lớn mẫu
-  glassmorphism trên mạng. Kính là lớp TRẮNG đè lên nền, nên nền càng sáng thì mặt
-  kính càng sáng và chữ trắng càng chìm. Đo ở mốc sáng nhất (hồng sen): kính + vệt loé
-  cho chữ trắng 5.67:1; nền sáng thêm một nấc là tụt xuống dưới 4.5. Đúng vì lý do này
-  mà bản gốc bắt chước từ ảnh mẫu (nền pastel sáng) không dùng được — trên ảnh mẫu đó
-  chữ trắng chỉ đạt khoảng 2.5:1.
-- **`--dim` gần như trắng (.88) là CỐ Ý.** Trên kính, mực .72 chỉ còn 3.8:1. Style này
-  không có chỗ cho chữ xám — phân cấp phải làm bằng CỠ CHỮ và ĐỘ ĐẬM, không bằng màu.
-- **Vệt loé (`--sheen`) gán bằng MỘT luật gom ở CUỐI file**, không gộp vào từng luật.
-  Kèm theo đó là quy ước: mọi mặt kính dùng `background-color:` chứ **không dùng
-  shorthand `background:`** — shorthand reset `background-image` và xoá mất vệt loé,
-  nhất là ở các luật `:hover`. Ai thêm mặt kính mới thì phải theo đúng hai điều này.
-  Cố ý KHÔNG gom `.btn.primary` / `.btn.pp` / `.cta` / `.demo` / `#fall`: chúng đã có
-  gradient riêng làm nền, gán thêm là mất luôn màu của chúng.
-- **Link thân bài dùng `:where(.wrap) p a` / `li a`** (xanh nhạt + gạch chân). Trên nền
-  tím chữ đã là trắng, không còn màu nào để phân biệt link với chữ thường. Bọc
+- **Logo là khúc bàn phím mạ vàng** (`.mark` trên nav/footer, `a.home` ở `/play/`): 3 phím
+  trắng + 2 phím đen vẽ bằng 3 lớp gradient trên nền `--metal`. Không ảnh, không emoji `♪`
+  (emoji vẽ khác nhau trên từng hệ điều hành và là thứ làm trang trông rẻ nhất).
+- **Không còn dựa vào nhìn-xuyên-qua.** Mọi mặt khối là màu ĐẶC; chỉ `nav` của trang
+  tĩnh có blur, và overlay của `/play/`. Hệ quả quan trọng: máy tắt Transparency effects
+  của Windows (máy chủ repo đang tắt — `prefers-reduced-transparency: reduce`) giờ thấy
+  **đúng thiết kế**, chỉ nav đặc lại. Bản kính trước đó trên chính máy này hiện ra nhánh
+  dự phòng tím đặc chứ không phải kính.
+- **Bỏ hẳn luật gom `--sheen`** cùng quy ước "chỉ dùng `background-color:`". Không còn
+  vệt loé nào để giữ. Nút vàng tự mang `background-image` của nó.
+- **`.btn` là `inline-flex` nên đè mất `[hidden]` của trình duyệt** — cả 4 file đều có
+  `[hidden]{display:none !important}`. Thiếu dòng này là `#loopchip` / `#fs` / `#pages`
+  hiện ra dù đang `hidden` (đã dính một lần lúc đổi giao diện).
+- **Link thân bài dùng `:where(.wrap) p a` / `li a`** (vàng nhạt + gạch chân sợi tóc). Bọc
   `:where()` để luật có độ ưu tiên bằng 0 phần class, nhờ vậy nav/footer/`.crumb`/
   `.toc`/`.near`/`.btn`/`.cta` tự đè lên nó mà không phải viết một rừng ngoại lệ.
-- **Nhãn mức độ và thẻ bản quyền là VIÊN THUỐC TÔ ĐẦY, không phải chữ màu.** Trên kính
-  tím không màu chữ nào đạt 4.5:1 (đo được 3.2–4.0) — mà nhãn màu chính là thứ cho biết
-  bài dễ hay khó. Tô đầy pastel + mực tối thì lên 7.3–9.8:1. Vì thế bảng `BANDS` có
-  **bốn cột**: `[mốc, nhãn, màu nền, màu mực]`, và phải khớp giữa
+- **Nhãn mức độ và thẻ bản quyền là VIÊN THUỐC NHUỘM**: chữ màu + nền cùng màu pha 13%
+  (`color-mix`) + viền 34%. Trên nền tím cũ không màu chữ nào đạt 4.5 nên phải tô đầy;
+  trên nền đen thì chữ màu đạt hết (5.9–8.4:1) và nhìn đắt hơn hẳn khối pastel. Màu
+  truyền qua biến `--c` (`style="--c:#…"`), không viết `background:`/`color:` inline.
+  Máy không có `color-mix` (Safari < 16.2) rơi về nền/viền ngà mờ, chữ vẫn đúng màu.
+  Bảng `BANDS` vì thế còn **ba cột** `[mốc, nhãn, màu]` — dải trầm dần xanh xô thơm →
+  sâm-panh → đồng → hồng ngọc, không màu nào chói — và phải khớp giữa
   [library/index.html](library/index.html) và [tools/build-pages.js](tools/build-pages.js).
-- **`backdrop-filter` KHÔNG được bọc quanh canvas đang vẽ 60fps.** Hai chỗ cố ý không có
-  nó: `#fall` ở `/play/`, và `.demo` ở trang chủ (bên trong là hero canvas). Trình duyệt
-  phải lọc lại nền mỗi frame nếu thứ bên trong vẽ liên tục. `header`/`footer` của
-  `/play/` thì được: chúng là anh em flex của `#stage` nên không giao nhau về hình học.
-  Overlay (`#done`, `#empty`, `#busy`, `#drop`) cũng được vì chỉ hiện lúc đã dừng.
-- **`#fall` gần như ĐỤC (.97 → .94 → .90).** Đo lại: đỉnh 13.8 → 11.6 lum, đáy 21.7 →
-  21.9 lum so với nền đặc cũ — tức vùng nốt rơi KHÔNG sáng lên, nên mọi con số trong
-  "Quyết định kỹ thuật phải giữ" (dải quãng tám lệch 6.3 lum, vạch lưới 30.6, vạch ô
-  nhịp 59, phủ khoanh ô nhịp trắng 204→139 / đen 30→74) vẫn đúng nguyên. Hạ alpha cho
-  gradient ánh lên nhiều hơn là phải đo lại từng con số đó.
+  Thẻ bản quyền dùng lại đúng màu hai đầu dải (`pd` = `#93c9a4`, `cop` = `#d98ba3`).
+- **Lưới tính năng ở trang chủ là "bảng thông số"**: các ô chung đường kẻ sợi tóc
+  (`gap:1px` trên nền `--line`) thay vì 7 thẻ rời; số thứ tự serif vàng bằng
+  `counter()` thay cho chấm màu. Cột cố định 3 / 2 / 1 theo bề ngang (không `auto-fit`)
+  để ô thứ 7 luôn `grid-column:1/-1` — để trống ô là lộ mảng xám của nền lưới.
+- **`backdrop-filter` KHÔNG được bọc quanh canvas đang vẽ 60fps.** `.demo` ở trang chủ
+  (bên trong là hero canvas) cố ý không có. Ở `/play/` giờ header/footer cũng không có
+  (đặc, không cần nhìn xuyên — trình duyệt đỡ lọc nền); chỉ overlay (`#done`, `#empty`,
+  `#busy`, `#drop`) có blur vì chỉ hiện lúc đã dừng.
+- **`#fall` là gradient ĐẶC `#0a0a0f → #0f0f15 → #15141e`**, chọn khớp độ sáng của bản
+  kính cũ. Đo cùng chỗ (1024×768, trung bình 5 điểm mỗi hàng, đã ẩn canvas): đỉnh
+  **10.6** / giữa **15.7** / đáy **21.4** lum, bản cũ 9.2 / 15.8 / 20.5 — nên mọi con số
+  trong "Quyết định kỹ thuật phải giữ" (dải quãng tám lệch 6.3 lum, vạch lưới 30.6, vạch
+  ô nhịp 59, phủ khoanh ô nhịp trắng 204→139 / đen 30→74) vẫn đúng nguyên. Đặc nên
+  không còn phụ thuộc màu nền trang phía sau.
+- **Thanh kéo ở panel tự vẽ** (rãnh 3px sợi tóc, phần đã kéo vàng, núm ngà có quầng
+  vàng). Phần đã kéo cần biến `--p` do JS gán — `paintRange()`: chạy theo sự kiện
+  `input`, và PHẢI gọi tay ở mọi chỗ code tự đổi `.value` (đang có: `setRate()` — phím
+  tắt đổi tốc độ đi qua đây — và vòng khôi phục prefs). Quên gọi là phần vàng đứng yên
+  ở 50% trong khi núm đã chạy.
+- **Ô chọn (`select.tone`) KHÔNG in hoa** dù mang class `.btn`: giá trị là chữ để đọc,
+  không phải nhãn. Mũi tên vẽ bằng 2 gradient chéo, `appearance:none`.
 - **Ba nơi phải khớp từng giá trị**: `<style>` trong [index.html](index.html), trong
   [library/index.html](library/index.html), và hằng `CSS` trong
-  [tools/build-pages.js](tools/build-pages.js). Lặp lại là cố ý (mỗi trang tự chứa),
-  nhưng lệch màu thì người dùng thấy ngay khi bấm qua lại.
+  [tools/build-pages.js](tools/build-pages.js) — khối chung từ đầu `<style>` tới hết nhánh
+  `prefers-reduced-motion` giống nhau TỪNG KÝ TỰ. Lặp lại là cố ý (mỗi trang tự chứa),
+  nhưng lệch màu thì người dùng thấy ngay khi bấm qua lại. `/play/` có `:root` riêng
+  nhưng cùng giá trị token.
 
-### `prefers-reduced-transparency` — nhánh này gặp thường xuyên hơn bạn nghĩ
+### Đo tương phản (WCAG, trên `--surface` #151417 — mặt sáng nhất có chữ)
 
-Windows tắt **Settings → Personalization → Colors → Transparency effects** là Chrome báo
-`prefers-reduced-transparency: reduce` ngay, và rất nhiều máy tắt sẵn vì pin/hiệu năng
-chứ không phải vì nhu cầu tiếp cận. Máy của chủ repo đang tắt
-(`HKCU\...\Themes\Personalize\EnableTransparency = 0`), nên **mở site trên chính máy đó
-là thấy nhánh dự phòng, không phải kính**.
-
-Vì vậy nhánh dự phòng phải TRÔNG NHƯ chính thiết kế, không được thành thứ khác:
-
-- Bản đầu cho mặt kính thành khối tím **đặc và TỐI hơn nền** — lật ngược quan hệ
-  sáng/tối của cả thiết kế (kính vốn phải sáng hơn nền). Đã sửa.
-- Cách đang dùng: vẫn bỏ hẳn nhìn-xuyên-qua và bỏ blur, nhưng thay bằng màu ĐẶC lấy
-  đúng bằng màu tấm kính hiện ra khi nằm trên khúc GIỮA gradient (`#5a4aa8`). Mặt kính
-  vẫn sáng hơn nền, viền sáng và vệt loé giữ nguyên, chữ trắng lên 7.05:1.
-- Muốn xem kính thật trên máy đang tắt: bật lại Transparency effects, hoặc tạm chèn
-  `:root{--glass:rgba(255,255,255,.14)!important; --blur:saturate(150%) blur(18px)!important}`.
-
-Nhánh `@supports not (backdrop-filter)` là chuyện khác (trình duyệt không hỗ trợ) và
-vẫn dùng màu đặc hơn nữa.
-
-### Đo tương phản (WCAG, ca xấu nhất = ĐÚNG TÂM từng mốc gradient)
-
-| Chỗ | thấp nhất | ngưỡng |
+| Chỗ | đạt | ngưỡng |
 | --- | --- | --- |
-| chữ trắng trên kính (kể cả vệt loé) | 5.67 | 4.5 |
-| chữ trắng trên kính lúc hover | 5.16 | 4.5 |
-| `--dim` .88 trên kính | 4.80 | 4.5 |
-| chữ trắng nằm thẳng trên gradient | 8.77 | 4.5 |
-| viên thuốc 6 mức độ | 7.26 | 4.5 |
-| mực `#3d2200` trên nút cam | 7.08 | 4.5 |
-| nhánh giảm-trong-suốt (`#5a4aa8`) | 7.05 | 4.5 |
+| `--text` ngà | 16.0 | 4.5 |
+| `--dim` chữ phụ | 8.08 | 4.5 |
+| `--mute` nhãn nhỏ, chú thích | 5.53 | 4.5 |
+| `--gold` (eyebrow, số thứ tự) | 9.68 | 4.5 |
+| `--gold-hi` (link, tác giả) | 12.8 | 4.5 |
+| viên thuốc 6 mức độ (chữ trên nền nhuộm) | 5.89 | 4.5 |
+| mực `--ink` trên mặt vàng (chỗ tối nhất `#c09955`) | 7.58 | 4.5 |
 
-- **`--rh`/`--lh` chỉ dùng làm khối màu và chấm, KHÔNG làm chữ.** Trên kính tím không
-  màu nào ngoài gần-trắng đạt 4.5.
+- **Đừng thêm màu xám nào tối hơn `--mute`.** Nó đã sát nấc an toàn cho chữ 10.5px.
+- **`--rh`/`--lh` chỉ làm khối màu và chấm, không làm chữ** — giữ thói quen cũ dù trên nền
+  đen chúng đạt: chữ màu tay lẫn với nốt rơi.
 - **Khung mô phỏng ở trang chủ (`.demo`) giữ nền gần đen** — nó là ảnh thu nhỏ của
-  `/play/` thật. Để sáng thì trang chủ hứa một đằng, bấm vào một nẻo. Hero canvas cũng
-  đọc `--rh`/`--lh` nên hai màu đó phải luôn nổi được trên nền tối.
-- **`@media (max-width:560px)` bóp nav lại** (ẩn mục `#tinh-nang`, giảm cỡ chữ và đệm).
-  Không có nó thì ở 375px chữ "Tính năng"/"Thư viện" xuống dòng và mục cuối bị đẩy ra
-  ngoài mép. `nav a` bắt buộc `white-space:nowrap`. Đo sau khi sửa: mép phải mục cuối
-  355px trên khung 375px, nav một hàng, không trang nào tràn ngang.
+  `/play/` thật. Hero canvas đọc `--rh`/`--lh` nên hai màu đó phải luôn nổi trên nền tối.
+- **`@media (max-width:560px)` bóp nav lại** (ẩn mục `#tinh-nang`, giảm cỡ chữ, giãn chữ
+  và đệm). Nav in hoa giãn chữ nên còn rộng hơn bản cũ — không có nhánh này là 375px
+  tràn. `nav a` bắt buộc `white-space:nowrap`. Đo sau khi đổi giao diện: mép phải mục
+  cuối 357px trên khung 375px, nav một hàng ở 375/390/768/1280, không trang nào tràn ngang.
 
 ## Thêm bài vào thư viện
 
@@ -777,12 +794,23 @@ thư viện lập trình · bảng bản quyền từng file MIDI · dịch vụ
   `<span class="cur">` chứ không tự link về mình.
 - **Trên `/play/` link nằm ở NHÓM TRÁI của top bar, không phải nhóm phải.** Nhóm phải có
   `#songname` co giãn: nhét thêm 57px vào đó thì tên bài bị cắt từ 172px xuống 107px.
-  Nhóm trái (`♪` · đồng hồ · chú thích tay · badge lượt tập) mới là chỗ còn chỗ thật.
+  Nhóm trái (logo · đồng hồ · chú thích tay · badge lượt tập) mới là chỗ còn chỗ thật.
   Là chữ thường (`a.lic`) chứ không phải `.btn` — top bar là chỗ chật nhất màn hình.
 - **`@media (max-width:820px)` ẩn link đó đi**, đúng kiểu `h1`/`.sub`/`.leg` đã làm.
   Đo với badge lượt tập giả lập 95px (ở localhost `#hits` rỗng, không giả lập là đo
   thiếu 95px): 1024px còn khe 111px tới nút Chơi, 844px còn 28px, 812px 12px, 800px 6px,
   780px thì âm. Để 820 chứ không sát mép vì bề ngang chữ đổi theo phông hệ thống.
+  Đo lại sau khi đổi giao diện, cùng máy, so thẳng với bản cũ: khe ở 844px 18 → 16px,
+  1024px 101 → 99px, 800px 66 → 64px — chênh 2px, ngưỡng 820 vẫn đúng. (Con số tuyệt đối
+  khác đoạn trên vì máy đo khác phông; luôn so cũ/mới trên CÙNG một máy.)
+- **Thứ tự nhường chỗ ở nhóm trái** (bổ sung cùng đợt đổi giao diện):
+  `a.lic` ẩn ≤820px · `#hits` (badge) ẩn ≤760px — chú thích tay quan trọng hơn, ảnh vẫn
+  được tải nên lượt tập vẫn đếm · `.leg` ẩn ≤560px. **Khi có đoạn lặp** (`#loopchip`
+  hiện, ~115px) thì `a.lic` + `#hits` nhường luôn ở mọi bề ngang, ≤760px nhường thêm
+  `.leg`, ≤480px chip lặp xuống góc trái hàng 2 (nhóm phải dồn sang phải). Bản cũ nhét
+  chip vào mà không nhường gì: đo với badge 95px nhóm trái đè lên nút Chơi ở MỌI bề
+  ngang (−100px ở 844, −17px ở 1024). Đo sau khi sửa ở 390/568/640/700/760/800/844/
+  1024/1280, có và không có đoạn lặp: 0 phần tử chạm nút Chơi, 0 cặp chồng nhau, 0 tràn ngang.
   **Bản đầu đặt ở nhóm phải và không có ngưỡng nào: ở 568px nhóm phải tràn ngược 15px
   và ĐÈ LÊN nút Chơi.** Nút Chơi vẫn đúng tâm ở mọi bề ngang đã đo (grid `1fr auto 1fr`).
 - Bảng cuộn ngang trong khung riêng (`.tw{overflow-x:auto}`, bảng `min-width:520px`) — đo ở
